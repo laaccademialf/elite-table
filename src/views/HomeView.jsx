@@ -1,81 +1,132 @@
 import React from "react";
 import {
   Calendar as CalendarIcon,
-  Layers,
 } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
 import { CustomCalendar } from "../components/CustomCalendar";
 import { SafeImage } from "../components/SafeImage";
-import { getIcon } from "../utils/iconUtils";
+
+const CATEGORIES = [
+  { id: 1, name: 'Всі', icon: '📋' },
+  { id: 2, name: 'plates', icon: '🍽️', label: 'Тарілки' },
+  { id: 3, name: 'glasses', icon: '🍷', label: 'Келихи' },
+  { id: 4, name: 'cutlery', icon: '🔪', label: 'Прибори' },
+  { id: 5, name: 'textiles', icon: '🧵', label: 'Текстиль' },
+];
 
 export const HomeView = () => {
   const {
     globalDates,
     setGlobalDates,
-    categories,
     selectedCategory,
     setSelectedCategory,
-    items,
-    getMaxAvailableForRange,
+    products,
     setSelectedItem,
-    setBookingStatus,
-    setOrderQuantity,
     setView,
   } = useAppContext();
 
+  const filteredProducts = selectedCategory === 'Всі' 
+    ? products 
+    : products.filter(p => p.category === selectedCategory);
+
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-700">
-      <div className="mb-12 card-bg p-8 rounded-xlcard border border-transparent flex flex-col md:flex-row items-center gap-8">
+      {/* Hero Section */}
+      <div className="mb-12 bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-8">
         <div className="flex-1">
-          <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter mb-2 text-primary">ВАША ОСОБЛИВА ПОДІЯ</h2>
-          <p className="text-gray-500 text-sm">Оберіть дату, щоб почати магію сервірування</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2 uppercase">ВАША ОСОБЛИВА ПОДІЯ</h2>
+          <p className="text-slate-600 text-sm">Оберіть дату, щоб почати магію сервірування</p>
           {globalDates.start && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-primary text-white px-6 py-2 rounded-full font-black uppercase text-[10px] tracking-widest shadow-lg">
+            <div className="mt-4 inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-2 rounded-full font-bold uppercase text-xs shadow-lg">
               <CalendarIcon size={14} /> 
               {globalDates.start}.12.2025 {globalDates.end ? `- ${globalDates.end}.12.2025` : ''}
             </div>
           )}
         </div>
-        <div className="w-full md:w-80"><CustomCalendar globalDates={globalDates} setGlobalDates={setGlobalDates} /></div>
+        <div className="w-full md:w-80">
+          <CustomCalendar globalDates={globalDates} setGlobalDates={setGlobalDates} />
+        </div>
       </div>
 
-      {/* ЗАКРІПЛЕНІ КАТЕГОРІЇ */}
-      <div className="sticky top-16 z-40 bg-transparent py-6 -mx-6 px-6 mb-8 transition-all">
+      {/* Category Filter */}
+      <div className="sticky top-16 z-40 bg-white/95 backdrop-blur py-6 -mx-6 px-6 mb-8 shadow-sm">
         <div className="flex flex-wrap justify-center gap-4 max-w-7xl mx-auto">
-          {categories.map(cat => (
+          {CATEGORIES.map(cat => (
             <button 
               key={cat.id} 
               onClick={() => setSelectedCategory(cat.name)} 
-              className={`flex flex-col items-center justify-center p-3 rounded-[28px] w-20 h-20 md:w-24 md:h-24 transition-all ${
+              className={`flex flex-col items-center justify-center p-3 rounded-2xl w-20 h-20 md:w-24 md:h-24 transition-all ${
                 selectedCategory === cat.name 
-                  ? 'bg-primary text-white shadow-xl scale-105' 
-                  : 'bg-white border border-gray-100 text-gray-400 hover:border-accent'
+                  ? 'bg-slate-900 text-white shadow-lg scale-105' 
+                  : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-slate-900'
               }`}
             >
-              <div className={`mb-1 transition-transform ${selectedCategory === cat.name ? 'scale-110' : ''}`}>
-                {getIcon(cat.icon, 24)}
-              </div>
-              <span className="text-[8px] font-black uppercase tracking-widest text-center">{cat.name}</span>
+              <span className="text-2xl mb-1">{cat.icon}</span>
+              <span className="text-xs font-semibold uppercase text-center">{cat.label || cat.name}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-        {items.filter(i => selectedCategory === 'Всі' || i.category === selectedCategory).map(item => {
-          const avail = globalDates.start ? getMaxAvailableForRange(item.id, globalDates.start, globalDates.end) : item.count;
-          return (
-            <div key={item.id} className="group cursor-pointer" onClick={() => { setSelectedItem(item); setBookingStatus('idle'); setOrderQuantity("1"); setView('item'); window.scrollTo(0,0); }}>
-              <div className="relative aspect-square rounded-card overflow-hidden bg-gray-50 border border-transparent mb-5 shadow-soft-card group-hover:shadow-lg transition-shadow group-hover:scale-105 transform duration-300">
-                <SafeImage src={item.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${avail > 0 ? 'bg-white text-gray-900 shadow-md' : 'bg-red-500 text-white'}`}>{avail > 0 ? `${avail} В НАЯВНОСТІ` : 'Зайнято'}</div>
+      {/* Products Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {filteredProducts.map(product => (
+          <div 
+            key={product.id} 
+            onClick={() => {
+              setSelectedItem(product);
+              setView('item');
+              window.scrollTo(0, 0);
+            }}
+            className="group cursor-pointer"
+          >
+            {/* Product Image */}
+            <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 mb-4 shadow-sm group-hover:shadow-lg transition-all">
+              {product.image ? (
+                <SafeImage 
+                  src={product.image} 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400 text-4xl">
+                  📦
+                </div>
+              )}
+              
+              {/* Stock Badge */}
+              <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-bold uppercase ${
+                product.quantity > 0 
+                  ? 'bg-white text-slate-900 shadow-md' 
+                  : 'bg-red-500 text-white'
+              }`}>
+                {product.quantity > 0 ? `${product.quantity} В НАЯВНОСТІ` : 'НЕМАЄ'}
               </div>
-              <h3 className="text-base md:text-lg font-black uppercase tracking-tight mb-1">{item.title}</h3>
-              <p className="text-lg font-black">{item.price} ₴ <span className="text-[10px] text-gray-400 font-bold italic">/ од</span></p>
             </div>
-          );
-        })}
+
+            {/* Product Info */}
+            <h3 className="text-sm md:text-base font-bold text-slate-900 uppercase line-clamp-2">
+              {product.name}
+            </h3>
+            <p className="text-slate-600 text-xs line-clamp-1 mb-2">{product.description}</p>
+            <p className="text-lg font-bold text-slate-900">
+              {product.price} ₴ <span className="text-xs text-slate-500 font-normal">/од</span>
+            </p>
+          </div>
+        ))}
       </div>
+
+      {/* No Products */}
+      {filteredProducts.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-slate-600 text-lg mb-4">Товарів немає у цій категорії</p>
+          <button
+            onClick={() => setSelectedCategory('Всі')}
+            className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800"
+          >
+            Переглянути всі товари
+          </button>
+        </div>
+      )}
     </main>
   );
 };

@@ -101,6 +101,32 @@ export const getCurrentUser = () => {
   });
 };
 
+// Auto-register user with phone number (used in checkout)
+export const registerUserWithPhone = async (phoneNumber, name = '') => {
+  try {
+    const email = `${phoneNumber.replace(/\D/g, '')}@renttable.local`;
+    const password = Math.random().toString(36).slice(-8);
+
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = userCredential.user.uid;
+
+    await addDoc(collection(db, 'users'), {
+      uid,
+      email,
+      phone: phoneNumber,
+      name: name || 'Клієнт',
+      role: 'customer',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+
+    return { uid, email, password };
+  } catch (error) {
+    console.error('Error auto-registering user:', error);
+    throw error;
+  }
+};
+
 // ==================== PRODUCTS (ПОСУД) ====================
 
 export const addProduct = async (productData) => {

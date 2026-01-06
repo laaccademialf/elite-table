@@ -1,5 +1,7 @@
-import React from "react";
-import { Wine, Calendar as CalendarIcon, Settings, ShoppingBag, X } from "lucide-react";
+import React, { useState } from "react";
+import { Wine, Calendar as CalendarIcon, ShoppingBag, LogOut, Package, X, LogIn } from "lucide-react";
+import { useAppContext } from "../context/useAppContext";
+import LoginModal from "./LoginModal";
 
 export const Navbar = ({
   isAdminMode,
@@ -9,70 +11,128 @@ export const Navbar = ({
   setGlobalDates,
   cart,
 }) => {
+  const { currentUser, handleLogout } = useAppContext();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
   return (
-    <nav className="sticky top-0 z-50 bg-transparent px-6 h-16 flex items-center justify-between">
-      <div
-        className="flex items-center cursor-pointer shrink-0"
-        onClick={() => {
-          setView("home");
-          setIsAdminMode(false);
-        }}
-      >
-        <div className="flex items-center mr-4">
-          <div className="bg-white p-2 rounded-card shadow-soft-md mr-3 flex items-center justify-center">
-            <Wine className="text-accent" size={20} />
-          </div>
-          <span className="text-xl font-black tracking-widest uppercase text-primary">
-            ELITE TABLE
-          </span>
-        </div>
-      </div>
-
-      {globalDates.start && (
-        <div className="flex items-center gap-2 bg-[#C5A059]/10 text-[#C5A059] px-4 py-2 rounded-full border border-[#C5A059]/20 animate-in fade-in zoom-in duration-300">
-          <CalendarIcon size={14} className="animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-widest">
-            {globalDates.start}.12{globalDates.end ? ` - ${globalDates.end}.12` : ""}
-          </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setGlobalDates({ start: null, end: null });
-            }}
-            className="ml-1 hover:text-gray-900 transition-colors"
-            title="Скинути дату"
-          >
-            <X size={12} />
-          </button>
-        </div>
-      )}
-
-      <div className="flex items-center space-x-4 shrink-0">
-        <button
+    <>
+      <nav className="sticky top-0 z-40 bg-white border-b border-slate-200 px-6 h-16 flex items-center justify-between shadow-sm">
+        {/* Logo */}
+        <div
+          className="flex items-center cursor-pointer shrink-0"
           onClick={() => {
-            setIsAdminMode(!isAdminMode);
-            setView(isAdminMode ? "home" : "admin");
+            setView("home");
+            setIsAdminMode(false);
           }}
-          className={`p-2 rounded-full transition-all ${
-            isAdminMode
-              ? "bg-primary text-white shadow-lg"
-              : "text-gray-400 hover:bg-gray-100"
-          }`}
         >
-          <Settings size={20} />
-        </button>
-        <button
-          onClick={() => setView("cart")}
-          className="relative p-2 hover:bg-gray-100 rounded-full text-gray-900"
-        >
-          <ShoppingBag size={20} />
-          {cart.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-accent text-white text-[8px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-md animate-bounce">
-              {cart.length}
+          <div className="flex items-center gap-2">
+            <div className="bg-slate-900 p-2 rounded-lg">
+              <Wine className="text-white" size={20} />
+            </div>
+            <span className="text-lg font-bold tracking-wide uppercase text-slate-900 hidden sm:inline">
+              ELITE TABLE
             </span>
+          </div>
+        </div>
+
+        {/* Center: Selected Date */}
+        {globalDates.start && (
+          <div className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-lg border border-slate-200">
+            <CalendarIcon size={14} />
+            <span className="text-xs font-semibold uppercase">
+              {globalDates.start}.12{globalDates.end ? ` - ${globalDates.end}.12` : ""}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setGlobalDates({ start: null, end: null });
+              }}
+              className="ml-1 hover:text-slate-900 transition-colors"
+              title="Скинути дату"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Orders Button */}
+          {currentUser && (
+            <button
+              onClick={() => setView("orders")}
+              className="hidden sm:flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-900 transition"
+              title="Мої замовлення"
+            >
+              <Package size={18} />
+              <span className="text-xs font-semibold">Замовлення</span>
+            </button>
           )}
-        </button>
-      </div>
-    </nav>
+
+          {/* Admin Mode Toggle */}
+          {currentUser?.role === "manager" && (
+            <button
+              onClick={() => setIsAdminMode(!isAdminMode)}
+              className={`p-2 rounded-lg transition-all ${
+                isAdminMode
+                  ? "bg-slate-900 text-white shadow-lg"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+              title="Панель менеджера"
+            >
+              <Package size={18} />
+            </button>
+          )}
+
+          {/* Cart Button */}
+          <button
+            onClick={() => setView("cart")}
+            className="relative p-2 hover:bg-slate-100 rounded-lg text-slate-900 transition"
+            title="Кошик"
+          >
+            <ShoppingBag size={18} />
+            {cart.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg">
+                {cart.length}
+              </span>
+            )}
+          </button>
+
+          {/* Auth Section */}
+          {currentUser ? (
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+              <div className="hidden sm:block">
+                <p className="text-xs font-semibold text-slate-900">{currentUser?.name}</p>
+                <p className="text-xs text-slate-600">{currentUser?.role === 'manager' ? 'Менеджер' : 'Клієнт'}</p>
+              </div>
+              <button
+                onClick={async () => {
+                  await handleLogout();
+                  setView("home");
+                }}
+                className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                title="Вихід"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition font-medium text-sm"
+            >
+              <LogIn size={16} />
+              <span className="hidden sm:inline">Вхід</span>
+            </button>
+          )}
+        </div>
+      </nav>
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={() => {}}
+      />
+    </>
   );
 };
