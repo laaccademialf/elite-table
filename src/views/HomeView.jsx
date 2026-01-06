@@ -3,8 +3,8 @@ import {
   Calendar as CalendarIcon,
 } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
-import { CustomCalendar } from "../components/CustomCalendar";
 import { SafeImage } from "../components/SafeImage";
+import DateRangePicker from "../components/DateRangePicker";
 
 const CATEGORIES = [
   { id: 1, name: 'Всі', icon: '📋' },
@@ -36,15 +36,7 @@ export const HomeView = () => {
         <div className="flex-1 flex flex-col items-center md:items-start justify-center px-2 md:px-6">
           <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 uppercase tracking-tight drop-shadow-sm">ВАША ОСОБЛИВА ПОДІЯ</h2>
           <p className="text-slate-600 text-xs md:text-sm mb-1 md:mb-2">Оберіть дату, щоб почати магію сервірування</p>
-          {globalDates.start && (
-            <div className="mt-1 inline-flex items-center gap-2 bg-slate-900 text-white px-3 py-1 rounded-full font-bold uppercase text-xs shadow">
-              <CalendarIcon size={12} />
-              {globalDates.start}.{(globalDates.month !== undefined ? globalDates.month+1 : 12)}.{globalDates.year || 2025} {globalDates.end ? `- ${globalDates.end}.${(globalDates.month !== undefined ? globalDates.month+1 : 12)}.${globalDates.year || 2025}` : ''}
-            </div>
-          )}
-        </div>
-        <div className="w-full md:w-64 flex justify-center items-center">
-          <CustomCalendar globalDates={globalDates} setGlobalDates={setGlobalDates} />
+          <DateRangePicker value={globalDates} onChange={setGlobalDates} />
         </div>
       </div>
 
