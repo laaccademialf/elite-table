@@ -8,6 +8,8 @@ export default function CategoryManager({ onCategoryChange }) {
   const [icon, setIcon] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const loadCategories = async () => {
     setLoading(true);
@@ -23,17 +25,32 @@ export default function CategoryManager({ onCategoryChange }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    if (editingId) {
-      await updateCategory(editingId, { name, description, icon });
-    } else {
-      await addCategory({ name, description, icon });
+    setError('');
+    setSuccess('');
+    if (!name.trim()) {
+      setError('Введіть назву категорії');
+      return;
     }
-    setName('');
-    setDescription('');
-    setIcon('');
-    setEditingId(null);
-    await loadCategories();
+    setLoading(true);
+    try {
+      if (editingId) {
+        await updateCategory(editingId, { name, description, icon });
+        setSuccess('Категорію оновлено!');
+      } else {
+        await addCategory({ name, description, icon });
+        setSuccess('Категорію додано!');
+      }
+      setName('');
+      setDescription('');
+      setIcon('');
+      setEditingId(null);
+      await loadCategories();
+    } catch (err) {
+      setError('Помилка при збереженні категорії');
+    } finally {
+      setLoading(false);
+      setTimeout(() => { setSuccess(''); setError(''); }, 2000);
+    }
   };
 
   const handleEdit = (cat) => {
@@ -54,6 +71,8 @@ export default function CategoryManager({ onCategoryChange }) {
     <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
       <h3 className="text-xl font-bold mb-4">Категорії товарів</h3>
       <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-2 mb-4">
+        {error && <div className="text-red-600 font-medium mb-2 w-full">{error}</div>}
+        {success && <div className="text-green-600 font-medium mb-2 w-full">{success}</div>}
         <input
           type="text"
           placeholder="Назва категорії"
