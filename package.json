@@ -8,7 +8,8 @@
     "build": "vite build",
     "vercel-build": "npm run build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "create-admin": "node scripts/create-admin.js"
   },
   "dependencies": {
     "firebase": "^12.7.0",

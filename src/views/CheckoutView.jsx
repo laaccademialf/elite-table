@@ -1,6 +1,7 @@
-import React from "react";
-import { CheckCircle2 } from "lucide-react";
+import React, { useState } from "react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
+import { registerUserWithPhone } from "../services/firebase";
 
 export const CheckoutView = () => {
   const {
@@ -10,7 +11,31 @@ export const CheckoutView = () => {
     customerInfo,
     setCustomerInfo,
     handleOrderSubmit,
+    currentUser,
   } = useAppContext();
+
+  const [autoRegError, setAutoRegError] = useState("");
+
+  const handleCheckoutSubmit = async (e) => {
+    e.preventDefault();
+    setAutoRegError("");
+
+    // If user not logged in, auto-register with phone
+    if (!currentUser) {
+      try {
+        const result = await registerUserWithPhone(customerInfo.phone, customerInfo.name);
+        console.log("Auto-registered user:", result);
+        // Proceed with order submission
+        await handleOrderSubmit(e);
+      } catch (error) {
+        setAutoRegError(error.message || "Помилка реєстрації. Спробуйте ще раз.");
+        return;
+      }
+    } else {
+      // User already logged in, just submit order
+      await handleOrderSubmit(e);
+    }
+  };
 
   if (view !== "checkout") return null;
 
@@ -20,17 +45,75 @@ export const CheckoutView = () => {
         <div className="text-center py-20 bg-gray-900 rounded-[64px] shadow-2xl px-12">
           <CheckCircle2 size={64} className="mx-auto text-green-400 mb-8 animate-bounce" />
           <h2 className="text-4xl font-black italic mb-6 uppercase text-white">Замовлення прийнято!</h2>
-          <p className="text-sm text-gray-400 mb-10 italic">Дякуємо за вашу довіру. Ми зв'яжемося з вами найскоріше.</p>
-          <button onClick={() => setView('home')} className="w-full py-6 bg-[#C5A059] text-white font-black rounded-full uppercase tracking-widest">← На головну</button>
+          <p className="text-sm text-gray-400 mb-4 italic">Дякуємо за вашу довіру. Ми зв'яжемося з вами найскоріше.</p>
+          {!currentUser && (
+            <p className="text-xs text-gray-500 mb-10">
+              <strong>Ваш облік створено:</strong> Email: {customerInfo.phone.replace(/\D/g, '')}@renttable.local
+            </p>
+          )}
+          <button onClick={() => setView("home")} className="w-full py-6 bg-[#C5A059] text-white font-black rounded-full uppercase tracking-widest">← На головну</button>
         </div>
       ) : (
         <div className="bg-white rounded-[64px] shadow-2xl p-12 border border-gray-100">
           <h2 className="text-3xl font-black italic mb-10 uppercase border-b pb-8">Оформлення замовлення</h2>
-          <form onSubmit={handleOrderSubmit} className="space-y-6">
-            <input required className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400" placeholder="Ім'я" value={customerInfo.name} onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })} />
-            <input required className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400" placeholder="Телефон" value={customerInfo.phone} onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })} />
-            <input required className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400" placeholder="Адреса доставки" value={customerInfo.address} onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })} />
-            <button type="submit" className="w-full py-6 bg-gray-900 text-white font-black rounded-full uppercase tracking-[0.3em] text-[10px] shadow-2xl hover:bg-[#C5A059] transition-all">🛒 Оформити замовлення</button>
+          
+          {!currentUser && (
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded">
+              <div className="flex gap-3">
+                <AlertCircle size={20} className="text-blue-400 flex-shrink-0" />
+                <p className="text-sm text-blue-800">
+                  <strong>Автоматична реєстрація:</strong> Ми створимо облік на основі вашого телефону. Пароль буде відправлено на email.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleCheckoutSubmit} className="space-y-6">
+            <input
+              required
+              type="text"
+              className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+              placeholder="Ім'я"
+              value={customerInfo.name}
+              onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+            />
+            <input
+              required
+              type="tel"
+              className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+              placeholder="Телефон (+380...)"
+              value={customerInfo.phone}
+              onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+            />
+            <input
+              required
+              type="email"
+              className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+              placeholder="Email"
+              value={customerInfo.email}
+              onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+            />
+            <textarea
+              className="w-full px-8 py-5 rounded-2xl bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+              placeholder="Адреса доставки"
+              value={customerInfo.address}
+              onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
+              rows="3"
+            />
+
+            {autoRegError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {autoRegError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={bookingStatus === "loading"}
+              className="w-full py-6 bg-gray-900 text-white font-black rounded-full uppercase tracking-[0.3em] text-[10px] shadow-2xl hover:bg-[#C5A059] transition-all disabled:opacity-50"
+            >
+              {bookingStatus === "loading" ? "⏳ Обробляємо..." : "🛒 Оформити замовлення"}
+            </button>
           </form>
         </div>
       )}
