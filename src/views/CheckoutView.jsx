@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
-import { registerUserWithPhone } from "../services/firebase";
+import { registerUserWithPhone, loginUser } from "../services/firebase";
 
 export const CheckoutView = () => {
   const {
@@ -15,24 +15,35 @@ export const CheckoutView = () => {
   } = useAppContext();
 
   const [autoRegError, setAutoRegError] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     setAutoRegError("");
 
-    // If user not logged in, auto-register with phone
+    // Якщо користувач не залогінений, але ввів email і пароль — пробуємо логін
+    if (!currentUser && customerInfo.email && password) {
+      try {
+        await loginUser(customerInfo.email, password);
+        await handleOrderSubmit(e);
+        return;
+      } catch (error) {
+        setAutoRegError(error.message || "Помилка входу. Спробуйте ще раз або скористайтесь автозаповненням телефону.");
+        return;
+      }
+    }
+
+    // Якщо не залогінений і не ввів пароль — авто-реєстрація по телефону
     if (!currentUser) {
       try {
         const result = await registerUserWithPhone(customerInfo.phone, customerInfo.name);
         console.log("Auto-registered user:", result);
-        // Proceed with order submission
         await handleOrderSubmit(e);
       } catch (error) {
         setAutoRegError(error.message || "Помилка реєстрації. Спробуйте ще раз.");
         return;
       }
     } else {
-      // User already logged in, just submit order
       await handleOrderSubmit(e);
     }
   };
@@ -93,6 +104,17 @@ export const CheckoutView = () => {
               value={customerInfo.email}
               onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
             />
+            {/* Поле пароль для входу */}
+            {!currentUser && (
+              <input
+                type="password"
+                className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+                placeholder="Пароль (для входу, якщо вже є акаунт)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            )}
             <textarea
               className="w-full px-8 py-5 rounded-2xl bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
               placeholder="Адреса доставки"
