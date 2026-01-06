@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
-import { registerUserWithPhone, loginUser } from "../services/firebase";
+import { registerUserWithPhone, loginUser, registerUser } from "../services/firebase";
 
 export const CheckoutView = () => {
   const {
@@ -21,15 +21,35 @@ export const CheckoutView = () => {
     e.preventDefault();
     setAutoRegError("");
 
-    // Якщо користувач не залогінений, але ввів email і пароль — пробуємо логін
+    // Якщо користувач не залогінений і ввів email+пароль — пробуємо створити акаунт, якщо вже існує — логін
     if (!currentUser && customerInfo.email && password) {
       try {
-        await loginUser(customerInfo.email, password);
+        await registerUser(
+          customerInfo.email,
+          password,
+          {
+            name: customerInfo.name,
+            phone: customerInfo.phone,
+            role: "customer",
+          }
+        );
         await handleOrderSubmit(e);
         return;
       } catch (error) {
-        setAutoRegError(error.message || "Помилка входу. Спробуйте ще раз або скористайтесь автозаповненням телефону.");
-        return;
+        // Якщо акаунт вже існує — пробуємо логін
+        if (error.code === "auth/email-already-in-use") {
+          try {
+            await loginUser(customerInfo.email, password);
+            await handleOrderSubmit(e);
+            return;
+          } catch (loginErr) {
+            setAutoRegError(loginErr.message || "Помилка входу. Спробуйте ще раз або скористайтесь автозаповненням телефону.");
+            return;
+          }
+        } else {
+          setAutoRegError(error.message || "Помилка реєстрації. Спробуйте ще раз.");
+          return;
+        }
       }
     }
 
@@ -109,7 +129,7 @@ export const CheckoutView = () => {
               <input
                 type="password"
                 className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
-                placeholder="Пароль (для входу, якщо вже є акаунт)"
+                placeholder="Пароль (для створення або входу в акаунт)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
