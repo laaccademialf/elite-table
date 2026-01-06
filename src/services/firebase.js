@@ -248,19 +248,17 @@ export const getOrders = async (filters = {}) => {
     if (filters.userId) {
       constraints.push(where('userId', '==', filters.userId));
     }
-
+    if (filters.customerEmail) {
+      constraints.push(where('customerEmail', '==', filters.customerEmail));
+    }
     if (filters.status) {
       constraints.push(where('status', '==', filters.status));
     }
-
     constraints.push(orderBy('createdAt', 'desc'));
-
     if (filters.limit) {
       constraints.push(limit(filters.limit));
     }
-
     q = query(q, ...constraints);
-
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map((doc) => ({
       id: doc.id,

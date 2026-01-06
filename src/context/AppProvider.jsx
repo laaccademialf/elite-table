@@ -83,10 +83,9 @@ export function AppProvider({ children }) {
         if (currentUser.uid) {
           userOrders = await getOrders({ userId: currentUser.uid });
         }
-        // Якщо не знайдено або userId не записався, шукаємо за email
+        // Якщо не знайдено або userId не записався, шукаємо напряму за email
         if ((!userOrders || userOrders.length === 0) && currentUser.email) {
-          const allOrders = await getOrders();
-          userOrders = allOrders.filter(o => o.customerEmail === currentUser.email);
+          userOrders = await getOrders({ customerEmail: currentUser.email });
         }
         setOrders(userOrders);
       } catch (error) {
