@@ -78,49 +78,57 @@ export const HomeView = () => {
 
       {/* Products Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        {filteredProducts.map(product => (
-          <div 
-            key={product.id} 
-            onClick={() => {
-              setSelectedItem(product);
-              setView('item');
-              window.scrollTo(0, 0);
-            }}
-            className="group cursor-pointer"
-          >
-            {/* Product Image */}
-            <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 mb-4 shadow-sm group-hover:shadow-lg transition-all">
-              {product.image ? (
-                <SafeImage 
-                  src={product.image} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400 text-4xl">
-                  📦
+        {filteredProducts.map(product => {
+          // Знаходимо категорію продукту
+          const category = categories.find(cat => cat.id === product.categoryId);
+          return (
+            <div 
+              key={product.id} 
+              onClick={() => {
+                setSelectedItem(product);
+                setView('item');
+                window.scrollTo(0, 0);
+              }}
+              className="group cursor-pointer"
+            >
+              {/* Product Image */}
+              <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 mb-4 shadow-sm group-hover:shadow-lg transition-all">
+                {product.image ? (
+                  <SafeImage 
+                    src={product.image} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400 text-4xl">
+                    📦
+                  </div>
+                )}
+                {/* Stock Badge */}
+                <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-bold uppercase ${
+                  product.quantity > 0 
+                    ? 'bg-white text-slate-900 shadow-md' 
+                    : 'bg-red-500 text-white'
+                }`}>
+                  {product.quantity > 0 ? `${product.quantity} В НАЯВНОСТІ` : 'НЕМАЄ'}
+                </div>
+              </div>
+              {/* Категорія emoji/іконка */}
+              {category && category.icon && (
+                <div className="flex justify-center mb-1">
+                  <span className="text-3xl">{category.icon}</span>
                 </div>
               )}
-              
-              {/* Stock Badge */}
-              <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-bold uppercase ${
-                product.quantity > 0 
-                  ? 'bg-white text-slate-900 shadow-md' 
-                  : 'bg-red-500 text-white'
-              }`}>
-                {product.quantity > 0 ? `${product.quantity} В НАЯВНОСТІ` : 'НЕМАЄ'}
-              </div>
+              {/* Product Info */}
+              <h3 className="text-sm md:text-base font-bold text-slate-900 uppercase line-clamp-2">
+                {product.name}
+              </h3>
+              <p className="text-slate-600 text-xs line-clamp-1 mb-2">{product.description}</p>
+              <p className="text-lg font-bold text-slate-900">
+                {product.price} ₴ <span className="text-xs text-slate-500 font-normal">/од</span>
+              </p>
             </div>
-
-            {/* Product Info */}
-            <h3 className="text-sm md:text-base font-bold text-slate-900 uppercase line-clamp-2">
-              {product.name}
-            </h3>
-            <p className="text-slate-600 text-xs line-clamp-1 mb-2">{product.description}</p>
-            <p className="text-lg font-bold text-slate-900">
-              {product.price} ₴ <span className="text-xs text-slate-500 font-normal">/од</span>
-            </p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* No Products */}
