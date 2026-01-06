@@ -22,11 +22,21 @@ export const HomeView = () => {
 
   const [categories, setCategories] = useState([]);
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'categories'), (snap) => {
-      const cats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCategories([{ id: 'all', name: 'Всі', icon: '📋' }, ...cats]);
-    });
-    return () => unsub();
+    const unsubscribe = onSnapshot(
+      collection(db, "categories"),
+      (snapshot) => {
+        const fetchedCategories = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        if (fetchedCategories.length === 0) {
+          setCategories([]);
+        } else {
+          setCategories(fetchedCategories);
+        }
+      }
+    );
+    return () => unsubscribe();
   }, []);
 
   const filteredProducts = selectedCategory === 'Всі' 
@@ -47,18 +57,20 @@ export const HomeView = () => {
       {/* Category Filter */}
       <div className="sticky top-16 z-40 bg-white/95 backdrop-blur py-6 -mx-6 px-6 mb-8 shadow-sm">
         <div className="flex flex-wrap justify-center gap-4 max-w-7xl mx-auto">
-          {categories.map(cat => (
-            <button 
-              key={cat.id} 
-              onClick={() => setSelectedCategory(cat.name)} 
-              className={`flex flex-col items-center justify-center p-3 rounded-2xl w-20 h-20 md:w-24 md:h-24 transition-all ${
-                selectedCategory === cat.name 
-                  ? 'bg-slate-900 text-white shadow-lg scale-105' 
-                  : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-slate-900'
-              }`}
+          <button
+            className={`px-4 py-2 rounded-full border transition-colors ${selectedCategory === null ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-800 border-slate-300 hover:bg-blue-50"}`}
+            onClick={() => setSelectedCategory(null)}
+          >
+            Всі
+          </button>
+          {categories.length > 0 && categories.map((category) => (
+            <button
+              key={category.id}
+              className={`px-4 py-2 rounded-full border transition-colors flex items-center gap-2 ${selectedCategory === category.id ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-800 border-slate-300 hover:bg-blue-50"}`}
+              onClick={() => setSelectedCategory(category.id)}
             >
-              <span className="text-2xl mb-1">{cat.icon}</span>
-              <span className="text-xs font-semibold uppercase text-center">{cat.label || cat.name}</span>
+              <span>{category.icon}</span>
+              <span>{category.name}</span>
             </button>
           ))}
         </div>

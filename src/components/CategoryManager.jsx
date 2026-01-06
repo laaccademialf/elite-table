@@ -101,7 +101,7 @@ export default function CategoryManager({ onCategoryChange }) {
           onChange={e => setDescription(e.target.value)}
           className="px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 flex-1"
         />
-        <div className="relative flex-1">
+        <div className="flex-1">
           <input
             type="text"
             placeholder="Іконка (emoji або клас)"
@@ -110,7 +110,7 @@ export default function CategoryManager({ onCategoryChange }) {
             className="px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 w-full font-mono"
             autoComplete="off"
           />
-          <div className="absolute z-20 bg-white border border-slate-200 rounded-xl shadow-lg p-2 mt-2 max-h-48 overflow-y-auto w-full grid grid-cols-8 gap-1">
+          <div className="z-20 bg-white border border-slate-200 rounded-xl shadow-lg p-2 mt-2 max-h-48 overflow-y-auto w-full grid grid-cols-8 gap-1">
             {EMOJI_LIST.map((em, idx) => (
               <button
                 type="button"
