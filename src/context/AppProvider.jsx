@@ -1,69 +1,113 @@
-import { useState } from "react";
-import { CATEGORIES, INITIAL_ITEMS, INITIAL_NEW_ITEM } from "../constants/initialData";
+import { useState, useEffect } from "react";
 import { AppContext } from "./AppContextDefinition";
+import {
+  getCurrentUser,
+  getProducts,
+  getOrders,
+  createOrder,
+  logoutUser,
+} from "../services/firebase";
 
 export function AppProvider({ children }) {
+  // Authentication
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userLoading, setUserLoading] = useState(true);
+
+  // Data
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [cart, setCart] = useState([]);
+
+  // UI
   const [view, setView] = useState("home");
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminTab, setAdminTab] = useState("inventory");
-  const [globalDates, setGlobalDates] = useState({ start: null, end: null });
-  const [cart, setCart] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("Всі");
   const [selectedItem, setSelectedItem] = useState(null);
-  const [bookingStatus, setBookingStatus] = useState("idle");
+  const [selectedCategory, setSelectedCategory] = useState("Всі");
+
+  // Booking
+  const [globalDates, setGlobalDates] = useState({ start: null, end: null });
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     phone: "",
     address: "",
-    time: "",
+    email: "",
   });
   const [orderQuantity, setOrderQuantity] = useState("1");
+  const [bookingStatus, setBookingStatus] = useState("idle");
+
+  // AI Features
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiConcept, setAiConcept] = useState(null);
   const [isTtsLoading, setIsTtsLoading] = useState(false);
-  const [orders, setOrders] = useState([]);
-  const [bookings, setBookings] = useState({});
-  const [categories, setCategories] = useState(CATEGORIES);
-  const [items, setItems] = useState(INITIAL_ITEMS);
-  const [newItem, setNewItem] = useState(INITIAL_NEW_ITEM);
 
-  const getAvailabilityForDate = (itemId, day) => {
-    const item = items.find((i) => i.id === itemId);
-    if (!item) return 0;
-    const dateKey = `${day}.12.2025`;
-    const booked = (bookings[itemId] && bookings[itemId][dateKey]) || 0;
-    const inCart = cart.find((c) => c.id === itemId)?.quantity || 0;
-    return item.count - booked - inCart;
-  };
+  // Load current user on mount
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setCurrentUser(user);
+        setIsAdminMode(user?.role === "manager");
+      } catch (error) {
+        console.error("Error loading user:", error);
+      } finally {
+        setUserLoading(false);
+      }
+    };
 
-  const getMaxAvailableForRange = (itemId, start, end) => {
-    const item = items.find((i) => i.id === itemId);
-    if (!item) return 0;
-    if (!start) return item.count;
-    const effectiveEnd = end || start;
-    let minAvail = item.count;
-    for (let d = start; d <= effectiveEnd; d++) {
-      minAvail = Math.min(minAvail, getAvailabilityForDate(itemId, d));
-    }
-    return minAvail;
-  };
+    loadUser();
+  }, []);
 
-  const addToCart = (item, quantity) => {
+  // Load products
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const filters = selectedCategory !== "Всі" ? { category: selectedCategory } : {};
+        const data = await getProducts(filters);
+        setProducts(data);
+      } catch (error) {
+        console.error("Error loading products:", error);
+      }
+    };
+
+    loadProducts();
+  }, [selectedCategory]);
+
+  // Load user's orders
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const loadOrders = async () => {
+      try {
+        const userOrders = await getOrders({ userId: currentUser.uid });
+        setOrders(userOrders);
+      } catch (error) {
+        console.error("Error loading orders:", error);
+      }
+    };
+
+    loadOrders();
+  }, [currentUser]);
+
+
+  // Cart functions
+  const addToCart = (product, quantity) => {
     if (!globalDates.start) {
       alert("Спочатку оберіть дату події");
       return;
     }
+
     const qty = parseInt(quantity) || 1;
     setCart((prev) => {
-      const existing = prev.find((c) => c.id === item.id);
-      if (existing)
+      const existing = prev.find((c) => c.id === product.id);
+      if (existing) {
         return prev.map((c) =>
-          c.id === item.id ? { ...c, quantity: c.quantity + qty } : c
+          c.id === product.id ? { ...c, quantity: c.quantity + qty } : c
         );
-      return [...prev, { ...item, quantity: qty }];
+      }
+      return [...prev, { ...product, quantity: qty }];
     });
     setOrderQuantity("1");
-    setView("home");
   };
 
   const removeFromCart = (id) => {
@@ -71,84 +115,114 @@ export function AppProvider({ children }) {
     setAiConcept(null);
   };
 
-  const handleOrderSubmit = (e) => {
+  const handleOrderSubmit = async (e) => {
     e.preventDefault();
+
+    if (!currentUser) {
+      alert("Увійдіть, щоб створити замовлення");
+      return;
+    }
+
     const days = globalDates.end ? globalDates.end - globalDates.start + 1 : 1;
-    const cartTotal =
-      cart.reduce((sum, item) => sum + item.price * item.quantity * days, 0) +
-      100;
+    const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity * days, 0);
 
-    const newOrder = {
-      id: Date.now(),
-      items: cart.map((c) => `${c.title} (x${c.quantity})`).join(", "),
-      total: cartTotal,
-      customer: { ...customerInfo },
-      dates: `${globalDates.start}.12.2025${
-        globalDates.end ? ` - ${globalDates.end}.12.2025` : ""
-      }`,
-      status: "Нове",
-    };
+    try {
+      setBookingStatus("loading");
 
-    const newBookings = { ...bookings };
-    cart.forEach((item) => {
-      if (!newBookings[item.id]) newBookings[item.id] = {};
-      const endDay = globalDates.end || globalDates.start;
-      for (let d = globalDates.start; d <= endDay; d++) {
-        const key = `${d}.12.2025`;
-        newBookings[item.id][key] =
-          (newBookings[item.id][key] || 0) + item.quantity;
-      }
-    });
+      const orderId = await createOrder({
+        userId: currentUser.uid,
+        items: cart.map((item) => ({
+          productId: item.id,
+          productName: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        totalPrice,
+        eventDate: globalDates.start,
+        customerName: customerInfo.name,
+        customerEmail: customerInfo.email,
+        customerPhone: customerInfo.phone,
+        address: customerInfo.address,
+      });
 
-    setBookings(newBookings);
-    setOrders([newOrder, ...orders]);
-    setCart([]);
-    setCustomerInfo({ name: "", phone: "", address: "", time: "" });
-    setBookingStatus("success");
+      setBookingStatus("success");
+      setCart([]);
+      setCustomerInfo({ name: "", phone: "", address: "", email: "" });
+      setGlobalDates({ start: null, end: null });
+
+      // Reload orders
+      const updatedOrders = await getOrders({ userId: currentUser.uid });
+      setOrders(updatedOrders);
+
+      setView("orders");
+    } catch (error) {
+      console.error("Error creating order:", error);
+      setBookingStatus("error");
+    }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setCurrentUser(null);
+      setCart([]);
+      setOrders([]);
+      setView("home");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
+  const getAvailabilityForDate = () => 999; // Placeholder for Firebase inventory
+  const getMaxAvailableForRange = () => 999;
+
   const value = {
+    // Auth
+    currentUser,
+    userLoading,
+    handleLogout,
+
+    // Data
+    products,
+    orders,
+    cart,
+    selectedItem,
+    selectedCategory,
+
+    // UI
     view,
     setView,
     isAdminMode,
     setIsAdminMode,
     adminTab,
     setAdminTab,
+
+    // Booking
     globalDates,
     setGlobalDates,
-    cart,
-    setCart,
-    selectedCategory,
-    setSelectedCategory,
-    selectedItem,
-    setSelectedItem,
-    bookingStatus,
-    setBookingStatus,
     customerInfo,
     setCustomerInfo,
     orderQuantity,
     setOrderQuantity,
+    bookingStatus,
+    setBookingStatus,
+
+    // AI Features
     isGenerating,
     setIsGenerating,
     aiConcept,
     setAiConcept,
     isTtsLoading,
     setIsTtsLoading,
-    orders,
-    setOrders,
-    bookings,
-    setBookings,
-    categories,
-    setCategories,
-    items,
-    setItems,
-    newItem,
-    setNewItem,
-    getAvailabilityForDate,
-    getMaxAvailableForRange,
+
+    // Functions
+    setSelectedItem,
+    setSelectedCategory,
     addToCart,
     removeFromCart,
     handleOrderSubmit,
+    getAvailabilityForDate,
+    getMaxAvailableForRange,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
