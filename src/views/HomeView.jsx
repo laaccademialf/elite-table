@@ -32,18 +32,18 @@ export const HomeView = () => {
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-700">
       {/* Hero Section */}
-      <div className="mb-8 bg-[#FFF7ED] p-4 md:p-6 rounded-2xl shadow-lg border border-slate-100 flex flex-col md:flex-row items-center gap-6 md:gap-8 transition-all duration-300">
-        <div className="flex-1">
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-1 uppercase">ВАША ОСОБЛИВА ПОДІЯ</h2>
-          <p className="text-slate-600 text-xs md:text-sm">Оберіть дату, щоб почати магію сервірування</p>
+      <div className="mb-6 bg-gradient-to-br from-[#FFF7ED] to-[#F8E9D2] p-2 md:p-3 rounded-xl shadow border border-[#F3E5C8] flex flex-col md:flex-row items-center justify-between gap-2 md:gap-4 min-h-[160px] transition-all duration-300">
+        <div className="flex-1 flex flex-col items-center md:items-start justify-center px-2 md:px-6">
+          <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 uppercase tracking-tight drop-shadow-sm">ВАША ОСОБЛИВА ПОДІЯ</h2>
+          <p className="text-slate-600 text-xs md:text-sm mb-1 md:mb-2">Оберіть дату, щоб почати магію сервірування</p>
           {globalDates.start && (
-            <div className="mt-3 inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-1.5 rounded-full font-bold uppercase text-xs shadow">
-              <CalendarIcon size={13} />
+            <div className="mt-1 inline-flex items-center gap-2 bg-slate-900 text-white px-3 py-1 rounded-full font-bold uppercase text-xs shadow">
+              <CalendarIcon size={12} />
               {globalDates.start}.{(globalDates.month !== undefined ? globalDates.month+1 : 12)}.{globalDates.year || 2025} {globalDates.end ? `- ${globalDates.end}.${(globalDates.month !== undefined ? globalDates.month+1 : 12)}.${globalDates.year || 2025}` : ''}
             </div>
           )}
         </div>
-        <div className="w-full md:w-72">
+        <div className="w-full md:w-64 flex justify-center items-center">
           <CustomCalendar globalDates={globalDates} setGlobalDates={setGlobalDates} />
         </div>
       </div>

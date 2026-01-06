@@ -18,8 +18,6 @@ export const CustomCalendar = ({ globalDates, setGlobalDates }) => {
   const daysInMonth = getDaysInMonth(month, year);
   const firstDay = new Date(year, month, 1).getDay();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-
-  // Для вирівнювання по днях тижня (неділя = 0)
   const blanks = Array((firstDay + 6) % 7).fill(null);
 
   const handlePrev = () => {
@@ -40,24 +38,24 @@ export const CustomCalendar = ({ globalDates, setGlobalDates }) => {
   };
 
   return (
-    <div className="bg-[#FAF3E3] rounded-2xl shadow-lg p-4 md:p-6 w-full transition-all duration-300">
-      <div className="flex justify-between items-center mb-4 px-2">
+    <div className="bg-[#FAF3E3] rounded-lg border border-[#F3E5C8] p-2 md:p-3 w-full max-w-xs shadow-sm transition-all duration-300">
+      <div className="flex justify-between items-center mb-2 px-1">
         <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
           {MONTHS[month]} {year}
         </span>
-        <div className="flex gap-2">
-          <button onClick={handlePrev} className="hover:scale-110 transition-transform">
-            <ChevronLeft size={18} className="cursor-pointer text-gray-500" />
+        <div className="flex gap-1">
+          <button onClick={handlePrev} className="hover:scale-110 transition-transform p-1 rounded hover:bg-[#F3E5C8]">
+            <ChevronLeft size={16} className="text-gray-500" />
           </button>
-          <button onClick={handleNext} className="hover:scale-110 transition-transform">
-            <ChevronRight size={18} className="cursor-pointer text-gray-500" />
+          <button onClick={handleNext} className="hover:scale-110 transition-transform p-1 rounded hover:bg-[#F3E5C8]">
+            <ChevronRight size={16} className="text-gray-500" />
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-2 mb-2 text-xs text-center text-gray-400 font-bold">
+      <div className="grid grid-cols-7 gap-1 mb-1 text-[11px] text-center text-gray-400 font-bold">
         <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Нд</div>
       </div>
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1">
         {blanks.map((_, i) => <div key={i}></div>)}
         {days.map((day) => {
           const isSel =
@@ -78,8 +76,8 @@ export const CustomCalendar = ({ globalDates, setGlobalDates }) => {
                 }
                 setGlobalDates(next);
               }}
-              className={`h-9 w-9 flex items-center justify-center rounded-lg text-sm font-bold transition-all duration-150
-                ${isSel ? 'bg-primary text-white shadow' : 'bg-white text-gray-700 hover:bg-[#F5EBDD]'}
+              className={`h-8 w-8 flex items-center justify-center rounded-md text-xs font-bold transition-all duration-150
+                ${isSel ? 'bg-slate-900 text-white shadow' : 'bg-white text-gray-700 hover:bg-[#F5EBDD] border border-[#F3E5C8]'}
               `}
             >
               {day}
