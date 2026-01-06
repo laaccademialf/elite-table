@@ -14,6 +14,7 @@ export const addCategory = async (category) => {
   const docRef = await addDoc(collection(db, 'categories'), {
     name: category.name,
     description: category.description || '',
+    icon: category.icon || '',
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   });
@@ -22,7 +23,12 @@ export const addCategory = async (category) => {
 
 export const updateCategory = async (id, data) => {
   const docRef = doc(db, 'categories', id);
-  await updateDoc(docRef, { ...data, updatedAt: Timestamp.now() });
+  await updateDoc(docRef, {
+    name: data.name,
+    description: data.description || '',
+    icon: data.icon || '',
+    updatedAt: Timestamp.now(),
+  });
 };
 
 export const deleteCategory = async (id) => {
