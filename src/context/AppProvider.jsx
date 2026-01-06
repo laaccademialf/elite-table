@@ -266,3 +266,4 @@ export function AppProvider({ children }) {
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
+console.log("currentUser:", currentUser);
