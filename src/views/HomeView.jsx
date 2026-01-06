@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Calendar as CalendarIcon,
 } from "lucide-react";
@@ -6,13 +6,7 @@ import { useAppContext } from "../context/useAppContext";
 import { SafeImage } from "../components/SafeImage";
 import DateRangePicker from "../components/DateRangePicker";
 
-const CATEGORIES = [
-  { id: 1, name: 'Всі', icon: '📋' },
-  { id: 2, name: 'plates', icon: '🍽️', label: 'Тарілки' },
-  { id: 3, name: 'glasses', icon: '🍷', label: 'Келихи' },
-  { id: 4, name: 'cutlery', icon: '🔪', label: 'Прибори' },
-  { id: 5, name: 'textiles', icon: '🧵', label: 'Текстиль' },
-];
+import { getCategories } from "../services/categories";
 
 export const HomeView = () => {
   const {
@@ -24,6 +18,13 @@ export const HomeView = () => {
     setSelectedItem,
     setView,
   } = useAppContext();
+
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    getCategories().then(cats => {
+      setCategories([{ id: 'all', name: 'Всі', icon: '📋' }, ...cats]);
+    });
+  }, []);
 
   const filteredProducts = selectedCategory === 'Всі' 
     ? products 
@@ -43,7 +44,7 @@ export const HomeView = () => {
       {/* Category Filter */}
       <div className="sticky top-16 z-40 bg-white/95 backdrop-blur py-6 -mx-6 px-6 mb-8 shadow-sm">
         <div className="flex flex-wrap justify-center gap-4 max-w-7xl mx-auto">
-          {CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <button 
               key={cat.id} 
               onClick={() => setSelectedCategory(cat.name)} 
