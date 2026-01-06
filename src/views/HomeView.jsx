@@ -32,18 +32,18 @@ export const HomeView = () => {
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-700">
       {/* Hero Section */}
-      <div className="mb-12 bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-8">
+      <div className="mb-8 bg-[#FFF7ED] p-4 md:p-6 rounded-2xl shadow-lg border border-slate-100 flex flex-col md:flex-row items-center gap-6 md:gap-8 transition-all duration-300">
         <div className="flex-1">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2 uppercase">ВАША ОСОБЛИВА ПОДІЯ</h2>
-          <p className="text-slate-600 text-sm">Оберіть дату, щоб почати магію сервірування</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-1 uppercase">ВАША ОСОБЛИВА ПОДІЯ</h2>
+          <p className="text-slate-600 text-xs md:text-sm">Оберіть дату, щоб почати магію сервірування</p>
           {globalDates.start && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-2 rounded-full font-bold uppercase text-xs shadow-lg">
-              <CalendarIcon size={14} /> 
-              {globalDates.start}.12.2025 {globalDates.end ? `- ${globalDates.end}.12.2025` : ''}
+            <div className="mt-3 inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-1.5 rounded-full font-bold uppercase text-xs shadow">
+              <CalendarIcon size={13} />
+              {globalDates.start}.{(globalDates.month !== undefined ? globalDates.month+1 : 12)}.{globalDates.year || 2025} {globalDates.end ? `- ${globalDates.end}.${(globalDates.month !== undefined ? globalDates.month+1 : 12)}.${globalDates.year || 2025}` : ''}
             </div>
           )}
         </div>
-        <div className="w-full md:w-80">
+        <div className="w-full md:w-72">
           <CustomCalendar globalDates={globalDates} setGlobalDates={setGlobalDates} />
         </div>
       </div>

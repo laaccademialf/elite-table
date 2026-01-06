@@ -93,8 +93,14 @@ export const getCurrentUser = () => {
         const q = query(collection(db, 'users'), where('uid', '==', user.uid));
         const querySnapshot = await getDocs(q);
         const userProfile = querySnapshot.docs[0]?.data() || {};
+        console.log('[getCurrentUser] Firebase Auth user:', user);
+        console.log('[getCurrentUser] Firestore userProfile:', userProfile);
+        if (!querySnapshot.docs.length) {
+          console.warn('[getCurrentUser] No Firestore user profile found for uid:', user.uid);
+        }
         resolve({ ...user, ...userProfile });
       } else {
+        console.log('[getCurrentUser] No user logged in');
         resolve(null);
       }
     }, reject);
@@ -355,6 +361,15 @@ export const uploadImage = async (file, path) => {
     console.error('Error uploading image:', error);
     throw error;
   }
+};
+
+export const fetchUserProfileByUid = async (uid) => {
+  const q = query(collection(db, 'users'), where('uid', '==', uid));
+  const querySnapshot = await getDocs(q);
+  if (!querySnapshot.empty) {
+    return querySnapshot.docs[0].data();
+  }
+  return null;
 };
 
 export { auth, db, storage };

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { loginUser, registerUser } from '../services/firebase';
+import { loginUser, registerUser, fetchUserProfileByUid } from '../services/firebase';
 
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,12 +18,19 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
     setLoading(true);
 
     try {
+      let userCredential;
       if (isLogin) {
-        await loginUser(email, password);
+        userCredential = await loginUser(email, password);
       } else {
-        await registerUser(email, password, { name, phone, role });
+        userCredential = await registerUser(email, password, { name, phone, role });
       }
-      onLoginSuccess();
+      // Підтягуємо профіль одразу після логіну
+      const uid = userCredential?.user?.uid || (userCredential && userCredential.uid);
+      let profile = null;
+      if (uid) {
+        profile = await fetchUserProfileByUid(uid);
+      }
+      onLoginSuccess(profile);
       onClose();
     } catch (err) {
       setError(err.message || 'Помилка');

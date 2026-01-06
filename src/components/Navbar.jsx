@@ -11,22 +11,22 @@ export const Navbar = ({
   setGlobalDates,
   cart,
 }) => {
-  const { currentUser, handleLogout } = useAppContext();
+  const { currentUser, handleLogout, refreshUser } = useAppContext();
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   return (
     <>
-      <nav className="sticky top-0 z-40 bg-white border-b border-slate-200 px-6 h-16 flex items-center justify-between shadow-sm">
+      <nav className="sticky top-0 z-40 bg-[#FFF7ED] border-b border-slate-200 px-6 h-16 flex items-center justify-between shadow-lg transition-all duration-300">
         {/* Logo */}
         <div
-          className="flex items-center cursor-pointer shrink-0"
+          className="flex items-center cursor-pointer shrink-0 hover:scale-105 transition-transform duration-200"
           onClick={() => {
             setView("home");
             setIsAdminMode(false);
           }}
         >
           <div className="flex items-center gap-2">
-            <div className="bg-slate-900 p-2 rounded-lg">
+            <div className="bg-slate-900 p-2 rounded-lg shadow-md">
               <Wine className="text-white" size={20} />
             </div>
             <span className="text-lg font-bold tracking-wide uppercase text-slate-900 hidden sm:inline">
@@ -37,7 +37,7 @@ export const Navbar = ({
 
         {/* Center: Selected Date */}
         {globalDates.start && (
-          <div className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-lg border border-slate-200">
+          <div className="flex items-center gap-2 bg-[#FAF3E3] text-slate-700 px-4 py-2 rounded-lg border border-slate-200 shadow transition-all duration-300">
             <CalendarIcon size={14} />
             <span className="text-xs font-semibold uppercase">
               {globalDates.start}.12{globalDates.end ? ` - ${globalDates.end}.12` : ""}
@@ -47,7 +47,7 @@ export const Navbar = ({
                 e.stopPropagation();
                 setGlobalDates({ start: null, end: null });
               }}
-              className="ml-1 hover:text-slate-900 transition-colors"
+              className="ml-1 hover:text-slate-900 hover:scale-110 transition-all duration-200"
               title="Скинути дату"
             >
               <X size={14} />
@@ -61,7 +61,7 @@ export const Navbar = ({
           {currentUser && (
             <button
               onClick={() => setView("orders")}
-              className="hidden sm:flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-900 transition"
+              className="hidden sm:flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-[#F5EBDD] rounded-lg shadow transition-all duration-200"
               title="Мої замовлення"
             >
               <Package size={18} />
@@ -73,10 +73,10 @@ export const Navbar = ({
           {currentUser?.role === "manager" && (
             <button
               onClick={() => setIsAdminMode(!isAdminMode)}
-              className={`p-2 rounded-lg transition-all ${
+              className={`p-2 rounded-lg transition-all duration-200 shadow ${
                 isAdminMode
-                  ? "bg-slate-900 text-white shadow-lg"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-slate-900 text-white shadow-lg scale-105"
+                  : "text-slate-600 hover:bg-[#F5EBDD] hover:scale-105"
               }`}
               title="Панель менеджера"
             >
@@ -87,7 +87,7 @@ export const Navbar = ({
           {/* Cart Button */}
           <button
             onClick={() => setView("cart")}
-            className="relative p-2 hover:bg-slate-100 rounded-lg text-slate-900 transition"
+            className="relative p-2 hover:bg-[#F5EBDD] rounded-lg text-slate-900 transition-all duration-200 shadow"
             title="Кошик"
           >
             <ShoppingBag size={18} />
@@ -110,7 +110,7 @@ export const Navbar = ({
                   await handleLogout();
                   setView("home");
                 }}
-                className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                 title="Вихід"
               >
                 <LogOut size={18} />
@@ -119,7 +119,7 @@ export const Navbar = ({
           ) : (
             <button
               onClick={() => setShowLoginModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition font-medium text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-[#EADBC8] hover:text-slate-900 hover:scale-105 transition-all duration-200 font-medium text-sm shadow"
             >
               <LogIn size={16} />
               <span className="hidden sm:inline">Вхід</span>
@@ -131,7 +131,10 @@ export const Navbar = ({
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        onLoginSuccess={() => {}}
+        onLoginSuccess={() => {
+          setShowLoginModal(false);
+          window.location.reload();
+        }}
       />
     </>
   );

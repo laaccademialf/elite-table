@@ -38,8 +38,8 @@ async function createAdmin() {
     // Create user in Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(
       auth,
-      'admin@admin.com',
-      'admin123'
+      'dishaandrej@gmail.com',
+      'October2020!'
     );
 
     const uid = userCredential.user.uid;
@@ -48,7 +48,7 @@ async function createAdmin() {
     // Create user document in Firestore
     const userRef = await addDoc(collection(db, 'users'), {
       uid,
-      email: 'admin@admin.com',
+      email: 'dishaandrej@gmail.com',
       name: 'Admin',
       phone: '+380000000000',
       role: 'manager',
@@ -59,8 +59,8 @@ async function createAdmin() {
     console.log('✓ Admin user document created:', userRef.id);
     console.log('\n✅ Admin account created successfully!');
     console.log('\nCredentials:');
-    console.log('  Email: admin@admin.com');
-    console.log('  Password: admin123');
+    console.log('  Email: dishaandrej@gmail.com');
+    console.log('  Password: October2020!');
     console.log('\nYou can now login to the admin panel.');
 
     process.exit(0);

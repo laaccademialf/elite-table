@@ -173,6 +173,18 @@ export function AppProvider({ children }) {
     }
   };
 
+  // Refresh user after login
+  const refreshUser = async () => {
+    try {
+      const user = await getCurrentUser();
+      console.log('[AppProvider] refreshUser result:', user);
+      setCurrentUser(user);
+      setIsAdminMode(user?.role === "manager");
+    } catch (error) {
+      console.error("Error refreshing user:", error);
+    }
+  };
+
   const getAvailabilityForDate = () => 999; // Placeholder for Firebase inventory
   const getMaxAvailableForRange = () => 999;
 
@@ -181,6 +193,7 @@ export function AppProvider({ children }) {
     currentUser,
     userLoading,
     handleLogout,
+    refreshUser,
 
     // Data
     products,
