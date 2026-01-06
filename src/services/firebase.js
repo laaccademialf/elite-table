@@ -218,8 +218,9 @@ export const deleteProduct = async (productId) => {
 
 export const createOrder = async (orderData) => {
   try {
+    const resolvedUserId = orderData.userId || auth.currentUser?.uid || null;
     const docRef = await addDoc(collection(db, 'orders'), {
-      userId: orderData.userId,
+      userId: resolvedUserId,
       items: orderData.items, // Array of { productId, quantity, price }
       totalPrice: orderData.totalPrice,
       status: 'pending', // 'pending', 'confirmed', 'delivered', 'cancelled'
