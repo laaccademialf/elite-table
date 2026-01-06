@@ -115,48 +115,71 @@ export const CheckoutView = () => {
           )}
 
           <form onSubmit={handleCheckoutSubmit} className="space-y-6">
-            <input
-              required
-              type="text"
-              className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
-              placeholder="Ім'я"
-              value={customerInfo.name}
-              onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
-            />
-            <input
-              required
-              type="tel"
-              className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
-              placeholder="Телефон (+380...)"
-              value={customerInfo.phone}
-              onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-            />
-            <input
-              required
-              type="email"
-              className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
-              placeholder="Email"
-              value={customerInfo.email}
-              onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-            />
-            {/* Поле пароль для входу */}
-            {!currentUser && (
-              <input
-                type="password"
-                className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
-                placeholder="Пароль (для створення або входу в акаунт)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
+            {currentUser ? (
+              <>
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded text-blue-900 text-sm">
+                  <strong>Вкажіть адресу доставки та побажання до замовлення.</strong><br />
+                  Ваші контактні дані вже збережені, менеджер зв'яжеться з вами для уточнення деталей.
+                </div>
+                <textarea
+                  className="w-full px-8 py-5 rounded-2xl bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+                  placeholder="Адреса доставки"
+                  value={customerInfo.address}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
+                  rows="3"
+                />
+                <textarea
+                  className="w-full px-8 py-5 rounded-2xl bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+                  placeholder="Коментарі або побажання до замовлення (необов'язково)"
+                  value={customerInfo.notes || ''}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, notes: e.target.value })}
+                  rows="2"
+                />
+              </>
+            ) : (
+              <>
+                <input
+                  required
+                  type="text"
+                  className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+                  placeholder="Ім'я"
+                  value={customerInfo.name}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+                />
+                <input
+                  required
+                  type="tel"
+                  className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+                  placeholder="Телефон (+380...)"
+                  value={customerInfo.phone}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                />
+                <input
+                  required
+                  type="email"
+                  className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+                  placeholder="Email"
+                  value={customerInfo.email}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+                />
+                {/* Поле пароль для входу */}
+                <input
+                  type="password"
+                  className="w-full px-8 py-5 rounded-full bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+                  placeholder="Пароль (для створення або входу в акаунт)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+                <textarea
+                  className="w-full px-8 py-5 rounded-2xl bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
+                  placeholder="Адреса доставки"
+                  value={customerInfo.address}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
+                  rows="3"
+                />
+              </>
             )}
-            <textarea
-              className="w-full px-8 py-5 rounded-2xl bg-gray-50 border border-gray-100 font-bold outline-none text-sm placeholder-gray-400"
-              placeholder="Адреса доставки"
-              value={customerInfo.address}
-              onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
-              rows="3"
-            />
 
             {autoRegError && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
