@@ -326,9 +326,17 @@ export function AdminPanel() {
                         Замовлення #{order.id?.slice(0, 8)}
                       </h3>
                       <p className="text-slate-600">
-                        Клієнт: {order.customerName} ({order.customerEmail})
+                        <span className="font-semibold">Клієнт:</span> {order.customerName} ({order.customerEmail})
                       </p>
-                      <p className="text-slate-600">Телефон: {order.customerPhone}</p>
+                      <p className="text-slate-600">
+                        <span className="font-semibold">Телефон:</span> {order.customerPhone}
+                      </p>
+                      <p className="text-slate-600">
+                        <span className="font-semibold">Адреса доставки:</span> {order.address}
+                      </p>
+                      <p className="text-slate-600">
+                        <span className="font-semibold">Коментар:</span> {order.notes}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-slate-900">{order.totalPrice} ₴</p>

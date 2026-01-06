@@ -32,6 +32,7 @@ export function AppProvider({ children }) {
     phone: "",
     address: "",
     email: "",
+    notes: "",
   });
   const [orderQuantity, setOrderQuantity] = useState("1");
   const [bookingStatus, setBookingStatus] = useState("idle");
@@ -139,6 +140,11 @@ export function AppProvider({ children }) {
     try {
       setBookingStatus("loading");
 
+      // Якщо користувач залогінений, підставляємо дані з профілю якщо поля порожні
+      const name = customerInfo.name || currentUser?.name || "";
+      const email = customerInfo.email || currentUser?.email || "";
+      const phone = customerInfo.phone || currentUser?.phone || "";
+
       const orderPayload = {
         items: cart.map((item) => ({
           productId: item.id,
@@ -149,9 +155,9 @@ export function AppProvider({ children }) {
         totalPrice,
         eventDate: globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : '',
         eventEndDate: globalDates.end ? `${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : '',
-        customerName: customerInfo.name,
-        customerEmail: customerInfo.email,
-        customerPhone: customerInfo.phone,
+        customerName: name,
+        customerEmail: email,
+        customerPhone: phone,
         address: customerInfo.address,
         notes: customerInfo.notes || '',
       };
@@ -163,7 +169,7 @@ export function AppProvider({ children }) {
 
       setBookingStatus("success");
       setCart([]);
-      setCustomerInfo({ name: "", phone: "", address: "", email: "" });
+      setCustomerInfo({ name: "", phone: "", address: "", email: "", notes: "" });
       setGlobalDates({ start: null, end: null });
 
       // Якщо залогінений — оновлюємо currentUser і замовлення, одразу переводимо на orders
