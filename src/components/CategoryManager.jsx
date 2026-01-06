@@ -108,16 +108,15 @@ export default function CategoryManager({ onCategoryChange }) {
             value={icon}
             onChange={e => setIcon(e.target.value)}
             className="px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 w-full font-mono"
-            onFocus={e => { if (emojiPickerRef.current) emojiPickerRef.current.style.display = 'block'; }}
             autoComplete="off"
           />
-          <div ref={emojiPickerRef} style={{display: 'none'}} className="absolute z-20 bg-white border border-slate-200 rounded-xl shadow-lg p-2 mt-2 max-h-48 overflow-y-auto w-full grid grid-cols-8 gap-1">
+          <div className="absolute z-20 bg-white border border-slate-200 rounded-xl shadow-lg p-2 mt-2 max-h-48 overflow-y-auto w-full grid grid-cols-8 gap-1">
             {EMOJI_LIST.map((em, idx) => (
               <button
                 type="button"
                 key={em + idx}
-                className="text-xl hover:bg-slate-100 rounded p-1"
-                onClick={() => { setIcon(em); if (emojiPickerRef.current) emojiPickerRef.current.style.display = 'none'; }}
+                className={`text-xl hover:bg-slate-100 rounded p-1 ${icon === em ? 'bg-slate-200' : ''}`}
+                onClick={() => setIcon(em)}
               >{em}</button>
             ))}
           </div>

@@ -6,7 +6,8 @@ import { useAppContext } from "../context/useAppContext";
 import { SafeImage } from "../components/SafeImage";
 import DateRangePicker from "../components/DateRangePicker";
 
-import { getCategories } from "../services/categories";
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "../services/firebase";
 
 export const HomeView = () => {
   const {
@@ -21,9 +22,11 @@ export const HomeView = () => {
 
   const [categories, setCategories] = useState([]);
   useEffect(() => {
-    getCategories().then(cats => {
+    const unsub = onSnapshot(collection(db, 'categories'), (snap) => {
+      const cats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setCategories([{ id: 'all', name: 'Всі', icon: '📋' }, ...cats]);
     });
+    return () => unsub();
   }, []);
 
   const filteredProducts = selectedCategory === 'Всі' 
