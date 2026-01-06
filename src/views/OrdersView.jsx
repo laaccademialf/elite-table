@@ -13,6 +13,10 @@ export function OrdersView() {
           <h1 className="text-4xl font-bold text-slate-900 mb-8">МОЇ ЗАМОВЛЕННЯ</h1>
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
             <p className="text-slate-600 text-lg mb-6">У вас поки немає замовлень</p>
+            <div className="text-xs text-gray-400 mb-4">
+              <div>userId: {currentUser?.uid || '—'}</div>
+              <div>email: {currentUser?.email || '—'}</div>
+            </div>
             <button
               onClick={() => setView('home')}
               className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition"
