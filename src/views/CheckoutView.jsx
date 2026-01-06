@@ -36,6 +36,11 @@ export const CheckoutView = () => {
         );
         if (typeof refreshUser === 'function') await refreshUser();
         await handleOrderSubmit(e);
+        // Після оформлення — якщо залогінений, одразу на замовлення
+        setTimeout(() => {
+          alert("Дякуємо за замовлення! З вами зв'яжеться менеджер для уточнення деталей.");
+          setView("orders");
+        }, 100);
         return;
       } catch (error) {
         // Якщо акаунт вже існує — пробуємо логін
@@ -44,6 +49,10 @@ export const CheckoutView = () => {
             await loginUser(customerInfo.email, password);
             if (typeof refreshUser === 'function') await refreshUser();
             await handleOrderSubmit(e);
+            setTimeout(() => {
+              alert("Дякуємо за замовлення! З вами зв'яжеться менеджер для уточнення деталей.");
+              setView("orders");
+            }, 100);
             return;
           } catch (loginErr) {
             setAutoRegError(loginErr.message || "Помилка входу. Спробуйте ще раз або скористайтесь автозаповненням телефону.");
@@ -68,6 +77,10 @@ export const CheckoutView = () => {
       }
     } else {
       await handleOrderSubmit(e);
+      setTimeout(() => {
+        alert("Дякуємо за замовлення! З вами зв'яжеться менеджер для уточнення деталей.");
+        setView("orders");
+      }, 100);
     }
   };
 
@@ -75,16 +88,15 @@ export const CheckoutView = () => {
 
   return (
     <div className="max-w-xl mx-auto px-6 py-12 text-gray-900 animate-in slide-in-from-bottom-8 duration-500">
-      {bookingStatus === "success" ? (
+      {/* Для гостей залишаємо подяку */}
+      {bookingStatus === "success" && !currentUser ? (
         <div className="text-center py-20 bg-gray-900 rounded-[64px] shadow-2xl px-12">
           <CheckCircle2 size={64} className="mx-auto text-green-400 mb-8 animate-bounce" />
           <h2 className="text-4xl font-black italic mb-6 uppercase text-white">Замовлення прийнято!</h2>
-          <p className="text-sm text-gray-400 mb-4 italic">Дякуємо за вашу довіру. Ми зв'яжемося з вами найскоріше.</p>
-          {!currentUser && (
-            <p className="text-xs text-gray-500 mb-10">
-              <strong>Ваш облік створено:</strong> Email: {customerInfo.phone.replace(/\D/g, '')}@renttable.local
-            </p>
-          )}
+          <p className="text-sm text-gray-400 mb-4 italic">Дякуємо за вашу довіру. З вами зв'яжеться менеджер для уточнення деталей.</p>
+          <p className="text-xs text-gray-500 mb-10">
+            <strong>Ваш облік створено:</strong> Email: {customerInfo.phone.replace(/\D/g, '')}@renttable.local
+          </p>
           <button onClick={() => setView("home")} className="w-full py-6 bg-[#C5A059] text-white font-black rounded-full uppercase tracking-widest">← На головну</button>
         </div>
       ) : (
