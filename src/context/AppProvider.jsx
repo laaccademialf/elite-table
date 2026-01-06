@@ -117,10 +117,8 @@ export function AppProvider({ children }) {
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
 
-    if (!currentUser) {
-      alert("Увійдіть, щоб створити замовлення");
-      return;
-    }
+    // Якщо користувач не залогінений, дозволяємо оформлення як гість
+    // (userId не передаємо, тільки контактні дані)
 
     function getDaysInRange(start, end) {
       if (!start) return 0;
@@ -134,8 +132,7 @@ export function AppProvider({ children }) {
     try {
       setBookingStatus("loading");
 
-      const orderId = await createOrder({
-        userId: currentUser.uid,
+      const orderPayload = {
         items: cart.map((item) => ({
           productId: item.id,
           productName: item.name,
@@ -149,18 +146,26 @@ export function AppProvider({ children }) {
         customerEmail: customerInfo.email,
         customerPhone: customerInfo.phone,
         address: customerInfo.address,
-      });
+      };
+      if (currentUser && currentUser.uid) {
+        orderPayload.userId = currentUser.uid;
+      }
+
+      const orderId = await createOrder(orderPayload);
 
       setBookingStatus("success");
       setCart([]);
       setCustomerInfo({ name: "", phone: "", address: "", email: "" });
       setGlobalDates({ start: null, end: null });
 
-      // Reload orders
-      const updatedOrders = await getOrders({ userId: currentUser.uid });
-      setOrders(updatedOrders);
-
-      setView("orders");
+      // Reload orders тільки якщо залогінений
+      if (currentUser && currentUser.uid) {
+        const updatedOrders = await getOrders({ userId: currentUser.uid });
+        setOrders(updatedOrders);
+        setView("orders");
+      } else {
+        setView("home");
+      }
     } catch (error) {
       console.error("Error creating order:", error);
       setBookingStatus("error");
