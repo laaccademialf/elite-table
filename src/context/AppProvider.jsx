@@ -1,3 +1,5 @@
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import { useState, useEffect } from "react";
 import { AppContext } from "./AppContextDefinition";
 import {
@@ -9,6 +11,22 @@ import {
 } from "../services/firebase";
 
 export function AppProvider({ children }) {
+    // Categories
+    const [categories, setCategories] = useState([]);
+    // Live categories sync
+    useEffect(() => {
+      const unsubscribe = onSnapshot(
+        collection(db, 'categories'),
+        (snapshot) => {
+          const fetchedCategories = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setCategories(fetchedCategories);
+        }
+      );
+      return () => unsubscribe();
+    }, []);
   // Authentication
   const [currentUser, setCurrentUser] = useState(null);
   const [userLoading, setUserLoading] = useState(true);
@@ -227,6 +245,7 @@ export function AppProvider({ children }) {
     cart,
     selectedItem,
     selectedCategory,
+    categories,
 
     // UI
     view,

@@ -20,24 +20,8 @@ export const HomeView = () => {
     setView,
   } = useAppContext();
 
-  const [categories, setCategories] = useState([]);
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, "categories"),
-      (snapshot) => {
-        const fetchedCategories = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        if (fetchedCategories.length === 0) {
-          setCategories([]);
-        } else {
-          setCategories(fetchedCategories);
-        }
-      }
-    );
-    return () => unsubscribe();
-  }, []);
+  // Категорії тепер з контексту
+  const { categories } = useAppContext();
 
   const filteredProducts = selectedCategory === 'Всі' 
     ? products 
