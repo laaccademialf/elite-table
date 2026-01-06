@@ -10,6 +10,8 @@ import {
   updateOrderStatus,
 } from '../services/firebase';
 import { Upload, Trash2, Edit, Save, X } from 'lucide-react';
+import CategoryManager from '../components/CategoryManager';
+import { getCategories } from '../services/categories';
 
 export function AdminPanel() {
   const { adminTab, setAdminTab, currentUser } = useAppContext();
@@ -17,6 +19,8 @@ export function AdminPanel() {
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
+  // --- categories state ---
+  const [categories, setCategories] = useState([]);
 
   // Product form state
   const [editingId, setEditingId] = useState(null);
@@ -25,9 +29,14 @@ export function AdminPanel() {
     description: '',
     price: '',
     quantity: '',
-    category: 'plates',
+    category: '',
     image: '',
   });
+
+  // Load categories on mount
+  useEffect(() => {
+    getCategories().then(setCategories);
+  }, []);
 
   // Load data based on tab
   useEffect(() => {
@@ -180,6 +189,9 @@ export function AdminPanel() {
         {/* Inventory Tab */}
         {adminTab === 'inventory' && (
           <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-3">
+              <CategoryManager onCategoryChange={setCategories} />
+            </div>
             {/* Add/Edit Form */}
             <div className="bg-white rounded-2xl p-6 shadow-sm h-fit">
               <h2 className="text-2xl font-bold text-slate-900 mb-6">
@@ -233,11 +245,10 @@ export function AdminPanel() {
                   }
                   className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-gray-900 font-semibold"
                 >
-                  <option value="plates">Тарілки</option>
-                  <option value="glasses">Келихи</option>
-                  <option value="cutlery">Прибори</option>
-                  <option value="textiles">Текстиль</option>
-                  <option value="other">Інше</option>
+                  <option value="">Оберіть категорію</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
                 </select>
 
                 <input
