@@ -33,6 +33,7 @@ export const CheckoutView = () => {
             role: "customer",
           }
         );
+        if (typeof refreshUser === 'function') await refreshUser();
         await handleOrderSubmit(e);
         return;
       } catch (error) {
@@ -40,6 +41,7 @@ export const CheckoutView = () => {
         if (error.code === "auth/email-already-in-use") {
           try {
             await loginUser(customerInfo.email, password);
+            if (typeof refreshUser === 'function') await refreshUser();
             await handleOrderSubmit(e);
             return;
           } catch (loginErr) {
