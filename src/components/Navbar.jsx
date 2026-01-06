@@ -40,7 +40,8 @@ export const Navbar = ({
           <div className="flex items-center gap-2 bg-[#FAF3E3] text-slate-700 px-4 py-2 rounded-lg border border-slate-200 shadow transition-all duration-300">
             <CalendarIcon size={14} />
             <span className="text-xs font-semibold uppercase">
-              {globalDates.start}.12{globalDates.end ? ` - ${globalDates.end}.12` : ""}
+              {globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : ''}
+              {globalDates.end ? ` - ${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : ''}
             </span>
             <button
               onClick={(e) => {

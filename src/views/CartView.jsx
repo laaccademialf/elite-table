@@ -26,7 +26,14 @@ export const CartView = () => {
     setIsTtsLoading,
   } = useAppContext();
 
-  const days = globalDates.end ? globalDates.end - globalDates.start + 1 : 1;
+  // days in range
+  function getDaysInRange(start, end) {
+    if (!start) return 0;
+    const startDate = new Date(start.year, start.month, start.day);
+    const endDate = end ? new Date(end.year, end.month, end.day) : startDate;
+    return Math.max(1, Math.round((endDate - startDate) / (1000*60*60*24)) + 1);
+  }
+  const days = getDaysInRange(globalDates.start, globalDates.end);
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity * days,
     0
@@ -39,7 +46,8 @@ export const CartView = () => {
     const itemsList = cart
       .map((i) => `${i.title} (${i.quantity} шт.)`)
       .join(", ");
-    const prompt = `Запланована подія на ${globalDates.start}.12.2025. Обраний посуд: ${itemsList}. Створи концепцію події: Назва та стиль, Поради щодо дрес-коду, Ідеї для меню. Українською мовою.`;
+    const startStr = globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : '';
+    const prompt = `Запланована подія на ${startStr}. Обраний посуд: ${itemsList}. Створи концепцію події: Назва та стиль, Поради щодо дрес-коду, Ідеї для меню. Українською мовою.`;
 
     try {
       const result = await callGemini(
@@ -79,7 +87,7 @@ export const CartView = () => {
               <CalendarIcon size={24} className="text-[#C5A059]" />
               <div>
                 <p className="text-[10px] font-black uppercase text-[#C5A059]">Період оренди</p>
-                <p className="text-lg font-black">{globalDates.start}.12.2025 {globalDates.end ? `- ${globalDates.end}.12.2025` : ''}</p>
+                <p className="text-lg font-black">{globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : ''} {globalDates.end ? `- ${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : ''}</p>
               </div>
             </div>
             <p className="text-lg font-black">{days} {days === 1 ? 'доба' : 'доби'}</p>

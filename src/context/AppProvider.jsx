@@ -96,7 +96,6 @@ export function AppProvider({ children }) {
       alert("Спочатку оберіть дату події");
       return;
     }
-
     const qty = parseInt(quantity) || 1;
     setCart((prev) => {
       const existing = prev.find((c) => c.id === product.id);
@@ -123,7 +122,13 @@ export function AppProvider({ children }) {
       return;
     }
 
-    const days = globalDates.end ? globalDates.end - globalDates.start + 1 : 1;
+    function getDaysInRange(start, end) {
+      if (!start) return 0;
+      const startDate = new Date(start.year, start.month, start.day);
+      const endDate = end ? new Date(end.year, end.month, end.day) : startDate;
+      return Math.max(1, Math.round((endDate - startDate) / (1000*60*60*24)) + 1);
+    }
+    const days = getDaysInRange(globalDates.start, globalDates.end);
     const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity * days, 0);
 
     try {
@@ -138,7 +143,8 @@ export function AppProvider({ children }) {
           price: item.price,
         })),
         totalPrice,
-        eventDate: globalDates.start,
+        eventDate: globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : '',
+        eventEndDate: globalDates.end ? `${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : '',
         customerName: customerInfo.name,
         customerEmail: customerInfo.email,
         customerPhone: customerInfo.phone,
