@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  background-color: #F8F9FA;
+  color: #1A1C20;
+}
+
+/* Utility helpers for card look */
+.card-bg {
+  background: #ffffff;
+  border-radius: 32px;
+  box-shadow: 0 10px 30px rgba(26,28,32,0.06);
+}
+
+.rounded-card {
+  border-radius: 32px;
+}
