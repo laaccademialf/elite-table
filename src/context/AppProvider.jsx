@@ -154,6 +154,7 @@ export function AppProvider({ children }) {
         customerEmail: customerInfo.email,
         customerPhone: customerInfo.phone,
         address: customerInfo.address,
+        notes: customerInfo.notes || '',
       };
       if (currentUser && currentUser.uid) {
         orderPayload.userId = currentUser.uid;
