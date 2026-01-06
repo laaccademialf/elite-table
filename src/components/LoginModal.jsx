@@ -89,7 +89,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                   placeholder="Ім'я"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
                   required
                 />
                 <input
@@ -97,13 +97,13 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                   placeholder="Телефон"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
                   required
                 />
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-gray-900 font-semibold"
                 >
                   <option value="customer">Клієнт</option>
                   <option value="manager">Менеджер</option>
@@ -116,7 +116,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
+              className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
               required
             />
             <input
@@ -124,7 +124,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
               placeholder="Пароль"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
+              className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
               required
             />
 
