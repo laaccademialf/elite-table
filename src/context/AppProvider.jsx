@@ -75,11 +75,19 @@ export function AppProvider({ children }) {
 
   // Load user's orders
   useEffect(() => {
-    if (!currentUser?.uid) return;
+    if (!currentUser) return;
 
     const loadOrders = async () => {
       try {
-        const userOrders = await getOrders({ userId: currentUser.uid });
+        let userOrders = [];
+        if (currentUser.uid) {
+          userOrders = await getOrders({ userId: currentUser.uid });
+        }
+        // Якщо не знайдено або userId не записався, шукаємо за email
+        if ((!userOrders || userOrders.length === 0) && currentUser.email) {
+          const allOrders = await getOrders();
+          userOrders = allOrders.filter(o => o.customerEmail === currentUser.email);
+        }
         setOrders(userOrders);
       } catch (error) {
         console.error("Error loading orders:", error);
