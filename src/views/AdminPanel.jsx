@@ -22,6 +22,9 @@ export function AdminPanel() {
   // --- categories state ---
   const [categories, setCategories] = useState([]);
 
+  // Підменю для "Товари"
+  const [inventorySubTab, setInventorySubTab] = useState('categories'); // 'categories' | 'products'
+
   // Product form state
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
@@ -188,136 +191,138 @@ export function AdminPanel() {
 
         {/* Inventory Tab */}
         {adminTab === 'inventory' && (
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-3">
+          <div className="bg-white rounded-2xl p-4 shadow-sm mb-8">
+            <div className="flex gap-4 mb-6">
+              <button
+                className={`px-6 py-2 rounded-xl font-semibold transition ${inventorySubTab === 'categories' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                onClick={() => setInventorySubTab('categories')}
+              >
+                Управління категоріями
+              </button>
+              <button
+                className={`px-6 py-2 rounded-xl font-semibold transition ${inventorySubTab === 'products' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                onClick={() => setInventorySubTab('products')}
+              >
+                Управління продуктами
+              </button>
+            </div>
+            {inventorySubTab === 'categories' && (
               <CategoryManager onCategoryChange={setCategories} />
-            </div>
-            {/* Add/Edit Form */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm h-fit">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">
-                {editingId ? 'Редагувати товар' : 'Додати товар'}
-              </h2>
-
-              <form onSubmit={handleAddProduct} className="space-y-4">
-                <input
-                  type="text"
-                  placeholder="Назва"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
-                  required
-                />
-
-                <textarea
-                  placeholder="Опис"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
-                  rows="3"
-                />
-
-                <input
-                  type="number"
-                  placeholder="Ціна (₴)"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
-                  required
-                />
-
-                <input
-                  type="number"
-                  placeholder="Кількість"
-                  value={formData.quantity}
-                  onChange={(e) =>
-                    setFormData({ ...formData, quantity: e.target.value })
-                  }
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
-                  required
-                />
-
-                <select
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-gray-900 font-semibold"
-                >
-                  <option value="">Оберіть категорію</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                </select>
-
-                <input
-                  type="url"
-                  placeholder="URL фото"
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
-                />
-
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 disabled:opacity-50"
-                  >
-                    <Save className="inline mr-2" size={18} />
-                    {editingId ? 'Зберегти' : 'Додати'}
-                  </button>
-                  {editingId && (
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      className="px-6 py-3 bg-slate-200 text-slate-900 rounded-xl font-bold hover:bg-slate-300"
+            )}
+            {inventorySubTab === 'products' && (
+              <div className="grid lg:grid-cols-3 gap-8">
+                {/* Add/Edit Form */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm h-fit">
+                  <h2 className="text-2xl font-bold text-slate-900 mb-6">
+                    {editingId ? 'Редагувати товар' : 'Додати товар'}
+                  </h2>
+                  <form onSubmit={handleAddProduct} className="space-y-4">
+                    <input
+                      type="text"
+                      placeholder="Назва"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                      required
+                    />
+                    <textarea
+                      placeholder="Опис"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                      rows="3"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Ціна (₴)"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="Кількість"
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                      required
+                    />
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-gray-900 font-semibold"
                     >
-                      <X size={18} />
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-
-            {/* Products List */}
-            <div className="lg:col-span-2">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">Товари ({products.length})</h2>
-
-              {loading && <p className="text-slate-600">Завантажування...</p>}
-
-              <div className="space-y-4">
-                {products.map((product) => (
-                  <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-slate-900">{product.name}</h3>
-                      <p className="text-slate-600 text-sm">{product.description}</p>
-                      <p className="text-slate-900 font-bold mt-2">
-                        {product.price} ₴ | Кількість: {product.quantity}
-                      </p>
-                      <span className="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">
-                        {product.category}
-                      </span>
-                    </div>
+                      <option value="">Оберіть категорію</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="url"
+                      placeholder="URL фото"
+                      value={formData.image}
+                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                    />
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleEdit(product)}
-                        className="p-3 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200"
+                        type="submit"
+                        disabled={loading}
+                        className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 disabled:opacity-50"
                       >
-                        <Edit size={18} />
+                        <Save className="inline mr-2" size={18} />
+                        {editingId ? 'Зберегти' : 'Додати'}
                       </button>
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {editingId && (
+                        <button
+                          type="button"
+                          onClick={handleCancel}
+                          className="px-6 py-3 bg-slate-200 text-slate-900 rounded-xl font-bold hover:bg-slate-300"
+                        >
+                          <X size={18} />
+                        </button>
+                      )}
                     </div>
+                  </form>
+                </div>
+                {/* Products List */}
+                <div className="lg:col-span-2">
+                  <h2 className="text-2xl font-bold text-slate-900 mb-6">Товари ({products.length})</h2>
+                  {loading && <p className="text-slate-600">Завантажування...</p>}
+                  <div className="space-y-4">
+                    {products.map((product) => (
+                      <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-slate-900">{product.name}</h3>
+                          <p className="text-slate-600 text-sm">{product.description}</p>
+                          <p className="text-slate-900 font-bold mt-2">
+                            {product.price} ₴ | Кількість: {product.quantity}
+                          </p>
+                          <span className="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">
+                            {product.category}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEdit(product)}
+                            className="p-3 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
