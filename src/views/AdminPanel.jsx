@@ -203,7 +203,7 @@ export function AdminPanel() {
                 className={`px-6 py-2 rounded-xl font-semibold transition ${inventorySubTab === 'products' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
                 onClick={() => setInventorySubTab('products')}
               >
-                Управління продуктами
+                Управління товарами
               </button>
             </div>
             {inventorySubTab === 'categories' && (
