@@ -4,6 +4,17 @@ const EMOJI_LIST = [
 import { getCategories, addCategory, updateCategory, deleteCategory } from '../services/categories';
 
 export default function CategoryManager({ onCategoryChange }) {
+  const emojiPickerRef = useRef(null);
+  // Закривати emoji picker при кліку поза ним
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target)) {
+        emojiPickerRef.current.style.display = 'none';
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -97,7 +108,7 @@ export default function CategoryManager({ onCategoryChange }) {
             value={icon}
             onChange={e => setIcon(e.target.value)}
             className="px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 w-full font-mono"
-            onFocus={e => emojiPickerRef.current.style.display = 'block'}
+            onFocus={e => { if (emojiPickerRef.current) emojiPickerRef.current.style.display = 'block'; }}
             autoComplete="off"
           />
           <div ref={emojiPickerRef} style={{display: 'none'}} className="absolute z-20 bg-white border border-slate-200 rounded-xl shadow-lg p-2 mt-2 max-h-48 overflow-y-auto w-full grid grid-cols-8 gap-1">
@@ -106,7 +117,7 @@ export default function CategoryManager({ onCategoryChange }) {
                 type="button"
                 key={em + idx}
                 className="text-xl hover:bg-slate-100 rounded p-1"
-                onClick={() => { setIcon(em); emojiPickerRef.current.style.display = 'none'; }}
+                onClick={() => { setIcon(em); if (emojiPickerRef.current) emojiPickerRef.current.style.display = 'none'; }}
               >{em}</button>
             ))}
           </div>
