@@ -12,6 +12,7 @@ export const CheckoutView = () => {
     setCustomerInfo,
     handleOrderSubmit,
     currentUser,
+    refreshUser,
   } = useAppContext();
 
   const [autoRegError, setAutoRegError] = useState("");
