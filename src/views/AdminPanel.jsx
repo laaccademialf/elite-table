@@ -192,7 +192,7 @@ export function AdminPanel() {
                   placeholder="Назва"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
                   required
                 />
 
@@ -202,7 +202,7 @@ export function AdminPanel() {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
                   rows="3"
                 />
 
@@ -211,7 +211,7 @@ export function AdminPanel() {
                   placeholder="Ціна (₴)"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
                   required
                 />
 
@@ -222,7 +222,7 @@ export function AdminPanel() {
                   onChange={(e) =>
                     setFormData({ ...formData, quantity: e.target.value })
                   }
-                  className="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
                   required
                 />
 
@@ -231,7 +231,7 @@ export function AdminPanel() {
                   onChange={(e) =>
                     setFormData({ ...formData, category: e.target.value })
                   }
-                  className="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-gray-900 font-semibold"
+                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
                 >
                   <option value="plates">Тарілки</option>
                   <option value="glasses">Келихи</option>
@@ -245,7 +245,7 @@ export function AdminPanel() {
                   placeholder="URL фото"
                   value={formData.image}
                   onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  className="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
                 />
 
                 <div className="flex gap-2">
