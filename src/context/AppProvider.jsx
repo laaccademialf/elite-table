@@ -158,8 +158,9 @@ export function AppProvider({ children }) {
       setCustomerInfo({ name: "", phone: "", address: "", email: "" });
       setGlobalDates({ start: null, end: null });
 
-      // Reload orders тільки якщо залогінений
-      if (currentUser && currentUser.uid) {
+      // Якщо залогінений — оновлюємо currentUser і замовлення, одразу переводимо на orders
+      if (currentUser && currentUser.uid && typeof refreshUser === 'function') {
+        await refreshUser();
         const updatedOrders = await getOrders({ userId: currentUser.uid });
         setOrders(updatedOrders);
         setView("orders");
