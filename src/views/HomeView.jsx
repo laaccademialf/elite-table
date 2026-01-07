@@ -93,19 +93,19 @@ export const HomeView = () => {
             }
           `}</style>
           <button
-            className={`group relative p-0 rounded-2xl w-20 h-20 md:w-24 md:h-24 flex-shrink-0 border-[3px] ${selectedCategory === null ? 'border-[#C5A059] shadow-md' : 'border-[#C5A059]/60 hover:border-[#C5A059]'} bg-white overflow-hidden transition`}
+            className={`group relative p-0 rounded-2xl w-20 h-20 md:w-24 md:h-24 flex-shrink-0 border-[3px] ${selectedCategory === null ? 'border-slate-900' : 'border-[#C5A059] hover:border-slate-900'} bg-white overflow-hidden transition`}
             onClick={() => setSelectedCategory(null)}
             aria-label="Всі категорії"
           >
             <div className="absolute inset-0 flex items-center justify-center text-2xl">📋</div>
-            <div className="absolute inset-x-0 bottom-0 bg-white/80 text-slate-900 text-[10px] font-bold uppercase text-center px-1 py-1 leading-tight">
+            <div className="absolute inset-x-0 bottom-0 bg-white/80 text-slate-900 text-[10px] md:text-xs font-bold uppercase text-center px-2 py-1 leading-tight min-h-6">
               Всі
             </div>
           </button>
           {categories.length > 0 && categories.map((category) => (
             <button
               key={category.id}
-              className={`group relative p-0 rounded-2xl w-20 h-20 md:w-24 md:h-24 flex-shrink-0 border-[3px] ${selectedCategory === category.name ? 'border-[#C5A059] shadow-md' : 'border-[#C5A059]/60 hover:border-[#C5A059]'} bg-white overflow-hidden transition`}
+              className={`group relative p-0 rounded-2xl w-20 h-20 md:w-24 md:h-24 flex-shrink-0 border-[3px] ${selectedCategory === category.name ? 'border-slate-900' : 'border-[#C5A059] hover:border-slate-900'} bg-white overflow-hidden transition`}
               onClick={() => {
                 console.log('[HomeView] Category clicked:', category);
                 setSelectedCategory(category.name);
@@ -130,8 +130,8 @@ export const HomeView = () => {
                   </div>
                 );
               })()}
-              <div className="absolute inset-x-0 bottom-0 bg-white/80 text-slate-900 text-[10px] font-bold uppercase text-center px-1 py-1 leading-tight">
-                {category.name}
+              <div className="absolute inset-x-0 bottom-0 bg-white/80 text-slate-900 text-[10px] md:text-xs font-bold uppercase text-center px-2 py-1 leading-tight min-h-6">
+                <span className="clamp-2">{category.name}</span>
               </div>
             </button>
           ))}
