@@ -86,7 +86,12 @@ export const HomeView = () => {
 
       {/* Category Filter */}
       <div className="sticky top-16 z-40 bg-white/95 backdrop-blur py-6 -mx-6 px-6 mb-8 shadow-sm">
-        <div className="flex justify-center gap-4 max-w-7xl mx-auto overflow-x-auto pb-2 md:flex-wrap md:pb-0">
+        <div className="flex justify-center gap-4 max-w-7xl mx-auto overflow-x-auto pb-2 md:flex-wrap md:pb-0 md:overflow-visible scroll-smooth" style={{scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+          <style>{`
+            .flex::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
           <button
             className={`flex flex-col items-center justify-center p-3 rounded-2xl w-20 h-20 md:w-24 md:h-24 transition-all flex-shrink-0 ${selectedCategory === null ? "bg-slate-900 text-white shadow-lg scale-105" : "bg-white border-2 border-slate-200 text-slate-600 hover:border-slate-900"}`}
             onClick={() => setSelectedCategory(null)}
