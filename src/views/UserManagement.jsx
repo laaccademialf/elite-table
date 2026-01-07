@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllUsers, updateUser, promoteUserToManager, demoteManagerToUser, deleteUser, getUserOrders } from '../services/firebase';
+import { getAllUsers, updateUser, deleteUser, getUserOrders } from '../services/firebase';
 
 const UsersView = () => {
   const [users, setUsers] = useState([]);
@@ -33,6 +33,7 @@ const UsersView = () => {
       name: user.name || '',
       email: user.email || '',
       phone: user.phone || '',
+      role: user.role || 'customer',
     });
   };
 
@@ -48,27 +49,7 @@ const UsersView = () => {
     }
   };
 
-  const handlePromoteToManager = async (userId) => {
-    if (!window.confirm('Зробити цього користувача менеджером?')) return;
-    try {
-      await promoteUserToManager(userId);
-      setUsers(users.map((u) => (u.id === userId ? { ...u, role: 'manager' } : u)));
-    } catch (err) {
-      setError(err.message);
-      console.error('Error promoting user:', err);
-    }
-  };
-
-  const handleDemoteFromManager = async (userId) => {
-    if (!window.confirm('Змінити менеджера на звичайного користувача?')) return;
-    try {
-      await demoteManagerToUser(userId);
-      setUsers(users.map((u) => (u.id === userId ? { ...u, role: 'customer' } : u)));
-    } catch (err) {
-      setError(err.message);
-      console.error('Error demoting user:', err);
-    }
-  };
+  // Зміна ролі тепер відбувається через редагування профілю (select у рядку)
 
   const handleDeleteUser = async (userId, userName) => {
     if (!window.confirm(`Видалити користувача ${userName}? Це неможливо буде відновити.`)) return;
@@ -159,13 +140,24 @@ const UsersView = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm">
-                    <span
-                      className={`inline-block px-3 py-1 rounded text-white text-xs font-semibold ${
-                        user.role === 'manager' ? 'bg-blue-600' : 'bg-gray-500'
-                      }`}
-                    >
-                      {user.role === 'manager' ? 'Менеджер' : 'Користувач'}
-                    </span>
+                    {editingUserId === user.id ? (
+                      <select
+                        value={editData.role}
+                        onChange={(e) => setEditData({ ...editData, role: e.target.value })}
+                        className="px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-gray-900 font-semibold w-full"
+                      >
+                        <option value="customer">Користувач</option>
+                        <option value="manager">Менеджер</option>
+                      </select>
+                    ) : (
+                      <span
+                        className={`inline-block px-3 py-1 rounded text-white text-xs font-semibold ${
+                          user.role === 'manager' ? 'bg-blue-600' : 'bg-gray-500'
+                        }`}
+                      >
+                        {user.role === 'manager' ? 'Менеджер' : 'Користувач'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-sm">{formatDate(user.createdAt)}</td>
                   <td className="px-6 py-4 text-sm space-x-2 flex flex-wrap gap-2">
@@ -187,28 +179,6 @@ const UsersView = () => {
                     ) : (
                       <>
                         <button
-                          onClick={() => handleEdit(user)}
-                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
-                        >
-                          Редагувати
-                        </button>
-                        {user.role !== 'manager' && (
-                          <button
-                            onClick={() => handlePromoteToManager(user.id)}
-                            className="px-3 py-1 bg-purple-600 text-white rounded text-xs font-semibold hover:bg-purple-700 transition-colors"
-                          >
-                            Менеджер
-                          </button>
-                        )}
-                        {user.role === 'manager' && (
-                          <button
-                            onClick={() => handleDemoteFromManager(user.id)}
-                            className="px-3 py-1 bg-gray-600 text-white rounded text-xs font-semibold hover:bg-gray-700 transition-colors"
-                          >
-                            Користувач
-                          </button>
-                        )}
-                        <button
                           onClick={() => {
                             if (expandedUserId === user.id) {
                               setExpandedUserId(null);
@@ -221,6 +191,12 @@ const UsersView = () => {
                           className="px-3 py-1 bg-orange-600 text-white rounded text-xs font-semibold hover:bg-orange-700 transition-colors"
                         >
                           {expandedUserId === user.id ? 'Приховати' : 'Замовлення'}
+                        </button>
+                        <button
+                          onClick={() => handleEdit(user)}
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
+                        >
+                          Редагувати
                         </button>
                         <button
                           onClick={() => handleDeleteUser(user.id, user.name || user.email)}
