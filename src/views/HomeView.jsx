@@ -42,19 +42,20 @@ export const HomeView = () => {
       <div className="sticky top-16 z-40 bg-white/95 backdrop-blur py-6 -mx-6 px-6 mb-8 shadow-sm">
         <div className="flex flex-wrap justify-center gap-4 max-w-7xl mx-auto">
           <button
-            className={`px-4 py-2 rounded-full border transition-colors ${selectedCategory === null ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-800 border-slate-300 hover:bg-blue-50"}`}
+            className={`flex flex-col items-center justify-center p-3 rounded-2xl w-20 h-20 md:w-24 md:h-24 transition-all ${selectedCategory === null ? "bg-slate-900 text-white shadow-lg scale-105" : "bg-white border-2 border-slate-200 text-slate-600 hover:border-slate-900"}`}
             onClick={() => setSelectedCategory(null)}
           >
-            Всі
+            <span className="text-2xl mb-1">📋</span>
+            <span className="text-xs font-semibold uppercase text-center">Всі</span>
           </button>
           {categories.length > 0 && categories.map((category) => (
             <button
               key={category.id}
-              className={`px-4 py-2 rounded-full border transition-colors flex items-center gap-2 ${selectedCategory === category.id ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-800 border-slate-300 hover:bg-blue-50"}`}
+              className={`flex flex-col items-center justify-center p-3 rounded-2xl w-20 h-20 md:w-24 md:h-24 transition-all ${selectedCategory === category.id ? "bg-slate-900 text-white shadow-lg scale-105" : "bg-white border-2 border-slate-200 text-slate-600 hover:border-slate-900"}`}
               onClick={() => setSelectedCategory(category.id)}
             >
-              <span>{category.icon}</span>
-              <span>{category.name}</span>
+              <span className="text-2xl mb-1">{category.icon}</span>
+              <span className="text-xs font-semibold uppercase text-center">{category.name}</span>
             </button>
           ))}
           {categories.length === 0 && (
