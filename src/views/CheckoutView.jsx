@@ -80,10 +80,15 @@ export const CheckoutView = () => {
           phone: customerInfo.phone,
           email: result.email,
         }));
-        // Чекаємо оновлення стану
+        // Даємо Firebase часу синхронізувати auth стан, особливо на мобільному
+        if (typeof refreshUser === 'function') {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await refreshUser();
+        }
+        // Чекаємо оновлення стану перед оформленням
         setTimeout(async () => {
           await handleOrderSubmit(e);
-        }, 0);
+        }, 100);
       } catch (error) {
         setAutoRegError(error.message || "Помилка реєстрації. Спробуйте ще раз.");
         return;
