@@ -160,7 +160,8 @@ const UsersView = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm">{formatDate(user.createdAt)}</td>
-                  <td className="px-6 py-4 text-sm space-x-2 flex flex-wrap gap-2">
+                  <td className="px-6 py-4 text-sm">
+                    <div className="flex items-center gap-2 flex-nowrap whitespace-nowrap">
                     {editingUserId === user.id ? (
                       <>
                         <button
@@ -206,6 +207,7 @@ const UsersView = () => {
                         </button>
                       </>
                     )}
+                    </div>
                   </td>
                 </tr>
 
