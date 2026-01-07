@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/useAppContext';
+import { getOrders } from '../services/firebase';
 import { ChevronDown } from 'lucide-react';
 
 // Helper to format date object or string to DD.MM.YYYY
@@ -26,8 +27,25 @@ const formatDateRange = (startDate, endDate) => {
 export function OrdersView() {
   const { currentUser, orders, setView } = useAppContext();
   const [expandedId, setExpandedId] = useState(null);
+  const [localOrders, setLocalOrders] = useState(orders || []);
 
-  if (!orders || orders.length === 0) {
+  // Перезавантажуємо замовлення при першому завантаженні сторінки або коли користувач змінився
+  useEffect(() => {
+    const loadOrders = async () => {
+      if (currentUser?.uid) {
+        try {
+          const fetchedOrders = await getOrders({ userId: currentUser.uid });
+          setLocalOrders(fetchedOrders || []);
+        } catch (error) {
+          console.error('Error reloading orders:', error);
+          setLocalOrders(orders || []);
+        }
+      }
+    };
+    loadOrders();
+  }, [currentUser?.uid, orders]);
+
+  if (!localOrders || localOrders.length === 0) {
     return (
       <div className="min-h-screen bg-slate-50 p-8">
         <div className="max-w-4xl mx-auto">
@@ -49,6 +67,8 @@ export function OrdersView() {
       </div>
     );
   }
+
+  const displayedOrders = localOrders && localOrders.length > 0 ? localOrders : orders;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -86,7 +106,7 @@ export function OrdersView() {
         <h1 className="text-4xl font-bold text-slate-900 mb-8">МОЇ ЗАМОВЛЕННЯ</h1>
 
         <div className="space-y-4">
-          {orders.map((order) => (
+          {displayedOrders.map((order) => (
             <div key={order.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
               {/* Order Header */}
               <button
