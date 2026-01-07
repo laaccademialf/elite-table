@@ -152,11 +152,38 @@ export function AppProvider({ children }) {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const filters = selectedCategory !== "Всі" ? { category: selectedCategory } : {};
+        const filters = selectedCategory && selectedCategory !== "Всі" ? { category: selectedCategory } : {};
         const data = await getProducts(filters);
         setProducts(data);
       } catch (error) {
         console.error("Error loading products:", error);
+        // Fallbacks for unauthenticated users or read errors
+        try {
+          const res = await fetch('/products.json');
+          if (res.ok) {
+            const staticProducts = await res.json();
+            setProducts(staticProducts);
+            console.log('[AppProvider] Using public products.json fallback');
+            return;
+          }
+        } catch {}
+        try {
+          const { INITIAL_ITEMS } = await import('../constants/initialData.js');
+          // Map INITIAL_ITEMS to product shape used in app
+          const mapped = INITIAL_ITEMS.map((it) => ({
+            id: String(it.id),
+            name: it.title,
+            description: it.description,
+            price: it.price,
+            quantity: it.count,
+            category: it.category,
+            image: it.image,
+          }));
+          setProducts(mapped);
+          console.log('[AppProvider] Using INITIAL_ITEMS fallback');
+        } catch (e2) {
+          console.error('[AppProvider] No product fallbacks available', e2);
+        }
       }
     };
 
