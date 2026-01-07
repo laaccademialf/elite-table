@@ -10,7 +10,7 @@ import {
   updateOrderStatus,
   deleteOrder,
 } from '../services/firebase';
-import { Upload, Trash2, Edit, Save, X, Calendar } from 'lucide-react';
+import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown } from 'lucide-react';
 import CategoryManager from '../components/CategoryManager';
 import DateRangePicker from '../components/DateRangePicker';
 import { getCategories } from '../services/categories';
@@ -55,6 +55,7 @@ export function AdminPanel() {
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [orderDateFilter, setOrderDateFilter] = useState({ start: null, end: null });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   // Product form state
   const [editingId, setEditingId] = useState(null);
@@ -578,60 +579,96 @@ export function AdminPanel() {
                 </div>
               ) : (
                 filteredOrders.map((order) => (
-                <div key={order.id} className="bg-white rounded-2xl p-6 shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-slate-900 text-lg">
-                        Замовлення #{order.id?.slice(0, 8)}
-                      </h3>
-                      <p className="text-slate-600">
-                        <span className="font-semibold">Клієнт:</span> {order.customerName} ({order.customerEmail})
-                      </p>
-                      <p className="text-slate-600">
-                        <span className="font-semibold">Телефон:</span> {order.customerPhone}
-                      </p>
-                      <p className="text-slate-600">
-                        <span className="font-semibold">Адреса доставки:</span> {order.address}
-                      </p>
-                      <p className="text-slate-600">
-                        <span className="font-semibold">Дата заходу:</span> {formatDateRange(order.eventDate, order.eventEndDate)}
-                      </p>
-                      <p className="text-slate-600">
-                        <span className="font-semibold">Коментар:</span> {order.notes}
-                      </p>
+                <div key={order.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                  {/* Compacted Order Header */}
+                  <button
+                    onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                    className="w-full p-6 flex justify-between items-center hover:bg-slate-50 transition text-left"
+                  >
+                    <div className="flex-1 flex items-center gap-6">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-slate-900 text-lg mb-1">
+                          Замовлення #{order.id?.slice(0, 8)}
+                        </h3>
+                        <p className="text-slate-600 text-sm">
+                          {order.customerName} • {formatDateRange(order.eventDate, order.eventEndDate)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-slate-900">{order.totalPrice} ₴</p>
+                      </div>
                     </div>
-                    <div className="text-right flex flex-col items-end gap-3">
-                      <p className="text-2xl font-bold text-slate-900">{order.totalPrice} ₴</p>
-                      <select
-                        value={order.status}
-                        onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                        className={`px-4 py-2 border-2 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all ${getStatusColor(order.status)}`}
-                      >
-                        <option value="pending">Очікування</option>
-                        <option value="confirmed">Підтверджено</option>
-                        <option value="delivered">Доставлено</option>
-                        <option value="cancelled">Скасовано</option>
-                      </select>
-                      <button
-                        onClick={() => handleDeleteOrder(order.id)}
-                        className="px-4 py-2 bg-red-100 text-red-600 rounded-xl font-semibold hover:bg-red-200 transition-colors flex items-center gap-2"
-                      >
-                        <Trash2 size={16} />
-                        Видалити
-                      </button>
-                    </div>
+                    <ChevronDown 
+                      size={20} 
+                      className={`ml-4 transition-transform ${expandedOrderId === order.id ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {/* Horizontal Action Buttons (always visible) */}
+                  <div className="px-6 pb-4 flex items-center gap-3 border-t border-slate-100 pt-4">
+                    <select
+                      value={order.status}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleUpdateOrderStatus(order.id, e.target.value);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`px-4 py-2 border-2 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all text-sm ${getStatusColor(order.status)}`}
+                    >
+                      <option value="pending">Очікування</option>
+                      <option value="confirmed">Підтверджено</option>
+                      <option value="delivered">Доставлено</option>
+                      <option value="cancelled">Скасовано</option>
+                    </select>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteOrder(order.id);
+                      }}
+                      className="px-4 py-2 bg-red-100 text-red-600 rounded-xl font-semibold hover:bg-red-200 transition-colors flex items-center gap-2 text-sm"
+                    >
+                      <Trash2 size={16} />
+                      Видалити
+                    </button>
                   </div>
 
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <h4 className="font-semibold text-slate-900 mb-2">Товари:</h4>
-                    <ul className="space-y-1 text-slate-600">
-                      {order.items?.map((item, idx) => (
-                        <li key={idx}>
-                          • {item.productName} × {item.quantity} ({item.price} ₴)
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  {/* Expanded Details */}
+                  {expandedOrderId === order.id && (
+                    <div className="px-6 pb-6 space-y-4 border-t border-slate-100 pt-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-slate-600 text-sm">
+                            <span className="font-semibold">Клієнт:</span> {order.customerName}
+                          </p>
+                          <p className="text-slate-600 text-sm">
+                            <span className="font-semibold">Email:</span> {order.customerEmail}
+                          </p>
+                          <p className="text-slate-600 text-sm">
+                            <span className="font-semibold">Телефон:</span> {order.customerPhone}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-slate-600 text-sm">
+                            <span className="font-semibold">Адреса доставки:</span> {order.address}
+                          </p>
+                          <p className="text-slate-600 text-sm">
+                            <span className="font-semibold">Коментар:</span> {order.notes || '—'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        <h4 className="font-semibold text-slate-900 mb-2 text-sm">Товари:</h4>
+                        <ul className="space-y-1 text-slate-600 text-sm">
+                          {order.items?.map((item, idx) => (
+                            <li key={idx}>
+                              • {item.productName} × {item.quantity} ({item.price} ₴)
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 ))
               )}
