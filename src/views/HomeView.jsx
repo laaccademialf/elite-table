@@ -63,7 +63,11 @@ export const HomeView = () => {
                 setSelectedCategory(category.name);
               }}
             >
-              <span className="text-2xl mb-1">{category.icon}</span>
+              {category.icon ? (
+                <img src={category.icon} alt={category.name} className="w-12 h-12 object-cover rounded-lg mb-1" onError={(e) => e.target.style.display = 'none'} />
+              ) : (
+                <span className="text-2xl mb-1">🏷️</span>
+              )}
               <span className="text-xs font-semibold uppercase text-center">{category.name}</span>
             </button>
           ))}
