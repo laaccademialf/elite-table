@@ -15,6 +15,7 @@ import CategoryManager from '../components/CategoryManager';
 import DateRangePicker from '../components/DateRangePicker';
 import { getCategories } from '../services/categories';
 import { CustomCalendar } from '../components/CustomCalendar';
+import UsersView from './UsersView';
 
 // Helper to format date object or string to DD.MM.YYYY
 const formatDate = (date) => {
@@ -360,7 +361,7 @@ export function AdminPanel() {
 
         {/* Tabs */}
         <div className="flex gap-4 mb-8 bg-white rounded-2xl p-4 shadow-sm">
-          {['inventory', 'orders', 'analytics'].map((tab) => (
+          {['inventory', 'orders', 'analytics', 'users'].map((tab) => (
             <button
               key={tab}
               onClick={() => setAdminTab(tab)}
@@ -373,6 +374,7 @@ export function AdminPanel() {
               {tab === 'inventory' && '🍽️ Товари'}
               {tab === 'orders' && '📦 Замовлення'}
               {tab === 'analytics' && '📊 Аналітика'}
+              {tab === 'users' && '👥 Користувачі'}
             </button>
           ))}
         </div>
@@ -670,6 +672,11 @@ export function AdminPanel() {
               <p className="text-4xl font-bold text-slate-900">{stats.averageOrderValue.toFixed(2)} ₴</p>
             </div>
           </div>
+        )}
+
+        {/* Users Tab */}
+        {adminTab === 'users' && (
+          <UsersView />
         )}
       </div>
     </div>

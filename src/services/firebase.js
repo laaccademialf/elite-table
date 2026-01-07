@@ -609,4 +609,64 @@ export const fetchUserProfileByUid = async (uid) => {
   return null;
 };
 
+// ==================== USER MANAGEMENT ====================
+
+export const getAllUsers = async () => {
+  try {
+    const usersSnapshot = await getDocs(collection(db, 'users'));
+    return usersSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    throw error;
+  }
+};
+
+export const updateUser = async (userId, updates) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      ...updates,
+      updatedAt: Timestamp.now(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw error;
+  }
+};
+
+export const promoteUserToManager = async (userId) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      role: 'manager',
+      updatedAt: Timestamp.now(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error promoting user to manager:', error);
+    throw error;
+  }
+};
+
+export const getUserOrders = async (userId) => {
+  try {
+    const ordersQuery = query(
+      collection(db, 'orders'),
+      where('userId', '==', userId)
+    );
+    const ordersSnapshot = await getDocs(ordersQuery);
+    return ordersSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error('Error fetching user orders:', error);
+    throw error;
+  }
+};
+
 export { auth, db, storage };
