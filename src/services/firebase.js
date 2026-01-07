@@ -695,7 +695,5 @@ export const getUserOrders = async (userId) => {
     throw error;
   }
 };
-  }
-};
 
 export { auth, db, storage };
