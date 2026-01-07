@@ -216,6 +216,15 @@ export const deleteProduct = async (productId) => {
 
 // ==================== ORDERS (ЗАМОВЛЕННЯ) ====================
 
+export const deleteOrder = async (orderId) => {
+  try {
+    await deleteDoc(doc(db, 'orders', orderId));
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    throw error;
+  }
+};
+
 export const createOrder = async (orderData) => {
   try {
     const resolvedUserId = orderData.userId || auth.currentUser?.uid || null;

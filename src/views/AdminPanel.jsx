@@ -8,10 +8,13 @@ import {
   getOrderStats,
   getOrders,
   updateOrderStatus,
+  deleteOrder,
 } from '../services/firebase';
-import { Upload, Trash2, Edit, Save, X } from 'lucide-react';
+import { Upload, Trash2, Edit, Save, X, Calendar } from 'lucide-react';
 import CategoryManager from '../components/CategoryManager';
+import DateRangePicker from '../components/DateRangePicker';
 import { getCategories } from '../services/categories';
+import { CustomCalendar } from '../components/CustomCalendar';
 
 // Helper to format date object or string to DD.MM.YYYY
 const formatDate = (date) => {
@@ -45,6 +48,12 @@ export function AdminPanel() {
 
   // Підменю для "Товари"
   const [inventorySubTab, setInventorySubTab] = useState('categories'); // 'categories' | 'products'
+
+  // Filters state
+  const [productCategoryFilter, setProductCategoryFilter] = useState('all');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [orderDateFilter, setOrderDateFilter] = useState({ start: null, end: null });
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Product form state
   const [editingId, setEditingId] = useState(null);
@@ -182,6 +191,164 @@ export function AdminPanel() {
     }
   };
 
+  const handleDeleteOrder = async (orderId) => {
+    if (!confirm('Ви впевнені, що хочете видалити це замовлення?')) return;
+
+    try {
+      setLoading(true);
+      await deleteOrder(orderId);
+      loadData();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Помилка при видаленні замовлення');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'delivered':
+        return 'bg-green-100 text-green-800 border-green-300';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 border-red-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'Очікування';
+      case 'confirmed':
+        return 'Підтверджено';
+      case 'delivered':
+        return 'Доставлено';
+      case 'cancelled':
+        return 'Скасовано';
+      default:
+        return status;
+    }
+  };
+
+  // Helper to check if date is within range
+  const dateInRange = (date, startDate, endDate) => {
+    if (!startDate && !endDate) return true;
+    
+    const dateStr = formatDate(date);
+    if (!dateStr) return false;
+    
+    // Parse DD.MM.YYYY to Date
+    const [day, month, year] = dateStr.split('.').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    dateObj.setHours(0, 0, 0, 0);
+    
+    if (startDate) {
+      const start = new Date(startDate.year, startDate.month - 1, startDate.day);
+      start.setHours(0, 0, 0, 0);
+      if (dateObj < start) return false;
+    }
+    
+    if (endDate) {
+      const end = new Date(endDate.year, endDate.month - 1, endDate.day);
+      end.setHours(23, 59, 59, 999);
+      if (dateObj > end) return false;
+    }
+    
+    return true;
+  };
+
+  // Helper to check if order date range overlaps with filter range
+  const orderDateRangeOverlaps = (orderStartDate, orderEndDate, filterStart, filterEnd) => {
+    if (!filterStart && !filterEnd) return true;
+    
+    // Parse order dates
+    const orderStartStr = formatDate(orderStartDate);
+    const orderEndStr = formatDate(orderEndDate || orderStartDate);
+    
+    console.log('[Filter Debug] Order dates:', { 
+      orderStartDate, 
+      orderEndDate, 
+      orderStartStr, 
+      orderEndStr,
+      filterStart,
+      filterEnd
+    });
+    
+    if (!orderStartStr) return false;
+    
+    const [d1, m1, y1] = orderStartStr.split('.').map(Number);
+    const orderStart = new Date(y1, m1 - 1, d1);
+    orderStart.setHours(0, 0, 0, 0);
+    
+    const [d2, m2, y2] = orderEndStr.split('.').map(Number);
+    const orderEnd = new Date(y2, m2 - 1, d2);
+    orderEnd.setHours(23, 59, 59, 999);
+    
+    // Parse filter dates
+    let filterStartDate = null;
+    let filterEndDate = null;
+    
+    if (filterStart) {
+      filterStartDate = new Date(filterStart.year, filterStart.month, filterStart.day);
+      filterStartDate.setHours(0, 0, 0, 0);
+    }
+    
+    if (filterEnd) {
+      filterEndDate = new Date(filterEnd.year, filterEnd.month, filterEnd.day);
+      filterEndDate.setHours(23, 59, 59, 999);
+    }
+    
+    console.log('[Filter Debug] Parsed dates:', {
+      orderStart: orderStart.toISOString(),
+      orderEnd: orderEnd.toISOString(),
+      filterStartDate: filterStartDate?.toISOString(),
+      filterEndDate: filterEndDate?.toISOString()
+    });
+    
+    // Check for overlap: order and filter ranges intersect
+    // Order overlaps if: orderStart <= filterEnd AND orderEnd >= filterStart
+    if (filterStartDate && orderEnd < filterStartDate) {
+      console.log('[Filter Debug] Order ends before filter starts - EXCLUDED');
+      return false;
+    }
+    if (filterEndDate && orderStart > filterEndDate) {
+      console.log('[Filter Debug] Order starts after filter ends - EXCLUDED');
+      return false;
+    }
+    
+    console.log('[Filter Debug] Order overlaps with filter - INCLUDED');
+    return true;
+  };
+
+  // Filter products by category
+  const filteredProducts = products.filter(product => {
+    if (productCategoryFilter === 'all') return true;
+    return product.category === productCategoryFilter;
+  });
+
+  // Filter orders by status and date
+  const filteredOrders = orders.filter(order => {
+    // Status filter
+    if (orderStatusFilter !== 'all' && order.status !== orderStatusFilter) {
+      return false;
+    }
+    
+    // Date filter - check if order date range overlaps with filter range
+    if (orderDateFilter.start || orderDateFilter.end) {
+      if (!orderDateRangeOverlaps(order.eventDate, order.eventEndDate, orderDateFilter.start, orderDateFilter.end)) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 p-8">
       <div className="max-w-6xl mx-auto">
@@ -309,10 +476,27 @@ export function AdminPanel() {
                 </div>
                 {/* Products List */}
                 <div className="lg:col-span-2">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-6">Товари ({products.length})</h2>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-slate-900">Товари ({filteredProducts.length})</h2>
+                    <select
+                      value={productCategoryFilter}
+                      onChange={(e) => setProductCategoryFilter(e.target.value)}
+                      className="px-4 py-2 bg-white border-2 border-slate-300 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                    >
+                      <option value="all">Всі категорії</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
                   {loading && <p className="text-slate-600">Завантажування...</p>}
                   <div className="space-y-4">
-                    {products.map((product) => (
+                    {filteredProducts.length === 0 ? (
+                      <div className="bg-white rounded-2xl p-8 text-center">
+                        <p className="text-slate-600 text-lg">Товарів не знайдено</p>
+                      </div>
+                    ) : (
+                      filteredProducts.map((product) => (
                       <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center">
                         <div className="flex-1">
                           <h3 className="font-bold text-slate-900">{product.name}</h3>
@@ -339,7 +523,8 @@ export function AdminPanel() {
                           </button>
                         </div>
                       </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -350,15 +535,50 @@ export function AdminPanel() {
         {/* Orders Tab */}
         {adminTab === 'orders' && (
           <div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Управління замовленнями</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-slate-900">Управління замовленнями</h2>
+              <div className="flex gap-4 items-center">
+                <select
+                  value={orderStatusFilter}
+                  onChange={(e) => setOrderStatusFilter(e.target.value)}
+                  className="px-4 py-2 bg-white border-2 border-slate-300 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                >
+                  <option value="all">Всі статуси</option>
+                  <option value="pending">Очікування</option>
+                  <option value="confirmed">Підтверджено</option>
+                  <option value="delivered">Доставлено</option>
+                  <option value="cancelled">Скасовано</option>
+                </select>
+                <DateRangePicker
+                  value={{ start: orderDateFilter.start, end: orderDateFilter.end }}
+                  onChange={(dateRange) => setOrderDateFilter({ start: dateRange.start, end: dateRange.end })}
+                />
+                {(orderStatusFilter !== 'all' || orderDateFilter.start || orderDateFilter.end) && (
+                  <button
+                    onClick={() => {
+                      setOrderStatusFilter('all');
+                      setOrderDateFilter({ start: null, end: null });
+                    }}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-300 transition-colors whitespace-nowrap"
+                  >
+                    Скинути
+                  </button>
+                )}
+              </div>
+            </div>
 
             {loading && <p className="text-slate-600">Завантажування...</p>}
 
             <div className="space-y-4">
-              {orders.map((order) => (
+              {filteredOrders.length === 0 ? (
+                <div className="bg-white rounded-2xl p-8 text-center">
+                  <p className="text-slate-600 text-lg">Замовлень не знайдено</p>
+                </div>
+              ) : (
+                filteredOrders.map((order) => (
                 <div key={order.id} className="bg-white rounded-2xl p-6 shadow-sm">
                   <div className="flex justify-between items-start mb-4">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-bold text-slate-900 text-lg">
                         Замовлення #{order.id?.slice(0, 8)}
                       </h3>
@@ -378,18 +598,25 @@ export function AdminPanel() {
                         <span className="font-semibold">Коментар:</span> {order.notes}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end gap-3">
                       <p className="text-2xl font-bold text-slate-900">{order.totalPrice} ₴</p>
                       <select
                         value={order.status}
                         onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                        className="mt-2 px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
+                        className={`px-4 py-2 border-2 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all ${getStatusColor(order.status)}`}
                       >
                         <option value="pending">Очікування</option>
                         <option value="confirmed">Підтверджено</option>
                         <option value="delivered">Доставлено</option>
                         <option value="cancelled">Скасовано</option>
                       </select>
+                      <button
+                        onClick={() => handleDeleteOrder(order.id)}
+                        className="px-4 py-2 bg-red-100 text-red-600 rounded-xl font-semibold hover:bg-red-200 transition-colors flex items-center gap-2"
+                      >
+                        <Trash2 size={16} />
+                        Видалити
+                      </button>
                     </div>
                   </div>
 
@@ -404,7 +631,8 @@ export function AdminPanel() {
                     </ul>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}
