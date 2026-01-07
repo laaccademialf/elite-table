@@ -121,18 +121,6 @@ export default function CategoryManager({ onCategoryChange }) {
             ))}
           </div>
         </div>
-        // Emoji picker ref
-        const emojiPickerRef = useRef(null);
-        // Закривати emoji picker при кліку поза ним
-        useEffect(() => {
-          const handleClick = (e) => {
-            if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target)) {
-              emojiPickerRef.current.style.display = 'none';
-            }
-          };
-          document.addEventListener('mousedown', handleClick);
-          return () => document.removeEventListener('mousedown', handleClick);
-        }, []);
         <button type="submit" className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition min-w-[120px]">
           {editingId ? 'Зберегти' : 'Додати'}
         </button>
