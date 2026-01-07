@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { CATEGORIES, INITIAL_ITEMS, INITIAL_NEW_ITEM } from "../constants/initialData";
+// import { INITIAL_ITEMS, INITIAL_NEW_ITEM } from "../constants/initialData";
 import { AppContext } from "./AppContextDefinition";
 
 function AppProvider({ children }) {
@@ -23,7 +23,7 @@ function AppProvider({ children }) {
   const [isTtsLoading, setIsTtsLoading] = useState(false);
   const [orders, setOrders] = useState([]);
   const [bookings, setBookings] = useState({});
-  const [categories, setCategories] = useState(CATEGORIES);
+  const [categories, setCategories] = useState([]);
   const [items, setItems] = useState(INITIAL_ITEMS);
   const [newItem, setNewItem] = useState(INITIAL_NEW_ITEM);
 
