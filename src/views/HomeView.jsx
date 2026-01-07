@@ -85,8 +85,8 @@ export const HomeView = () => {
       </div>
 
       {/* Category Filter */}
-      <div className="sticky top-16 z-40 bg-white/95 backdrop-blur py-6 -mx-6 px-6 mb-8 shadow-sm">
-        <div className="flex justify-center gap-4 max-w-7xl mx-auto overflow-x-auto pb-2 md:flex-wrap md:pb-0 md:overflow-visible scroll-smooth" style={{scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+      <div className="sticky top-16 z-40 bg-white/95 backdrop-blur py-6 -mx-6 px-6 mb-8 shadow-sm overflow-visible">
+        <div className="flex justify-center gap-4 max-w-7xl mx-auto overflow-x-auto overflow-y-visible pb-2 md:flex-wrap md:pb-0 md:overflow-visible scroll-smooth" style={{scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
           <style>{`
             .flex::-webkit-scrollbar {
               display: none;
@@ -97,7 +97,7 @@ export const HomeView = () => {
             onClick={() => setSelectedCategory(null)}
           >
             <span className="text-2xl mb-1">📋</span>
-            <span className="text-xs font-semibold uppercase text-center">Всі</span>
+            <span className="text-[10px] font-bold uppercase text-center leading-tight break-words whitespace-normal w-full overflow-hidden">Всі</span>
           </button>
           {categories.length > 0 && categories.map((category) => (
             <button
@@ -113,7 +113,7 @@ export const HomeView = () => {
               ) : (
                 <span className="text-2xl mb-1">🏷️</span>
               )}
-              <span className="text-xs font-semibold uppercase text-center">{category.name}</span>
+              <span className="text-[10px] font-bold uppercase text-center leading-tight break-words whitespace-normal w-full overflow-hidden">{category.name}</span>
             </button>
           ))}
           {categories.length === 0 && (

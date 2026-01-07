@@ -94,14 +94,14 @@ export const ItemDetailView = () => {
                 value={orderQuantity} 
                 onChange={e => {
                   const val = parseInt(e.target.value) || 1;
-                  setOrderQuantity(Math.min(maxAvailable || 999, Math.max(1, val)));
+                  setOrderQuantity(Math.min((maxAvailable ?? 999), Math.max(1, val)));
                 }}
-                max={maxAvailable || 999}
+                max={maxAvailable ?? 999}
                 min={1}
                 className="bg-transparent text-white text-center font-black text-lg w-12 outline-none" 
               />
               <button 
-                onClick={() => setOrderQuantity(Math.min(maxAvailable || 999, orderQuantity + 1))} 
+                onClick={() => setOrderQuantity(Math.min((maxAvailable ?? 999), orderQuantity + 1))} 
                 className="bg-[#C5A059] w-9 h-9 rounded-full font-black text-white"
               >
                 +
@@ -194,14 +194,14 @@ export const ItemDetailView = () => {
                 value={orderQuantity} 
                 onChange={e => {
                   const val = parseInt(e.target.value) || 1;
-                  setOrderQuantity(Math.min(maxAvailable || 999, Math.max(1, val)));
+                  setOrderQuantity(Math.min((maxAvailable ?? 999), Math.max(1, val)));
                 }}
-                max={maxAvailable || 999}
+                max={maxAvailable ?? 999}
                 min={1}
                 className="bg-transparent text-white text-center font-black text-xl w-16 outline-none" 
               />
               <button 
-                onClick={() => setOrderQuantity(Math.min(maxAvailable || 999, orderQuantity + 1))} 
+                onClick={() => setOrderQuantity(Math.min((maxAvailable ?? 999), orderQuantity + 1))} 
                 className="bg-[#C5A059] w-10 h-10 rounded-full font-black text-white text-lg hover:bg-[#B59049] transition"
               >
                 +

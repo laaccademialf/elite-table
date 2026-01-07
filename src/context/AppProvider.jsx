@@ -321,9 +321,16 @@ export function AppProvider({ children }) {
     }
   };
 
-  const getAvailabilityForDate = () => 999; // Placeholder for Firebase inventory
+  const getAvailabilityForDate = () => {
+    return 0;
+  };
   const getMaxAvailableForRange = async (productId, startDate, endDate) => {
-    if (!productId || !startDate) return 999;
+    // If dates are not selected yet, return the product's total quantity (actual stock)
+    if (!productId) return 0;
+    if (!startDate) {
+      const p = Array.isArray(products) ? products.find((pr) => pr.id === productId) : null;
+      return Number(p?.quantity ?? 0);
+    }
     try {
       // Convert date objects to strings if needed
       const start = typeof startDate === 'string' ? startDate : 
@@ -334,10 +341,11 @@ export function AppProvider({ children }) {
       console.log(`[AppProvider.getMaxAvailableForRange] Calling getAvailableQuantity for productId=${productId}, start=${start}, end=${end}`);
       const available = await getAvailableQuantity(productId, start, end);
       console.log(`[AppProvider.getMaxAvailableForRange] Got available=${available}`);
-      return available;
+      return typeof available === 'number' ? available : 0;
     } catch (error) {
       console.error('Error getting max available:', error);
-      return 999; // Return 999 on error, not 0 (so UI doesn't show "not available" on error)
+      const p = Array.isArray(products) ? products.find((pr) => pr.id === productId) : null;
+      return Number(p?.quantity ?? 0);
     }
   };
 
