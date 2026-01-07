@@ -118,26 +118,26 @@ export const CartView = () => {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
                 {/* Quantity control */}
-                <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
+                <div className="flex items-center border border-gray-200 rounded-full overflow-hidden shrink-0">
                   <button
                     aria-label="Зменшити"
-                    className="px-3 py-2 hover:bg-gray-50"
+                    className="px-2 md:px-3 py-1 md:py-2 hover:bg-gray-50 text-sm md:text-base"
                     onClick={() => setCartQuantity(item.id, Math.max(1, (item.quantity || 1) - 1))}
                   >
-                    <Minus size={16} />
+                    <Minus size={14} />
                   </button>
                   <input
                     type="number"
                     min={1}
                     value={item.quantity}
                     onChange={(e) => setCartQuantity(item.id, e.target.value)}
-                    className="w-14 text-center font-bold text-slate-900 bg-transparent outline-none focus:outline-none focus:ring-0 border-0 appearance-none py-2"
+                    className="w-10 md:w-14 text-center font-bold text-slate-900 bg-transparent outline-none focus:outline-none focus:ring-0 border-0 appearance-none py-1 md:py-2 text-sm"
                   />
                   <button
                     aria-label="Збільшити"
-                    className="px-3 py-2 hover:bg-gray-50"
+                    className="px-2 md:px-3 py-1 md:py-2 hover:bg-gray-50 text-sm md:text-base"
                     onClick={() => {
                       const max = availability[item.id];
                       const next = (item.quantity || 1) + 1;
@@ -145,10 +145,10 @@ export const CartView = () => {
                     }}
                     disabled={availability[item.id] !== undefined && item.quantity >= availability[item.id]}
                   >
-                    <Plus size={16} />
+                    <Plus size={14} />
                   </button>
                 </div>
-                <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600"><Trash2 size={20}/></button>
+                <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600 shrink-0"><Trash2 size={18}/></button>
               </div>
             </div>
           ))}

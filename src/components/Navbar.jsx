@@ -62,11 +62,11 @@ export const Navbar = ({
           {currentUser && (
             <button
               onClick={() => setView("orders")}
-              className="hidden sm:flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-[#F5EBDD] rounded-lg shadow transition-all duration-200"
+              className="flex items-center gap-2 md:gap-0 px-2 md:px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-[#F5EBDD] rounded-lg shadow transition-all duration-200"
               title="Мої замовлення"
             >
               <Package size={18} />
-              <span className="text-xs font-semibold">Замовлення</span>
+              <span className="hidden md:inline text-xs font-semibold ml-2">Замовлення</span>
             </button>
           )}
 
