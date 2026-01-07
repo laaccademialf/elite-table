@@ -23,6 +23,8 @@ export const ItemDetailView = () => {
 
   const [maxAvailable, setMaxAvailable] = useState(selectedItem.quantity || 999);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
+  const priceNum = Number(selectedItem.price) || 0;
+  const days = (globalDates?.start && globalDates?.end) ? (globalDates.end - globalDates.start + 1) : 1;
   
   useEffect(() => {
     const fetchAvailability = async () => {
@@ -39,7 +41,8 @@ export const ItemDetailView = () => {
     
     fetchAvailability();
   }, [selectedItem.id, globalDates.start, globalDates.end, getMaxAvailableForRange]);
-  const days = globalDates.end ? globalDates.end - globalDates.start + 1 : 1;
+  
+  const totalPrice = priceNum * orderQuantity * days;
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-12 animate-in slide-in-from-right-12 duration-500">
@@ -48,7 +51,9 @@ export const ItemDetailView = () => {
       </button>
       
       <div className="grid md:grid-cols-2 gap-12 mb-16">
-        <SafeImage src={selectedItem.image} className="w-full aspect-square rounded-[64px] object-cover shadow-2xl" />
+        <div className="relative aspect-square rounded-2xl overflow-hidden bg-white shadow-2xl border-[3px] border-[#C5A059]">
+          <SafeImage src={selectedItem.image} className="w-full h-full object-cover" />
+        </div>
         
         <div className="flex flex-col justify-between">
           <div>
@@ -59,15 +64,9 @@ export const ItemDetailView = () => {
                 <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Опис</p>
                 <p className="text-sm italic text-gray-700">{selectedItem.description}</p>
               </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="bg-[#C5A059]/10 p-4 rounded-[24px] border border-[#C5A059]/20">
-                  <p className="text-[10px] font-black uppercase text-[#C5A059] mb-1">Матеріал</p>
-                  <p className="font-black text-gray-900">{selectedItem.material}</p>
-                </div>
-                <div className="bg-[#C5A059]/10 p-4 rounded-[24px] border border-[#C5A059]/20">
-                  <p className="text-[10px] font-black uppercase text-[#C5A059] mb-1">Ціна за добу</p>
-                  <p className="font-black text-gray-900">{selectedItem.price} ₴</p>
-                </div>
+              <div className="bg-[#C5A059]/10 p-4 rounded-[24px] border border-[#C5A059]/20">
+                <p className="text-[10px] font-black uppercase text-[#C5A059] mb-1">Ціна за добу</p>
+                <p className="font-black text-gray-900">{priceNum} ₴</p>
               </div>
             </div>
           </div>
@@ -114,8 +113,11 @@ export const ItemDetailView = () => {
               disabled={isLoadingAvailability || maxAvailable === 0}
               className="w-full py-6 bg-[#C5A059] text-white font-black rounded-full uppercase tracking-wider text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ➕ Додати {orderQuantity} од. у кошик ({orderQuantity * selectedItem.price * days} ₴)
-                          {maxAvailable === 0 ? '❌ Немає в наявності' : `➕ Додати ${orderQuantity} од. у кошик (${orderQuantity * selectedItem.price * days} ₴)`}
+              {isLoadingAvailability
+                ? 'Перевірка доступності...'
+                : (maxAvailable === 0
+                  ? '❌ Немає в наявності'
+                  : `➕ Додати ${orderQuantity} од. у кошик (${totalPrice} ₴)`) }
             </button>
           </div>
         </div>
