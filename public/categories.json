@@ -1,7 +1,0 @@
-[
-  { "id": "cat_all", "name": "Всі", "description": "Всі категорії", "icon": "" },
-  { "id": "cat_glasses", "name": "Стакани", "description": "Скляні стакани", "icon": "" },
-  { "id": "cat_goblets", "name": "Келишки", "description": "Келихи для напоїв", "icon": "" },
-  { "id": "cat_plates", "name": "Тарілки", "description": "Різні тарілки", "icon": "" },
-  { "id": "cat_tablecloths", "name": "Скатертини", "description": "Скатертини та серветки", "icon": "" }
-]

@@ -14,7 +14,7 @@ import {
 export function AppProvider({ children }) {
     // Categories
     const [categories, setCategories] = useState([]);
-    // Live categories sync - без умови на авторизацію
+    // Live categories sync
     useEffect(() => {
       try {
         const unsubscribe = onSnapshot(
@@ -26,23 +26,22 @@ export function AppProvider({ children }) {
             }));
             console.log('[AppProvider] Firestore categories:', fetchedCategories);
             setCategories(fetchedCategories);
-             // Зберігаємо в localStorage
-             localStorage.setItem('elite_table_categories', JSON.stringify(fetchedCategories));
+            localStorage.setItem('elite_table_categories', JSON.stringify(fetchedCategories));
           },
           (error) => {
             console.error('[AppProvider] Error loading categories:', error);
-             // Спочатку спробуємо з localStorage
-             const cached = localStorage.getItem('elite_table_categories');
-             if (cached) {
-               try {
-                 setCategories(JSON.parse(cached));
-                 console.log('[AppProvider] Using cached categories from localStorage');
-                 return;
-               } catch (e) {
-                 console.error('[AppProvider] Error parsing cached categories:', e);
-               }
-             }
-            // Якщо помилка доступу, спробуємо завантажити з getDocs
+            // Спробуємо з localStorage кеш
+            const cached = localStorage.getItem('elite_table_categories');
+            if (cached) {
+              try {
+                setCategories(JSON.parse(cached));
+                console.log('[AppProvider] Using cached categories from localStorage');
+                return;
+              } catch (e) {
+                console.error('[AppProvider] Error parsing cached categories:', e);
+              }
+            }
+            // Якщо помилка, спробуємо getDocs
             getDocs(collection(db, 'categories'))
               .then((snapshot) => {
                 const fetchedCategories = snapshot.docs.map((doc) => ({
@@ -51,51 +50,26 @@ export function AppProvider({ children }) {
                 }));
                 console.log('[AppProvider] Categories loaded via getDocs:', fetchedCategories);
                 setCategories(fetchedCategories);
-                 localStorage.setItem('elite_table_categories', JSON.stringify(fetchedCategories));
+                localStorage.setItem('elite_table_categories', JSON.stringify(fetchedCategories));
               })
-              .catch(async (err) => {
+              .catch((err) => {
                 console.error('[AppProvider] Failed to load categories:', err);
-                // Остаточний публічний fallback: читаємо статичний список
-                try {
-                  const res = await fetch('/categories.json');
-                  if (res.ok) {
-                    const staticCategories = await res.json();
-                    console.log('[AppProvider] Using public categories.json fallback:', staticCategories);
-                    setCategories(staticCategories);
-                    localStorage.setItem('elite_table_categories', JSON.stringify(staticCategories));
-                  } else {
-                    console.warn('[AppProvider] categories.json not found or failed to load');
-                  }
-                } catch (fetchErr) {
-                  console.error('[AppProvider] Error fetching categories.json:', fetchErr);
-                }
               });
           }
         );
         return () => unsubscribe();
       } catch (error) {
         console.error('[AppProvider] Error setting up categories listener:', error);
-         // Як останній fallback, використовуємо localStorage
-         const cached = localStorage.getItem('elite_table_categories');
-         if (cached) {
-           try {
-             setCategories(JSON.parse(cached));
-             console.log('[AppProvider] Using cached categories from localStorage (error fallback)');
-           } catch (e) {
-             console.error('[AppProvider] Error parsing cached categories:', e);
-           }
-         }
-        // А також пробуємо статичний файл
-        (async () => {
+        // Fallback на localStorage
+        const cached = localStorage.getItem('elite_table_categories');
+        if (cached) {
           try {
-            const res = await fetch('/categories.json');
-            if (res.ok) {
-              const staticCategories = await res.json();
-              setCategories(staticCategories);
-              console.log('[AppProvider] Fallback to public categories.json on error');
-            }
-          } catch {}
-        })();
+            setCategories(JSON.parse(cached));
+            console.log('[AppProvider] Using cached categories from localStorage (error fallback)');
+          } catch (e) {
+            console.error('[AppProvider] Error parsing cached categories:', e);
+          }
+        }
       }
     }, []);
   // Authentication
