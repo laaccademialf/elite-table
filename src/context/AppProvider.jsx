@@ -1,6 +1,6 @@
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { AppContext } from "./AppContextDefinition";
 import {
   getCurrentUser,
@@ -284,4 +284,12 @@ export function AppProvider({ children }) {
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
+export function useAppContext() {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("useAppContext must be used within AppProvider");
+  }
+  return context;
 }
