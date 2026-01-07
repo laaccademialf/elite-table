@@ -9,7 +9,8 @@
     "vercel-build": "npm run build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "create-admin": "node scripts/create-admin.js"
+    "create-admin": "node scripts/create-admin.js",
+    "migrate-availability": "node scripts/migrate-availability.js"
   },
   "dependencies": {
     "firebase": "^12.7.0",
