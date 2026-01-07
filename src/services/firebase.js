@@ -22,6 +22,10 @@ import {
   writeBatch,
   Timestamp,
 } from 'firebase/firestore';
+import {
+  increment,
+  setDoc,
+} from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -218,7 +222,15 @@ export const deleteProduct = async (productId) => {
 
 export const deleteOrder = async (orderId) => {
   try {
-    await deleteDoc(doc(db, 'orders', orderId));
+    const ref = doc(db, 'orders', orderId);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (isBookingStatus(data.status)) {
+        await updateAvailabilityForOrder(data, -1);
+      }
+    }
+    await deleteDoc(ref);
   } catch (error) {
     console.error('Error deleting order:', error);
     throw error;
@@ -243,6 +255,12 @@ export const createOrder = async (orderData) => {
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
+    // Update aggregated availability for public reads
+    try {
+      await updateAvailabilityForOrder(orderData, +1);
+    } catch (e) {
+      console.warn('[createOrder] availability aggregation failed:', e?.message || e);
+    }
     return docRef.id;
   } catch (error) {
     console.error('Error creating order:', error);
@@ -361,6 +379,63 @@ export const getAvailableQuantity = async (productId, startDate, endDate) => {
   }
 };
 
+// ==================== AVAILABILITY AGGREGATION ====================
+
+const isBookingStatus = (status) => ['pending', 'confirmed'].includes(status);
+
+const dateStringsInclusive = (start, end) => {
+  const res = [];
+  const cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const last = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  while (cur.getTime() <= last.getTime()) {
+    const y = cur.getFullYear();
+    const m = String(cur.getMonth() + 1).padStart(2, '0');
+    const d = String(cur.getDate()).padStart(2, '0');
+    res.push(`${y}-${m}-${d}`);
+    cur.setDate(cur.getDate() + 1);
+  }
+  return res;
+};
+
+export const updateAvailabilityForOrder = async (orderData, delta) => {
+  try {
+    // Convert dates
+    const parseDMY = (str) => {
+      if (!str) return null;
+      const [d, m, y] = str.split('.').map((v) => parseInt(v, 10));
+      if (!y || !m || !d) return null;
+      return new Date(y, m - 1, d);
+    };
+    const toDate = (val) => {
+      if (!val) return null;
+      if (typeof val === 'string') return parseDMY(val);
+      if (val instanceof Date) return new Date(val.getFullYear(), val.getMonth(), val.getDate());
+      if (val.year !== undefined && val.month !== undefined && val.day !== undefined) {
+        return new Date(val.year, val.month, val.day);
+      }
+      return null;
+    };
+
+    const start = toDate(orderData.eventDate);
+    const end = toDate(orderData.eventEndDate) || start;
+    if (!start) return;
+
+    const days = dateStringsInclusive(start, end);
+    const batch = writeBatch(db);
+    for (const item of orderData.items || []) {
+      const qty = Number(item.quantity || 0) * (delta || 1);
+      for (const day of days) {
+        const id = `${item.productId}_${day}`;
+        const ref = doc(db, 'availability', id);
+        batch.set(ref, { productId: item.productId, date: day, booked: increment(qty) }, { merge: true });
+      }
+    }
+    await batch.commit();
+  } catch (e) {
+    console.error('[updateAvailabilityForOrder] Error:', e);
+  }
+};
+
 export const getOrders = async (filters = {}) => {
   try {
     let q = collection(db, 'orders');
@@ -408,10 +483,22 @@ export const getOrderById = async (orderId) => {
 export const updateOrderStatus = async (orderId, status) => {
   try {
     const docRef = doc(db, 'orders', orderId);
+    const prevSnap = await getDoc(docRef);
+    const prev = prevSnap.exists() ? prevSnap.data() : null;
     await updateDoc(docRef, {
       status,
       updatedAt: Timestamp.now(),
     });
+    // Adjust aggregated availability when booking status toggles
+    if (prev) {
+      const wasBooking = isBookingStatus(prev.status);
+      const isNowBooking = isBookingStatus(status);
+      if (wasBooking && !isNowBooking) {
+        await updateAvailabilityForOrder(prev, -1);
+      } else if (!wasBooking && isNowBooking) {
+        await updateAvailabilityForOrder(prev, +1);
+      }
+    }
   } catch (error) {
     console.error('Error updating order:', error);
     throw error;
