@@ -135,10 +135,23 @@ export const HomeView = () => {
                 setView('item');
                 window.scrollTo(0, 0);
               }}
-              className="group cursor-pointer"
+              className="group cursor-pointer relative rounded-2xl border-2 border-[#C5A059] bg-white p-3 hover:shadow-md transition-all"
             >
+              {/* Availability Tag attached to tile top-left */}
+              <div className="absolute -top-[2px] -left-[2px]">
+                <div className={`px-3 py-1 text-[10px] font-extrabold uppercase rounded-br-xl bg-[#C5A059] text-white tracking-wide`}>
+                  {globalDates.start
+                    ? ((availabilityMap[product.id] ?? null) === null
+                        ? '...'
+                        : (availabilityMap[product.id] > 0
+                            ? `${availabilityMap[product.id]} ДОСТУПНО`
+                            : 'НЕДОСТУПНО'))
+                    : (product.quantity > 0 ? `${product.quantity} В НАЯВНОСТІ` : 'НЕМАЄ')}
+                </div>
+              </div>
+
               {/* Product Image */}
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 mb-4 shadow-sm group-hover:shadow-lg transition-all">
+              <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 mb-4 shadow-sm group-hover:shadow-lg transition-all">
                 {product.image ? (
                   <SafeImage 
                     src={product.image} 
@@ -149,20 +162,6 @@ export const HomeView = () => {
                     📦
                   </div>
                 )}
-                {/* Stock Badge */}
-                <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-bold uppercase ${
-                  (globalDates.start ? (availabilityMap[product.id] ?? product.quantity) : product.quantity) > 0
-                    ? 'bg-white text-slate-900 shadow-md'
-                    : 'bg-red-500 text-white'
-                }`}>
-                  {globalDates.start
-                    ? ((availabilityMap[product.id] ?? null) === null
-                        ? '...'
-                        : (availabilityMap[product.id] > 0
-                            ? `${availabilityMap[product.id]} ДОСТУПНО`
-                            : 'НЕДОСТУПНО'))
-                    : (product.quantity > 0 ? `${product.quantity} В НАЯВНОСТІ` : 'НЕМАЄ')}
-                </div>
               </div>
               {/* Категорія emoji/іконка */}
               {category && category.icon && (
