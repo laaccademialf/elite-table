@@ -93,27 +93,46 @@ export const HomeView = () => {
             }
           `}</style>
           <button
-            className={`flex flex-col items-center justify-center p-3 rounded-2xl w-20 h-20 md:w-24 md:h-24 transition-all flex-shrink-0 ${selectedCategory === null ? "bg-slate-900 text-white shadow-lg scale-105" : "bg-white border-2 border-slate-200 text-slate-600 hover:border-slate-900"}`}
+            className={`group relative p-0 rounded-2xl w-20 h-20 md:w-24 md:h-24 flex-shrink-0 border-[3px] ${selectedCategory === null ? 'border-[#C5A059] shadow-md' : 'border-[#C5A059]/60 hover:border-[#C5A059]'} bg-white overflow-hidden transition`}
             onClick={() => setSelectedCategory(null)}
+            aria-label="Всі категорії"
           >
-            <span className="text-2xl mb-1">📋</span>
-            <span className="text-[10px] font-bold uppercase text-center leading-tight break-words whitespace-normal w-full overflow-hidden">Всі</span>
+            <div className="absolute inset-0 flex items-center justify-center text-2xl">📋</div>
+            <div className="absolute inset-x-0 bottom-0 bg-white/80 text-slate-900 text-[10px] font-bold uppercase text-center px-1 py-1 leading-tight">
+              Всі
+            </div>
           </button>
           {categories.length > 0 && categories.map((category) => (
             <button
               key={category.id}
-              className={`flex flex-col items-center justify-center p-3 rounded-2xl w-20 h-20 md:w-24 md:h-24 transition-all flex-shrink-0 ${selectedCategory === category.name ? "bg-slate-900 text-white shadow-lg scale-105" : "bg-white border-2 border-slate-200 text-slate-600 hover:border-slate-900"}`}
+              className={`group relative p-0 rounded-2xl w-20 h-20 md:w-24 md:h-24 flex-shrink-0 border-[3px] ${selectedCategory === category.name ? 'border-[#C5A059] shadow-md' : 'border-[#C5A059]/60 hover:border-[#C5A059]'} bg-white overflow-hidden transition`}
               onClick={() => {
                 console.log('[HomeView] Category clicked:', category);
                 setSelectedCategory(category.name);
               }}
+              aria-label={category.name}
             >
-              {category.icon ? (
-                <img src={category.icon} alt={category.name} className="w-12 h-12 object-cover rounded-lg mb-1" onError={(e) => e.target.style.display = 'none'} />
-              ) : (
-                <span className="text-2xl mb-1">🏷️</span>
-              )}
-              <span className="text-[10px] font-bold uppercase text-center leading-tight break-words whitespace-normal w-full overflow-hidden">{category.name}</span>
+              {/* Background image if icon looks like an URL/image, else centered emoji/text */}
+              {(() => {
+                const icon = category.icon;
+                const isImg = typeof icon === 'string' && (icon.startsWith('http') || icon.startsWith('data:') || /\.(png|jpe?g|webp|gif|svg)$/i.test(icon));
+                if (isImg) {
+                  return (
+                    <div
+                      className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
+                      style={{ backgroundImage: `url(${icon})` }}
+                    />
+                  );
+                }
+                return (
+                  <div className="absolute inset-0 flex items-center justify-center text-2xl">
+                    {icon || '🏷️'}
+                  </div>
+                );
+              })()}
+              <div className="absolute inset-x-0 bottom-0 bg-white/80 text-slate-900 text-[10px] font-bold uppercase text-center px-1 py-1 leading-tight">
+                {category.name}
+              </div>
             </button>
           ))}
           {categories.length === 0 && (
