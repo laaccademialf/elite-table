@@ -24,10 +24,14 @@ export const HomeView = () => {
   const { categories } = useAppContext();
   
   console.log('[HomeView] Categories from context:', categories);
+  console.log('[HomeView] Products:', products);
+  console.log('[HomeView] Selected category:', selectedCategory);
 
-  const filteredProducts = selectedCategory === 'Всі' 
+  const filteredProducts = !selectedCategory || selectedCategory === null
     ? products 
-    : products.filter(p => p.category === selectedCategory);
+    : products.filter(p => p.categoryId === selectedCategory || p.category === selectedCategory);
+  
+  console.log('[HomeView] Filtered products:', filteredProducts);
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-700">
