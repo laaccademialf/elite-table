@@ -135,27 +135,28 @@ export const HomeView = () => {
                 setView('item');
                 window.scrollTo(0, 0);
               }}
-              className="group cursor-pointer relative rounded-2xl border-2 border-[#C5A059] bg-white p-3 hover:shadow-md transition-all"
+              className="group cursor-pointer"
             >
-              {/* Availability Tag attached to tile top-left */}
-              <div className="absolute -top-[2px] -left-[2px]">
-                <div className={`px-3 py-1 text-[10px] font-extrabold uppercase rounded-br-xl bg-[#C5A059] text-white tracking-wide`}>
-                  {globalDates.start
-                    ? ((availabilityMap[product.id] ?? null) === null
-                        ? '...'
-                        : (availabilityMap[product.id] > 0
-                            ? `${availabilityMap[product.id]} ДОСТУПНО`
-                            : 'НЕДОСТУПНО'))
-                    : (product.quantity > 0 ? `${product.quantity} В НАЯВНОСТІ` : 'НЕМАЄ')}
+              {/* Image Tile with beige border (square) */}
+              <div className="relative aspect-square rounded-2xl overflow-hidden bg-white mb-4 shadow-sm group-hover:shadow-lg transition-all border-[3px] border-[#C5A059]">
+                {/* Availability Banner (attached, with rounded top-left) */}
+                <div className="absolute top-0 left-0 z-10">
+                  <div className="px-3 py-1 text-[10px] font-extrabold uppercase rounded-tl-2xl rounded-br-xl bg-[#C5A059] text-white tracking-wide">
+                    {globalDates.start
+                      ? ((availabilityMap[product.id] ?? null) === null
+                          ? '...'
+                          : (availabilityMap[product.id] > 0
+                              ? `${availabilityMap[product.id]} ДОСТУПНО`
+                              : 'НЕДОСТУПНО'))
+                      : (product.quantity > 0 ? `${product.quantity} В НАЯВНОСТІ` : 'НЕМАЄ')}
+                  </div>
                 </div>
-              </div>
 
-              {/* Product Image */}
-              <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 mb-4 shadow-sm group-hover:shadow-lg transition-all">
+                {/* Product Image pushed to background */}
                 {product.image ? (
-                  <SafeImage 
-                    src={product.image} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                  <SafeImage
+                    src={product.image}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400 text-4xl">
