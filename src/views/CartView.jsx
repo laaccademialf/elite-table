@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ShoppingBag, Calendar as CalendarIcon, Trash2, AlertCircle } from "lucide-react";
+import { ShoppingBag, Calendar as CalendarIcon, Trash2, AlertCircle, Minus, Plus } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
 import { SafeImage } from "../components/SafeImage";
 // AI блок видалено для спрощення інтерфейсу
@@ -10,6 +10,7 @@ export const CartView = () => {
     globalDates,
     setView,
     removeFromCart,
+    setCartQuantity,
     getMaxAvailableForRange,
   } = useAppContext();
 
@@ -117,7 +118,38 @@ export const CartView = () => {
                   </div>
                 )}
               </div>
-              <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600"><Trash2 size={20}/></button>
+              <div className="flex items-center gap-3">
+                {/* Quantity control */}
+                <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
+                  <button
+                    aria-label="Зменшити"
+                    className="px-3 py-2 hover:bg-gray-50"
+                    onClick={() => setCartQuantity(item.id, Math.max(1, (item.quantity || 1) - 1))}
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    value={item.quantity}
+                    onChange={(e) => setCartQuantity(item.id, e.target.value)}
+                    className="w-14 text-center font-semibold outline-none appearance-none py-2"
+                  />
+                  <button
+                    aria-label="Збільшити"
+                    className="px-3 py-2 hover:bg-gray-50"
+                    onClick={() => {
+                      const max = availability[item.id];
+                      const next = (item.quantity || 1) + 1;
+                      setCartQuantity(item.id, max ? Math.min(max, next) : next);
+                    }}
+                    disabled={availability[item.id] !== undefined && item.quantity >= availability[item.id]}
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600"><Trash2 size={20}/></button>
+              </div>
             </div>
           ))}
 

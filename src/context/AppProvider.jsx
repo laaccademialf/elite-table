@@ -212,6 +212,11 @@ export function AppProvider({ children }) {
     setAiConcept(null);
   };
 
+  const setCartQuantity = (id, quantity) => {
+    const q = Math.max(1, parseInt(quantity) || 1);
+    setCart((prev) => prev.map((c) => (c.id === id ? { ...c, quantity: q } : c)));
+  };
+
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
 
@@ -382,6 +387,7 @@ export function AppProvider({ children }) {
     setSelectedCategory,
     addToCart,
     removeFromCart,
+    setCartQuantity,
     handleOrderSubmit,
     getAvailabilityForDate,
     getMaxAvailableForRange,
