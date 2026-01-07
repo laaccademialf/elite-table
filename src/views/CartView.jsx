@@ -133,7 +133,7 @@ export const CartView = () => {
                     min={1}
                     value={item.quantity}
                     onChange={(e) => setCartQuantity(item.id, e.target.value)}
-                    className="w-14 text-center font-semibold outline-none appearance-none py-2"
+                    className="w-14 text-center font-bold text-slate-900 bg-transparent outline-none focus:outline-none focus:ring-0 border-0 appearance-none py-2"
                   />
                   <button
                     aria-label="Збільшити"
