@@ -8,6 +8,7 @@ import {
   getOrders,
   createOrder,
   logoutUser,
+    getAvailableQuantity,
 } from "../services/firebase";
 
 export function AppProvider({ children }) {
@@ -42,7 +43,7 @@ export function AppProvider({ children }) {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminTab, setAdminTab] = useState("inventory");
   const [selectedItem, setSelectedItem] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState("Всі");
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   // Booking
   const [globalDates, setGlobalDates] = useState({ start: null, end: null });
@@ -159,6 +160,21 @@ export function AppProvider({ children }) {
     try {
       setBookingStatus("loading");
 
+      // Перевіряємо доступність кожної позиції перед створенням замовлення
+      if (!globalDates.start) {
+        alert('Будь ласка, оберіть дату події.');
+        setBookingStatus('idle');
+        return;
+      }
+      for (const item of cart) {
+        const available = await getMaxAvailableForRange(item.id, globalDates.start, globalDates.end);
+        if (item.quantity > available) {
+          setBookingStatus('error');
+          alert(`Недостатньо товару: ${item.title || item.name}. В кошику ${item.quantity}, доступно ${available} на обрані дати.`);
+          return;
+        }
+      }
+
       // Якщо користувач залогінений, підставляємо дані з профілю якщо поля порожні
       const name = customerInfo.name || currentUser?.name || "";
       const email = customerInfo.email || currentUser?.email || "";
@@ -231,7 +247,24 @@ export function AppProvider({ children }) {
   };
 
   const getAvailabilityForDate = () => 999; // Placeholder for Firebase inventory
-  const getMaxAvailableForRange = () => 999;
+  const getMaxAvailableForRange = async (productId, startDate, endDate) => {
+    if (!productId || !startDate) return 999;
+    try {
+      // Convert date objects to strings if needed
+      const start = typeof startDate === 'string' ? startDate : 
+        `${startDate.day}.${startDate.month + 1}.${startDate.year}`;
+      const end = endDate ? (typeof endDate === 'string' ? endDate : 
+        `${endDate.day}.${endDate.month + 1}.${endDate.year}`) : start;
+      
+      console.log(`[AppProvider.getMaxAvailableForRange] Calling getAvailableQuantity for productId=${productId}, start=${start}, end=${end}`);
+      const available = await getAvailableQuantity(productId, start, end);
+      console.log(`[AppProvider.getMaxAvailableForRange] Got available=${available}`);
+      return available;
+    } catch (error) {
+      console.error('Error getting max available:', error);
+      return 999; // Return 999 on error, not 0 (so UI doesn't show "not available" on error)
+    }
+  };
 
   const value = {
     // Auth

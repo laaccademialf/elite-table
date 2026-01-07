@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Calendar as CalendarIcon,
 } from "lucide-react";
@@ -18,6 +18,7 @@ export const HomeView = () => {
     products,
     setSelectedItem,
     setView,
+    getMaxAvailableForRange,
   } = useAppContext();
 
   // Категорії тепер з контексту
@@ -27,11 +28,50 @@ export const HomeView = () => {
   console.log('[HomeView] Products:', products);
   console.log('[HomeView] Selected category:', selectedCategory);
 
-  const filteredProducts = !selectedCategory || selectedCategory === null
-    ? products 
-    : products.filter(p => p.categoryId === selectedCategory || p.category === selectedCategory);
+  const filteredProducts = useMemo(() => {
+    return !selectedCategory || selectedCategory === null
+      ? products 
+      : products.filter(p => p.categoryId === selectedCategory || p.category === selectedCategory);
+  }, [products, selectedCategory]);
   
   console.log('[HomeView] Filtered products:', filteredProducts);
+
+  // Доступність по вибраному діапазону дат
+  const [availabilityMap, setAvailabilityMap] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadAvailability = async () => {
+      if (!globalDates.start || filteredProducts.length === 0) {
+        console.log('[HomeView] Skipping availability load: globalDates.start=', globalDates.start, 'filteredProducts.length=', filteredProducts.length);
+        setAvailabilityMap({});
+        return;
+      }
+      console.log('[HomeView] Loading availability for', filteredProducts.length, 'products');
+      const entries = await Promise.all(
+        filteredProducts.map(async (p) => {
+          try {
+            console.log(`[HomeView] Fetching availability for product ${p.id} (${p.name})`);
+            const available = await getMaxAvailableForRange(p.id, globalDates.start, globalDates.end);
+            console.log(`[HomeView] Product ${p.id}: ${available}`);
+            return [p.id, available];
+          } catch (error) {
+            console.error(`[HomeView] Error for product ${p.id}:`, error);
+            return [p.id, p.quantity || 0];
+          }
+        })
+      );
+      if (!cancelled) {
+        const map = Object.fromEntries(entries);
+        console.log('[HomeView] Availability map:', map);
+        setAvailabilityMap(map);
+      }
+    };
+    loadAvailability();
+    return () => {
+      cancelled = true;
+    };
+  }, [filteredProducts, globalDates.start, globalDates.end, getMaxAvailableForRange]);
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-700">
@@ -106,11 +146,17 @@ export const HomeView = () => {
                 )}
                 {/* Stock Badge */}
                 <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-bold uppercase ${
-                  product.quantity > 0 
-                    ? 'bg-white text-slate-900 shadow-md' 
+                  (globalDates.start ? (availabilityMap[product.id] ?? product.quantity) : product.quantity) > 0
+                    ? 'bg-white text-slate-900 shadow-md'
                     : 'bg-red-500 text-white'
                 }`}>
-                  {product.quantity > 0 ? `${product.quantity} В НАЯВНОСТІ` : 'НЕМАЄ'}
+                  {globalDates.start
+                    ? ((availabilityMap[product.id] ?? null) === null
+                        ? '...'
+                        : (availabilityMap[product.id] > 0
+                            ? `${availabilityMap[product.id]} ДОСТУПНО`
+                            : 'НЕДОСТУПНО'))
+                    : (product.quantity > 0 ? `${product.quantity} В НАЯВНОСТІ` : 'НЕМАЄ')}
                 </div>
               </div>
               {/* Категорія emoji/іконка */}

@@ -59,20 +59,35 @@ export const CustomCalendar = ({ globalDates, setGlobalDates }) => {
         {blanks.map((_, i) => <div key={i}></div>)}
         {days.map((day) => {
           const isSel =
-            globalDates.start === day && globalDates.month === month && globalDates.year === year ||
-            globalDates.end === day && globalDates.month === month && globalDates.year === year ||
+            globalDates.start?.day === day && globalDates.start?.month === month && globalDates.start?.year === year ||
+            globalDates.end?.day === day && globalDates.end?.month === month && globalDates.end?.year === year ||
             (globalDates.start && globalDates.end &&
-              globalDates.month === month && globalDates.year === year &&
-              day > globalDates.start && day < globalDates.end);
+              globalDates.start?.month === month && globalDates.start?.year === year &&
+              globalDates.end?.month === month && globalDates.end?.year === year &&
+              day > globalDates.start?.day && day < globalDates.end?.day);
           return (
             <button
               key={day}
               onClick={() => {
-                let next = { ...globalDates, month, year };
-                if (!globalDates.start || globalDates.end || globalDates.month !== month || globalDates.year !== year) next = { start: day, end: null, month, year };
-                else {
-                  if (day < globalDates.start) next = { start: day, end: null, month, year };
-                  else next.end = day;
+                const newDate = { day, month, year };
+                let next = { ...globalDates };
+                
+                if (!globalDates.start || globalDates.end) {
+                  // New selection: set start only
+                  next = { start: newDate, end: null };
+                } else {
+                  // Extending range: compare dates
+                  const currentStart = globalDates.start;
+                  const currentDay = `${currentStart.year}-${currentStart.month}-${currentStart.day}`;
+                  const newDay = `${year}-${month}-${day}`;
+                  
+                  if (newDay < currentDay) {
+                    // Click before start date
+                    next = { start: newDate, end: null };
+                  } else {
+                    // Click after or on start date
+                    next = { start: currentStart, end: newDate };
+                  }
                 }
                 setGlobalDates(next);
               }}

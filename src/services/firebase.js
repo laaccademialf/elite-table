@@ -225,6 +225,7 @@ export const createOrder = async (orderData) => {
       totalPrice: orderData.totalPrice,
       status: 'pending', // 'pending', 'confirmed', 'delivered', 'cancelled'
       eventDate: orderData.eventDate, // Date of event
+        eventEndDate: orderData.eventEndDate, // End date of event
       customerName: orderData.customerName,
       customerEmail: orderData.customerEmail,
       customerPhone: orderData.customerPhone,
@@ -237,6 +238,105 @@ export const createOrder = async (orderData) => {
   } catch (error) {
     console.error('Error creating order:', error);
     throw error;
+  }
+};
+
+// Get available quantity for product on specific date range
+export const getAvailableQuantity = async (productId, startDate, endDate) => {
+  try {
+    console.log('[getAvailableQuantity] Called with:', { productId, startDate, endDate });
+    
+    // Helper: parse DD.MM.YYYY string to Date at local midnight
+    const parseDMY = (str) => {
+      if (!str) return null;
+      const [d, m, y] = str.split('.').map((v) => parseInt(v, 10));
+      if (!y || !m || !d) return null;
+      return new Date(y, m - 1, d);
+    };
+
+    // Convert input to Date: if it's already a Date or object with day/month/year, convert it
+    const toDate = (val) => {
+      if (!val) return null;
+      if (typeof val === 'string') return parseDMY(val);
+      if (val instanceof Date) return new Date(val.getFullYear(), val.getMonth(), val.getDate());
+      if (val.year !== undefined && val.month !== undefined && val.day !== undefined) {
+        return new Date(val.year, val.month, val.day);
+      }
+      return null;
+    };
+
+    const reqStart = toDate(startDate);
+    const reqEnd = toDate(endDate) || reqStart;
+    
+    console.log('[getAvailableQuantity] Parsed dates:', { reqStart, reqEnd });
+    
+    if (!productId || !reqStart) {
+      console.log('[getAvailableQuantity] Missing productId or reqStart, returning 0');
+      return 0;
+    }
+
+    // Normalize so end >= start
+    const startTs = reqStart.getTime();
+    const endTs = (reqEnd || reqStart).getTime();
+    const rangeStart = Math.min(startTs, endTs);
+    const rangeEnd = Math.max(startTs, endTs);
+
+    console.log(`[getAvailableQuantity] Date range: ${reqStart.toLocaleDateString()} to ${reqEnd.toLocaleDateString()}`);
+
+    // Get product total quantity
+    const productDoc = await getDoc(doc(db, 'products', productId));
+    if (!productDoc.exists()) {
+      console.log('[getAvailableQuantity] Product not found');
+      return 0;
+    }
+    const product = productDoc.data();
+    const totalQuantity = Number(product.quantity || 0);
+
+    console.log(`[getAvailableQuantity] Total quantity: ${totalQuantity}`);
+
+    // Get all orders that overlap with the requested date range
+    const ordersQuery = query(
+      collection(db, 'orders'),
+      where('status', 'in', ['pending', 'confirmed'])
+    );
+
+    const ordersSnapshot = await getDocs(ordersQuery);
+    let bookedQuantity = 0;
+
+    console.log(`[getAvailableQuantity] Found ${ordersSnapshot.docs.length} orders with pending/confirmed status`);
+
+    ordersSnapshot.docs.forEach((orderDoc) => {
+      const order = orderDoc.data();
+      const orderStartStr = order.eventDate;
+      const orderEndStr = order.eventEndDate || order.eventDate;
+      
+      // Convert to Date using toDate which handles both strings and objects
+      const orderStart = toDate(orderStartStr);
+      const orderEnd = toDate(orderEndStr) || orderStart;
+      if (!orderStart) return;
+
+      const oStart = orderStart.getTime();
+      const oEnd = orderEnd.getTime();
+      const oRangeStart = Math.min(oStart, oEnd);
+      const oRangeEnd = Math.max(oStart, oEnd);
+
+      // Overlap if ranges intersect inclusively
+      const overlaps = rangeStart <= oRangeEnd && rangeEnd >= oRangeStart;
+      if (overlaps) {
+        const orderItem = order.items?.find((item) => item.productId === productId);
+        if (orderItem) {
+          bookedQuantity += Number(orderItem.quantity || 0);
+          console.log(`[getAvailableQuantity] Overlap found: order on ${orderStartStr}, booked ${orderItem.quantity} of product ${productId}`);
+        }
+      }
+    });
+
+    const available = Math.max(0, totalQuantity - bookedQuantity);
+    console.log(`[getAvailableQuantity] Result: total=${totalQuantity}, booked=${bookedQuantity}, available=${available}`);
+    return available;
+  } catch (error) {
+    console.error('[getAvailableQuantity] Error:', error);
+    return 0;
   }
 };
 

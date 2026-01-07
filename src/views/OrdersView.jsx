@@ -2,6 +2,27 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/useAppContext';
 import { ChevronDown } from 'lucide-react';
 
+// Helper to format date object or string to DD.MM.YYYY
+const formatDate = (date) => {
+  if (!date) return '';
+  if (typeof date === 'string') return date;
+  if (date.day && date.month && date.year) {
+    const d = String(date.day).padStart(2, '0');
+    const m = String(date.month).padStart(2, '0');
+    return `${d}.${m}.${date.year}`;
+  }
+  return '';
+};
+
+// Helper to format date range
+const formatDateRange = (startDate, endDate) => {
+  const start = formatDate(startDate);
+  const end = formatDate(endDate);
+  if (!start) return 'Не вказано';
+  if (!end || start === end) return start;
+  return `${start} — ${end}`;
+};
+
 export function OrdersView() {
   const { currentUser, orders, setView } = useAppContext();
   const [expandedId, setExpandedId] = useState(null);
@@ -123,7 +144,7 @@ export function OrdersView() {
                       <p className="text-slate-600">{order.address}</p>
                       <p className="text-slate-600 mt-2">
                         <span className="font-semibold">Дата заходу:</span>{' '}
-                        {order.eventDate}
+                        {formatDateRange(order.eventDate, order.eventEndDate)}
                       </p>
                     </div>
                   </div>

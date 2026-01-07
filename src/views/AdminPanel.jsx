@@ -13,6 +13,27 @@ import { Upload, Trash2, Edit, Save, X } from 'lucide-react';
 import CategoryManager from '../components/CategoryManager';
 import { getCategories } from '../services/categories';
 
+// Helper to format date object or string to DD.MM.YYYY
+const formatDate = (date) => {
+  if (!date) return '';
+  if (typeof date === 'string') return date;
+  if (date.day && date.month && date.year) {
+    const d = String(date.day).padStart(2, '0');
+    const m = String(date.month).padStart(2, '0');
+    return `${d}.${m}.${date.year}`;
+  }
+  return '';
+};
+
+// Helper to format date range
+const formatDateRange = (startDate, endDate) => {
+  const start = formatDate(startDate);
+  const end = formatDate(endDate);
+  if (!start) return 'Не вказано';
+  if (!end || start === end) return start;
+  return `${start} — ${end}`;
+};
+
 export function AdminPanel() {
   const { adminTab, setAdminTab, currentUser } = useAppContext();
   const [products, setProducts] = useState([]);
@@ -349,6 +370,9 @@ export function AdminPanel() {
                       </p>
                       <p className="text-slate-600">
                         <span className="font-semibold">Адреса доставки:</span> {order.address}
+                      </p>
+                      <p className="text-slate-600">
+                        <span className="font-semibold">Дата заходу:</span> {formatDateRange(order.eventDate, order.eventEndDate)}
                       </p>
                       <p className="text-slate-600">
                         <span className="font-semibold">Коментар:</span> {order.notes}

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   ChevronLeft,
   Minus,
@@ -21,7 +21,24 @@ export const ItemDetailView = () => {
 
   if (!selectedItem) return null;
 
-  const maxAvailable = getMaxAvailableForRange(selectedItem.id, globalDates.start, globalDates.end);
+  const [maxAvailable, setMaxAvailable] = useState(selectedItem.quantity || 999);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
+  
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      setIsLoadingAvailability(true);
+      const available = await getMaxAvailableForRange(selectedItem.id, globalDates.start, globalDates.end);
+      setMaxAvailable(available);
+      setIsLoadingAvailability(false);
+      
+      // Обмежуємо поточну кількість, якщо вона більша за доступну
+      if (orderQuantity > available) {
+        setOrderQuantity(Math.max(1, available));
+      }
+    };
+    
+    fetchAvailability();
+  }, [selectedItem.id, globalDates.start, globalDates.end, getMaxAvailableForRange]);
   const days = globalDates.end ? globalDates.end - globalDates.start + 1 : 1;
 
   return (
@@ -56,14 +73,49 @@ export const ItemDetailView = () => {
           </div>
 
           <div className="bg-gray-900 p-8 rounded-[48px] shadow-2xl">
-            <p className="text-[10px] font-black uppercase text-[#C5A059] mb-6">Доступно: {maxAvailable} од.</p>
+            <div className="mb-6">
+              <p className={`text-[10px] font-black uppercase mb-2 ${
+                maxAvailable === 0 ? 'text-red-400' : 
+                maxAvailable <= 5 ? 'text-orange-400' : 
+                'text-[#C5A059]'
+              }`}>
+                {isLoadingAvailability ? 'Перевірка доступності...' : `Доступно: ${maxAvailable} од.`}
+              </p>
+              {!isLoadingAvailability && maxAvailable > 0 && maxAvailable <= 5 && (
+                <div className="flex items-center gap-2 text-xs text-orange-400 bg-orange-400/10 px-3 py-2 rounded-full">
+                  <AlertCircle size={14} />
+                  <span className="font-bold">Обмежена кількість</span>
+                </div>
+              )}
+              {!isLoadingAvailability && maxAvailable === 0 && (
+                <div className="flex items-center gap-2 text-xs text-red-400 bg-red-400/10 px-3 py-2 rounded-full">
+                  <AlertCircle size={14} />
+                  <span className="font-bold">Товар недоступний на обрані дати</span>
+                </div>
+              )}
+            </div>
             <div className="flex items-center justify-between mb-8 bg-gray-800 p-6 rounded-[28px]">
               <button onClick={() => setOrderQuantity(Math.max(1, orderQuantity - 1))} className="bg-[#C5A059] w-12 h-12 rounded-full font-black text-white text-lg">−</button>
-              <input type="number" value={orderQuantity} onChange={e => setOrderQuantity(Math.min(maxAvailable, Math.max(1, parseInt(e.target.value))))} className="bg-transparent text-white text-center font-black text-2xl w-16 outline-none" />
+              <input 
+                type="number" 
+                value={orderQuantity} 
+                onChange={e => {
+                  const val = parseInt(e.target.value) || 1;
+                  setOrderQuantity(Math.min(maxAvailable, Math.max(1, val)));
+                }}
+                max={maxAvailable}
+                min={1}
+                className="bg-transparent text-white text-center font-black text-2xl w-16 outline-none" 
+              />
               <button onClick={() => setOrderQuantity(Math.min(maxAvailable, orderQuantity + 1))} className="bg-[#C5A059] w-12 h-12 rounded-full font-black text-white text-lg">+</button>
             </div>
-            <button onClick={() => { addToCart(selectedItem, orderQuantity); setView('cart'); }} className="w-full py-6 bg-[#C5A059] text-white font-black rounded-full uppercase tracking-wider text-sm">
+            <button 
+              onClick={() => { addToCart(selectedItem, orderQuantity); setView('cart'); }} 
+              disabled={isLoadingAvailability || maxAvailable === 0}
+              className="w-full py-6 bg-[#C5A059] text-white font-black rounded-full uppercase tracking-wider text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               ➕ Додати {orderQuantity} од. у кошик ({orderQuantity * selectedItem.price * days} ₴)
+                          {maxAvailable === 0 ? '❌ Немає в наявності' : `➕ Додати ${orderQuantity} од. у кошик (${orderQuantity * selectedItem.price * days} ₴)`}
             </button>
           </div>
         </div>

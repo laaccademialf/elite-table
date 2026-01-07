@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ShoppingBag,
   Calendar as CalendarIcon,
@@ -6,6 +6,7 @@ import {
   Volume2,
   Trash2,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
 import { SafeImage } from "../components/SafeImage";
@@ -24,6 +25,7 @@ export const CartView = () => {
     setAiConcept,
     isTtsLoading,
     setIsTtsLoading,
+    getMaxAvailableForRange,
   } = useAppContext();
 
   // days in range
@@ -39,6 +41,52 @@ export const CartView = () => {
     0
   );
   const total = subtotal + 100;
+
+  // Доступність для товарів у кошику
+  const [availability, setAvailability] = useState({});
+  const [isLoadingAvail, setIsLoadingAvail] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!globalDates.start || cart.length === 0) {
+        setAvailability({});
+        return;
+      }
+      setIsLoadingAvail(true);
+      const pairs = await Promise.all(
+        cart.map(async (item) => {
+          try {
+            const a = await getMaxAvailableForRange(item.id, globalDates.start, globalDates.end);
+            return [item.id, a];
+          } catch {
+            return [item.id, item.quantity || 0];
+          }
+        })
+      );
+      if (!cancelled) {
+        setAvailability(Object.fromEntries(pairs));
+        setIsLoadingAvail(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [cart, globalDates.start, globalDates.end, getMaxAvailableForRange]);
+
+  const insufficiencies = useMemo(() => {
+    if (!globalDates.start) return [];
+    return cart
+      .map((item) => {
+        const avail = availability[item.id];
+        if (typeof avail === 'number' && item.quantity > avail) {
+          return { id: item.id, name: item.title || item.name, need: item.quantity, avail };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }, [cart, availability, globalDates.start]);
 
   const generateAiConcept = async () => {
     if (cart.length === 0) return;
@@ -129,14 +177,45 @@ export const CartView = () => {
               <div className="flex-1">
                 <h4 className="font-black uppercase text-lg">{item.title}</h4>
                 <p className="text-[10px] font-bold text-[#C5A059] uppercase">{item.price} ₴ × {item.quantity} од.</p>
+                {globalDates.start && (
+                  <div className="mt-2 text-xs">
+                    {isLoadingAvail || availability[item.id] === undefined ? (
+                      <span className="text-gray-400">Перевіряємо доступність…</span>
+                    ) : (
+                      <span className={`${(availability[item.id] || 0) === 0 ? 'text-red-500' : (availability[item.id] < item.quantity ? 'text-orange-500' : 'text-green-600')}`}>
+                        Доступно на обрані дати: <strong>{availability[item.id]}</strong>
+                        {availability[item.id] < item.quantity && (
+                          <span className="ml-2 inline-flex items-center gap-1 text-orange-600"><AlertCircle size={14}/> Не вистачає {item.quantity - availability[item.id]} од.</span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600"><Trash2 size={20}/></button>
             </div>
           ))}
 
+          {globalDates.start && insufficiencies.length > 0 && (
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl">
+              <div className="font-bold mb-1">Увага: деяких товарів не вистачає на обрані дати</div>
+              <ul className="list-disc pl-5 text-sm">
+                {insufficiencies.map((i) => (
+                  <li key={i.id}>{i.name}: в кошику {i.need} од., доступно {i.avail} од.</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="mt-12 bg-gray-900 text-white p-10 rounded-[48px] shadow-2xl">
             <div className="flex justify-between text-3xl font-black mb-10"><span>Разом</span><span className="text-[#C5A059]">{total} ₴</span></div>
-            <button onClick={() => setView('checkout')} className="w-full py-6 bg-[#C5A059] text-white font-black rounded-full uppercase tracking-widest text-xs">Оформити</button>
+            <button 
+              onClick={() => setView('checkout')} 
+              disabled={globalDates.start ? insufficiencies.length > 0 : false}
+              className="w-full py-6 bg-[#C5A059] text-white font-black rounded-full uppercase tracking-widest text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {globalDates.start && insufficiencies.length > 0 ? 'Недостатньо товарів' : 'Оформити'}
+            </button>
           </div>
         </div>
       )}

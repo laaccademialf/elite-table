@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
 import { registerUserWithPhone, loginUser, registerUser } from "../services/firebase";
@@ -13,6 +13,9 @@ export const CheckoutView = () => {
     handleOrderSubmit,
     currentUser,
     refreshUser,
+    cart,
+    globalDates,
+    getMaxAvailableForRange,
   } = useAppContext();
 
   const [autoRegError, setAutoRegError] = useState("");
@@ -94,6 +97,52 @@ export const CheckoutView = () => {
     }
   };
 
+  // Перевірка доступності перед сабмітом (UI-рівень)
+  const [availability, setAvailability] = useState({});
+  const [isLoadingAvail, setIsLoadingAvail] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!globalDates.start || cart.length === 0) {
+        setAvailability({});
+        return;
+      }
+      setIsLoadingAvail(true);
+      const pairs = await Promise.all(
+        cart.map(async (item) => {
+          try {
+            const a = await getMaxAvailableForRange(item.id, globalDates.start, globalDates.end);
+            return [item.id, a];
+          } catch {
+            return [item.id, item.quantity || 0];
+          }
+        })
+      );
+      if (!cancelled) {
+        setAvailability(Object.fromEntries(pairs));
+        setIsLoadingAvail(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [cart, globalDates.start, globalDates.end, getMaxAvailableForRange]);
+
+  const insufficiencies = useMemo(() => {
+    if (!globalDates.start) return [];
+    return cart
+      .map((item) => {
+        const avail = availability[item.id];
+        if (typeof avail === 'number' && item.quantity > avail) {
+          return { id: item.id, name: item.title || item.name, need: item.quantity, avail };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }, [cart, availability, globalDates.start]);
+
   if (view !== "checkout") return null;
 
   return (
@@ -122,6 +171,26 @@ export const CheckoutView = () => {
             </div>
           </div>
         )}
+        {/* Попередження про доступність */}
+        {globalDates.start && (
+          <div className="mb-6">
+            {isLoadingAvail ? (
+              <div className="bg-gray-50 border border-gray-200 text-gray-700 px-4 py-3 rounded text-sm">Перевіряємо доступність…</div>
+            ) : insufficiencies.length > 0 ? (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                <div className="font-bold mb-1 flex items-center gap-2"><AlertCircle size={18}/> Недостатньо товарів на обрані дати</div>
+                <ul className="list-disc pl-5 text-sm">
+                  {insufficiencies.map((i) => (
+                    <li key={i.id}>{i.name}: в кошику {i.need} од., доступно {i.avail} од.</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded text-sm">Все доступно на обрані дати ✅</div>
+            )}
+          </div>
+        )}
+
         <form onSubmit={handleCheckoutSubmit} className="space-y-6">
           {currentUser ? (
             <>
@@ -202,10 +271,10 @@ export const CheckoutView = () => {
           )}
           <button
             type="submit"
-            disabled={bookingStatus === "loading"}
+            disabled={bookingStatus === "loading" || (globalDates.start && insufficiencies.length > 0)}
             className="w-full py-6 bg-gray-900 text-white font-black rounded-full uppercase tracking-[0.3em] text-[10px] shadow-2xl hover:bg-[#C5A059] transition-all disabled:opacity-50"
           >
-            {bookingStatus === "loading" ? "⏳ Обробляємо..." : "🛒 Оформити замовлення"}
+            {bookingStatus === "loading" ? "⏳ Обробляємо..." : (globalDates.start && insufficiencies.length > 0 ? "Недостатньо товарів" : "🛒 Оформити замовлення")}
           </button>
         </form>
       </div>
