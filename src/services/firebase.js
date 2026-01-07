@@ -321,51 +321,81 @@ export const getAvailableQuantity = async (productId, startDate, endDate) => {
 
     console.log(`[getAvailableQuantity] Total quantity: ${totalQuantity}`);
 
-    // Get all orders that overlap with the requested date range
+    // Try to read from aggregated availability collection (public read)
     let bookedQuantity = 0;
+    let usedAggregation = false;
 
     try {
-      const ordersQuery = query(
-        collection(db, 'orders'),
-        where('status', 'in', ['pending', 'confirmed'])
-      );
+      // Generate all dates in requested range
+      const dateStringsForRange = (s, e) => {
+        const res = [];
+        const cur = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+        const last = new Date(e.getFullYear(), e.getMonth(), e.getDate());
+        while (cur.getTime() <= last.getTime()) {
+          const y = cur.getFullYear();
+          const m = String(cur.getMonth() + 1).padStart(2, '0');
+          const d = String(cur.getDate()).padStart(2, '0');
+          res.push(`${y}-${m}-${d}`);
+          cur.setDate(cur.getDate() + 1);
+        }
+        return res;
+      };
 
-      const ordersSnapshot = await getDocs(ordersQuery);
-      console.log(`[getAvailableQuantity] Found ${ordersSnapshot.docs.length} orders with pending/confirmed status`);
+      const days = dateStringsForRange(reqStart, reqEnd);
+      console.log(`[getAvailableQuantity] Checking ${days.length} days in availability collection`);
 
-      ordersSnapshot.docs.forEach((orderDoc) => {
-        const order = orderDoc.data();
-        const orderStartStr = order.eventDate;
-        const orderEndStr = order.eventEndDate || order.eventDate;
-        
-        // Convert to Date using toDate which handles both strings and objects
-        const orderStart = toDate(orderStartStr);
-        const orderEnd = toDate(orderEndStr) || orderStart;
-        if (!orderStart) return;
-
-        const oStart = orderStart.getTime();
-        const oEnd = orderEnd.getTime();
-        const oRangeStart = Math.min(oStart, oEnd);
-        const oRangeEnd = Math.max(oStart, oEnd);
-
-        // Overlap if ranges intersect inclusively
-        const overlaps = rangeStart <= oRangeEnd && rangeEnd >= oRangeStart;
-        if (overlaps) {
-          const orderItem = order.items?.find((item) => item.productId === productId);
-          if (orderItem) {
-            bookedQuantity += Number(orderItem.quantity || 0);
-            console.log(`[getAvailableQuantity] Overlap found: order on ${orderStartStr}, booked ${orderItem.quantity} of product ${productId}`);
+      let maxBookedPerDay = 0;
+      for (const day of days) {
+        const availRef = doc(db, 'availability', `${productId}_${day}`);
+        const availSnap = await getDoc(availRef);
+        if (availSnap.exists()) {
+          const booked = Number(availSnap.data().booked || 0);
+          if (booked > maxBookedPerDay) {
+            maxBookedPerDay = booked;
           }
         }
-      });
-    } catch (ordersErr) {
-      // Permission denied for unauthenticated users: do not block availability.
-      // Fall back to "no bookings" so public users see full stock; checkout will revalidate.
-      if (ordersErr?.code === 'permission-denied') {
-        console.warn('[getAvailableQuantity] Orders read denied; returning full stock for public view');
-        bookedQuantity = 0;
-      } else {
-        console.error('[getAvailableQuantity] Orders read error:', ordersErr);
+      }
+      
+      bookedQuantity = maxBookedPerDay;
+      usedAggregation = true;
+      console.log(`[getAvailableQuantity] Aggregation: max booked across range = ${bookedQuantity}`);
+    } catch (availErr) {
+      console.warn('[getAvailableQuantity] Availability collection read failed:', availErr?.message);
+      
+      // Fallback: try reading orders (works for authenticated users)
+      try {
+        const ordersQuery = query(
+          collection(db, 'orders'),
+          where('status', 'in', ['pending', 'confirmed'])
+        );
+
+        const ordersSnapshot = await getDocs(ordersQuery);
+        console.log(`[getAvailableQuantity] Fallback: Found ${ordersSnapshot.docs.length} orders`);
+
+        ordersSnapshot.docs.forEach((orderDoc) => {
+          const order = orderDoc.data();
+          const orderStartStr = order.eventDate;
+          const orderEndStr = order.eventEndDate || order.eventDate;
+          
+          const orderStart = toDate(orderStartStr);
+          const orderEnd = toDate(orderEndStr) || orderStart;
+          if (!orderStart) return;
+
+          const oStart = orderStart.getTime();
+          const oEnd = orderEnd.getTime();
+          const oRangeStart = Math.min(oStart, oEnd);
+          const oRangeEnd = Math.max(oStart, oEnd);
+
+          const overlaps = rangeStart <= oRangeEnd && rangeEnd >= oRangeStart;
+          if (overlaps) {
+            const orderItem = order.items?.find((item) => item.productId === productId);
+            if (orderItem) {
+              bookedQuantity += Number(orderItem.quantity || 0);
+            }
+          }
+        });
+      } catch (ordersErr) {
+        console.warn('[getAvailableQuantity] Orders fallback also failed (expected for public users)');
         bookedQuantity = 0;
       }
     }
