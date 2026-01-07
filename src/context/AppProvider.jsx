@@ -26,9 +26,22 @@ export function AppProvider({ children }) {
             }));
             console.log('[AppProvider] Firestore categories:', fetchedCategories);
             setCategories(fetchedCategories);
+             // Зберігаємо в localStorage
+             localStorage.setItem('elite_table_categories', JSON.stringify(fetchedCategories));
           },
           (error) => {
             console.error('[AppProvider] Error loading categories:', error);
+             // Спочатку спробуємо з localStorage
+             const cached = localStorage.getItem('elite_table_categories');
+             if (cached) {
+               try {
+                 setCategories(JSON.parse(cached));
+                 console.log('[AppProvider] Using cached categories from localStorage');
+                 return;
+               } catch (e) {
+                 console.error('[AppProvider] Error parsing cached categories:', e);
+               }
+             }
             // Якщо помилка доступу, спробуємо завантажити з getDocs
             getDocs(collection(db, 'categories'))
               .then((snapshot) => {
@@ -38,6 +51,7 @@ export function AppProvider({ children }) {
                 }));
                 console.log('[AppProvider] Categories loaded via getDocs:', fetchedCategories);
                 setCategories(fetchedCategories);
+                 localStorage.setItem('elite_table_categories', JSON.stringify(fetchedCategories));
               })
               .catch(err => console.error('[AppProvider] Failed to load categories:', err));
           }
@@ -45,6 +59,16 @@ export function AppProvider({ children }) {
         return () => unsubscribe();
       } catch (error) {
         console.error('[AppProvider] Error setting up categories listener:', error);
+         // Як останній fallback, використовуємо localStorage
+         const cached = localStorage.getItem('elite_table_categories');
+         if (cached) {
+           try {
+             setCategories(JSON.parse(cached));
+             console.log('[AppProvider] Using cached categories from localStorage (error fallback)');
+           } catch (e) {
+             console.error('[AppProvider] Error parsing cached categories:', e);
+           }
+         }
       }
     }, []);
   // Authentication
