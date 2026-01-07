@@ -57,8 +57,11 @@ export const HomeView = () => {
           {categories.length > 0 && categories.map((category) => (
             <button
               key={category.id}
-              className={`flex flex-col items-center justify-center p-3 rounded-2xl w-20 h-20 md:w-24 md:h-24 transition-all ${selectedCategory === category.id ? "bg-slate-900 text-white shadow-lg scale-105" : "bg-white border-2 border-slate-200 text-slate-600 hover:border-slate-900"}`}
-              onClick={() => setSelectedCategory(category.id)}
+              className={`flex flex-col items-center justify-center p-3 rounded-2xl w-20 h-20 md:w-24 md:h-24 transition-all ${selectedCategory === category.name ? "bg-slate-900 text-white shadow-lg scale-105" : "bg-white border-2 border-slate-200 text-slate-600 hover:border-slate-900"}`}
+              onClick={() => {
+                console.log('[HomeView] Category clicked:', category);
+                setSelectedCategory(category.name);
+              }}
             >
               <span className="text-2xl mb-1">{category.icon}</span>
               <span className="text-xs font-semibold uppercase text-center">{category.name}</span>
