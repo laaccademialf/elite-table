@@ -176,7 +176,7 @@ export const HomeView = () => {
               </h3>
               <p className="text-slate-600 text-xs line-clamp-1 mb-2">{product.description}</p>
               <p className="text-lg font-bold text-slate-900">
-                {product.price} ₴ <span className="text-xs text-slate-500 font-normal">/од</span>
+                {product.price} ₴ <span className="text-xs text-slate-500 font-normal">/од/доба</span>
               </p>
             </div>
           );
