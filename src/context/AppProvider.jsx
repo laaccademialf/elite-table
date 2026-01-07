@@ -53,7 +53,23 @@ export function AppProvider({ children }) {
                 setCategories(fetchedCategories);
                  localStorage.setItem('elite_table_categories', JSON.stringify(fetchedCategories));
               })
-              .catch(err => console.error('[AppProvider] Failed to load categories:', err));
+              .catch(async (err) => {
+                console.error('[AppProvider] Failed to load categories:', err);
+                // Остаточний публічний fallback: читаємо статичний список
+                try {
+                  const res = await fetch('/categories.json');
+                  if (res.ok) {
+                    const staticCategories = await res.json();
+                    console.log('[AppProvider] Using public categories.json fallback:', staticCategories);
+                    setCategories(staticCategories);
+                    localStorage.setItem('elite_table_categories', JSON.stringify(staticCategories));
+                  } else {
+                    console.warn('[AppProvider] categories.json not found or failed to load');
+                  }
+                } catch (fetchErr) {
+                  console.error('[AppProvider] Error fetching categories.json:', fetchErr);
+                }
+              });
           }
         );
         return () => unsubscribe();
@@ -69,6 +85,17 @@ export function AppProvider({ children }) {
              console.error('[AppProvider] Error parsing cached categories:', e);
            }
          }
+        // А також пробуємо статичний файл
+        (async () => {
+          try {
+            const res = await fetch('/categories.json');
+            if (res.ok) {
+              const staticCategories = await res.json();
+              setCategories(staticCategories);
+              console.log('[AppProvider] Fallback to public categories.json on error');
+            }
+          } catch {}
+        })();
       }
     }, []);
   // Authentication
