@@ -304,41 +304,53 @@ export const getAvailableQuantity = async (productId, startDate, endDate) => {
     console.log(`[getAvailableQuantity] Total quantity: ${totalQuantity}`);
 
     // Get all orders that overlap with the requested date range
-    const ordersQuery = query(
-      collection(db, 'orders'),
-      where('status', 'in', ['pending', 'confirmed'])
-    );
-
-    const ordersSnapshot = await getDocs(ordersQuery);
     let bookedQuantity = 0;
 
-    console.log(`[getAvailableQuantity] Found ${ordersSnapshot.docs.length} orders with pending/confirmed status`);
+    try {
+      const ordersQuery = query(
+        collection(db, 'orders'),
+        where('status', 'in', ['pending', 'confirmed'])
+      );
 
-    ordersSnapshot.docs.forEach((orderDoc) => {
-      const order = orderDoc.data();
-      const orderStartStr = order.eventDate;
-      const orderEndStr = order.eventEndDate || order.eventDate;
-      
-      // Convert to Date using toDate which handles both strings and objects
-      const orderStart = toDate(orderStartStr);
-      const orderEnd = toDate(orderEndStr) || orderStart;
-      if (!orderStart) return;
+      const ordersSnapshot = await getDocs(ordersQuery);
+      console.log(`[getAvailableQuantity] Found ${ordersSnapshot.docs.length} orders with pending/confirmed status`);
 
-      const oStart = orderStart.getTime();
-      const oEnd = orderEnd.getTime();
-      const oRangeStart = Math.min(oStart, oEnd);
-      const oRangeEnd = Math.max(oStart, oEnd);
+      ordersSnapshot.docs.forEach((orderDoc) => {
+        const order = orderDoc.data();
+        const orderStartStr = order.eventDate;
+        const orderEndStr = order.eventEndDate || order.eventDate;
+        
+        // Convert to Date using toDate which handles both strings and objects
+        const orderStart = toDate(orderStartStr);
+        const orderEnd = toDate(orderEndStr) || orderStart;
+        if (!orderStart) return;
 
-      // Overlap if ranges intersect inclusively
-      const overlaps = rangeStart <= oRangeEnd && rangeEnd >= oRangeStart;
-      if (overlaps) {
-        const orderItem = order.items?.find((item) => item.productId === productId);
-        if (orderItem) {
-          bookedQuantity += Number(orderItem.quantity || 0);
-          console.log(`[getAvailableQuantity] Overlap found: order on ${orderStartStr}, booked ${orderItem.quantity} of product ${productId}`);
+        const oStart = orderStart.getTime();
+        const oEnd = orderEnd.getTime();
+        const oRangeStart = Math.min(oStart, oEnd);
+        const oRangeEnd = Math.max(oStart, oEnd);
+
+        // Overlap if ranges intersect inclusively
+        const overlaps = rangeStart <= oRangeEnd && rangeEnd >= oRangeStart;
+        if (overlaps) {
+          const orderItem = order.items?.find((item) => item.productId === productId);
+          if (orderItem) {
+            bookedQuantity += Number(orderItem.quantity || 0);
+            console.log(`[getAvailableQuantity] Overlap found: order on ${orderStartStr}, booked ${orderItem.quantity} of product ${productId}`);
+          }
         }
+      });
+    } catch (ordersErr) {
+      // Permission denied for unauthenticated users: do not block availability.
+      // Fall back to "no bookings" so public users see full stock; checkout will revalidate.
+      if (ordersErr?.code === 'permission-denied') {
+        console.warn('[getAvailableQuantity] Orders read denied; returning full stock for public view');
+        bookedQuantity = 0;
+      } else {
+        console.error('[getAvailableQuantity] Orders read error:', ordersErr);
+        bookedQuantity = 0;
       }
-    });
+    }
 
     const available = Math.max(0, totalQuantity - bookedQuantity);
     console.log(`[getAvailableQuantity] Result: total=${totalQuantity}, booked=${bookedQuantity}, available=${available}`);
