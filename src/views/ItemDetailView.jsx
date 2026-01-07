@@ -21,7 +21,7 @@ export const ItemDetailView = () => {
 
   if (!selectedItem) return null;
 
-  const [maxAvailable, setMaxAvailable] = useState(selectedItem.quantity || 999);
+  const [maxAvailable, setMaxAvailable] = useState(null);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
   const priceNum = Number(selectedItem.price) || 0;
   const days = (globalDates?.start && globalDates?.end) ? (globalDates.end - globalDates.start + 1) : 1;
@@ -55,11 +55,63 @@ export const ItemDetailView = () => {
           <SafeImage src={selectedItem.image} className="w-full h-full object-cover" />
         </div>
         
-        <div className="flex flex-col justify-between">
+        <div className="flex flex-col gap-6">
+          {/* Mobile: панель з кнопкою показуємо першою */}
+          <div className="md:hidden bg-gray-900 p-6 rounded-[32px] shadow-2xl">
+            <div className="mb-4">
+              <p className={`text-[10px] font-black uppercase mb-2 ${
+                maxAvailable === 0 ? 'text-red-400' : 
+                (maxAvailable !== null && maxAvailable <= 5) ? 'text-orange-400' : 
+                'text-[#C5A059]'
+              }`}>
+                {isLoadingAvailability ? 'Перевірка доступності...' : (maxAvailable !== null ? `Доступно: ${maxAvailable} од.` : 'Доступність невідома')}
+              </p>
+              {!isLoadingAvailability && maxAvailable !== null && maxAvailable > 0 && maxAvailable <= 5 && (
+                <div className="flex items-center gap-2 text-xs text-orange-400 bg-orange-400/10 px-3 py-2 rounded-full">
+                  <AlertCircle size={14} />
+                  <span className="font-bold">Обмежена кількість</span>
+                </div>
+              )}
+              {!isLoadingAvailability && maxAvailable === 0 && (
+                <div className="flex items-center gap-2 text-xs text-red-400 bg-red-400/10 px-3 py-2 rounded-full">
+                  <AlertCircle size={14} />
+                  <span className="font-bold">Товар недоступний на обрані дати</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between mb-6 bg-gray-800 p-4 rounded-[20px]">
+              <button onClick={() => setOrderQuantity(Math.max(1, orderQuantity - 1))} className="bg-[#C5A059] w-10 h-10 rounded-full font-black text-white text-lg">−</button>
+              <input 
+                type="number" 
+                value={orderQuantity} 
+                onChange={e => {
+                  const val = parseInt(e.target.value) || 1;
+                  setOrderQuantity(Math.min(maxAvailable || 999, Math.max(1, val)));
+                }}
+                max={maxAvailable || 999}
+                min={1}
+                className="bg-transparent text-white text-center font-black text-xl w-16 outline-none" 
+              />
+              <button onClick={() => setOrderQuantity(Math.min(maxAvailable || 999, orderQuantity + 1))} className="bg-[#C5A059] w-10 h-10 rounded-full font-black text-white text-lg">+</button>
+            </div>
+            <button 
+              onClick={() => { addToCart(selectedItem, orderQuantity); setView('cart'); }} 
+              disabled={isLoadingAvailability || maxAvailable === 0}
+              className="w-full py-5 bg-[#C5A059] text-white font-black rounded-full uppercase tracking-wider text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoadingAvailability
+                ? 'Перевірка доступності...'
+                : (maxAvailable === 0
+                  ? '❌ Немає в наявності'
+                  : `➕ Додати ${orderQuantity} од. у кошик (${totalPrice} ₴)`) }
+            </button>
+          </div>
+
+          {/* Інфо про товар */}
           <div>
             <p className="text-[10px] font-black uppercase text-[#C5A059] mb-4">{selectedItem.category}</p>
-            <h1 className="text-6xl font-black italic uppercase mb-6 text-gray-900 leading-tight">{selectedItem.title}</h1>
-            <div className="space-y-6 mb-12">
+            <h1 className="text-4xl md:text-6xl font-black italic uppercase mb-6 text-gray-900 leading-tight">{selectedItem.title}</h1>
+            <div className="space-y-6 mb-6">
               <div className="bg-gray-50 p-6 rounded-[32px] border border-gray-100">
                 <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Опис</p>
                 <p className="text-sm italic text-gray-700">{selectedItem.description}</p>
@@ -71,16 +123,17 @@ export const ItemDetailView = () => {
             </div>
           </div>
 
-          <div className="bg-gray-900 p-8 rounded-[48px] shadow-2xl">
+          {/* Desktop: панель знизу */}
+          <div className="hidden md:block bg-gray-900 p-8 rounded-[48px] shadow-2xl">
             <div className="mb-6">
               <p className={`text-[10px] font-black uppercase mb-2 ${
                 maxAvailable === 0 ? 'text-red-400' : 
-                maxAvailable <= 5 ? 'text-orange-400' : 
+                (maxAvailable !== null && maxAvailable <= 5) ? 'text-orange-400' : 
                 'text-[#C5A059]'
               }`}>
-                {isLoadingAvailability ? 'Перевірка доступності...' : `Доступно: ${maxAvailable} од.`}
+                {isLoadingAvailability ? 'Перевірка доступності...' : (maxAvailable !== null ? `Доступно: ${maxAvailable} од.` : 'Доступність невідома')}
               </p>
-              {!isLoadingAvailability && maxAvailable > 0 && maxAvailable <= 5 && (
+              {!isLoadingAvailability && maxAvailable !== null && maxAvailable > 0 && maxAvailable <= 5 && (
                 <div className="flex items-center gap-2 text-xs text-orange-400 bg-orange-400/10 px-3 py-2 rounded-full">
                   <AlertCircle size={14} />
                   <span className="font-bold">Обмежена кількість</span>
@@ -100,13 +153,13 @@ export const ItemDetailView = () => {
                 value={orderQuantity} 
                 onChange={e => {
                   const val = parseInt(e.target.value) || 1;
-                  setOrderQuantity(Math.min(maxAvailable, Math.max(1, val)));
+                  setOrderQuantity(Math.min(maxAvailable || 999, Math.max(1, val)));
                 }}
-                max={maxAvailable}
+                max={maxAvailable || 999}
                 min={1}
                 className="bg-transparent text-white text-center font-black text-2xl w-16 outline-none" 
               />
-              <button onClick={() => setOrderQuantity(Math.min(maxAvailable, orderQuantity + 1))} className="bg-[#C5A059] w-12 h-12 rounded-full font-black text-white text-lg">+</button>
+              <button onClick={() => setOrderQuantity(Math.min(maxAvailable || 999, orderQuantity + 1))} className="bg-[#C5A059] w-12 h-12 rounded-full font-black text-white text-lg">+</button>
             </div>
             <button 
               onClick={() => { addToCart(selectedItem, orderQuantity); setView('cart'); }} 
