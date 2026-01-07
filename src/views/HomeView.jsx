@@ -22,6 +22,8 @@ export const HomeView = () => {
 
   // Категорії тепер з контексту
   const { categories } = useAppContext();
+  
+  console.log('[HomeView] Categories from context:', categories);
 
   const filteredProducts = selectedCategory === 'Всі' 
     ? products 

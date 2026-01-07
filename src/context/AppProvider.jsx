@@ -22,6 +22,7 @@ export function AppProvider({ children }) {
             id: doc.id,
             ...doc.data(),
           }));
+          console.log('[AppProvider] Firestore categories:', fetchedCategories);
           setCategories(fetchedCategories);
         }
       );
