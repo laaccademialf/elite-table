@@ -1,4 +1,4 @@
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useState, useEffect, useContext } from "react";
 import { AppContext } from "./AppContextDefinition";
@@ -14,20 +14,38 @@ import {
 export function AppProvider({ children }) {
     // Categories
     const [categories, setCategories] = useState([]);
-    // Live categories sync
+    // Live categories sync - без умови на авторизацію
     useEffect(() => {
-      const unsubscribe = onSnapshot(
-        collection(db, 'categories'),
-        (snapshot) => {
-          const fetchedCategories = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          console.log('[AppProvider] Firestore categories:', fetchedCategories);
-          setCategories(fetchedCategories);
-        }
-      );
-      return () => unsubscribe();
+      try {
+        const unsubscribe = onSnapshot(
+          collection(db, 'categories'),
+          (snapshot) => {
+            const fetchedCategories = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            console.log('[AppProvider] Firestore categories:', fetchedCategories);
+            setCategories(fetchedCategories);
+          },
+          (error) => {
+            console.error('[AppProvider] Error loading categories:', error);
+            // Якщо помилка доступу, спробуємо завантажити з getDocs
+            getDocs(collection(db, 'categories'))
+              .then((snapshot) => {
+                const fetchedCategories = snapshot.docs.map((doc) => ({
+                  id: doc.id,
+                  ...doc.data(),
+                }));
+                console.log('[AppProvider] Categories loaded via getDocs:', fetchedCategories);
+                setCategories(fetchedCategories);
+              })
+              .catch(err => console.error('[AppProvider] Failed to load categories:', err));
+          }
+        );
+        return () => unsubscribe();
+      } catch (error) {
+        console.error('[AppProvider] Error setting up categories listener:', error);
+      }
     }, []);
   // Authentication
   const [currentUser, setCurrentUser] = useState(null);
