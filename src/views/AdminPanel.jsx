@@ -15,7 +15,7 @@ import CategoryManager from '../components/CategoryManager';
 import DateRangePicker from '../components/DateRangePicker';
 import { getCategories } from '../services/categories';
 import { CustomCalendar } from '../components/CustomCalendar';
-import UsersView from './UsersView';
+import UsersView from './UserManagement';
 
 // Helper to format date object or string to DD.MM.YYYY
 const formatDate = (date) => {
