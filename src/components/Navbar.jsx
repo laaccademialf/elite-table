@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Wine, Calendar as CalendarIcon, ShoppingBag, LogOut, Package, X, LogIn } from "lucide-react";
+import { Wine, Calendar as CalendarIcon, ShoppingBag, LogOut, Package, Settings, X, LogIn } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
 import LoginModal from "./LoginModal";
 
@@ -81,7 +81,7 @@ export const Navbar = ({
               }`}
               title="Панель менеджера"
             >
-              <Package size={18} />
+              <Settings size={18} />
             </button>
           )}
 
