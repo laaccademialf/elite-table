@@ -57,6 +57,9 @@ export const HomeView = () => {
               <span>{category.name}</span>
             </button>
           ))}
+          {categories.length === 0 && (
+            <span className="text-slate-400 text-sm ml-4">Категорій немає</span>
+          )}
         </div>
       </div>
 
