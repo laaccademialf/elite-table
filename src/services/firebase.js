@@ -652,20 +652,49 @@ export const promoteUserToManager = async (userId) => {
   }
 };
 
+export const demoteManagerToUser = async (userId) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      role: 'customer',
+      updatedAt: Timestamp.now(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error demoting manager to user:', error);
+    throw error;
+  }
+};
+
+export const deleteUser = async (userId) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await deleteDoc(userRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
+};
+
 export const getUserOrders = async (userId) => {
   try {
+    console.log('[getUserOrders] Fetching orders for userId:', userId);
     const ordersQuery = query(
       collection(db, 'orders'),
       where('userId', '==', userId)
     );
     const ordersSnapshot = await getDocs(ordersQuery);
+    console.log('[getUserOrders] Found', ordersSnapshot.docs.length, 'orders');
     return ordersSnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
   } catch (error) {
-    console.error('Error fetching user orders:', error);
+    console.error('[getUserOrders] Error fetching user orders:', error);
     throw error;
+  }
+};
   }
 };
 

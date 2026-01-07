@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllUsers, updateUser, promoteUserToManager, getUserOrders } from '../services/firebase';
+import { getAllUsers, updateUser, promoteUserToManager, demoteManagerToUser, deleteUser, getUserOrders } from '../services/firebase';
 
 const UsersView = () => {
   const [users, setUsers] = useState([]);
@@ -59,13 +59,41 @@ const UsersView = () => {
     }
   };
 
-  const handleShowOrders = async (userId, userName) => {
+  const handleDemoteFromManager = async (userId) => {
+    if (!window.confirm('Змінити менеджера на звичайного користувача?')) return;
     try {
-      const orders = await getUserOrders(userId);
-      setSelectedUserOrders({ userId, userName, orders });
+      await demoteManagerToUser(userId);
+      setUsers(users.map((u) => (u.id === userId ? { ...u, role: 'customer' } : u)));
     } catch (err) {
       setError(err.message);
-      console.error('Error loading orders:', err);
+      console.error('Error demoting user:', err);
+    }
+  };
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Видалити користувача ${userName}? Це неможливо буде відновити.`)) return;
+    try {
+      await deleteUser(userId);
+      setUsers(users.filter((u) => u.id !== userId));
+      setSelectedUserOrders(null);
+      setExpandedUserId(null);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error deleting user:', err);
+    }
+  };
+
+  const handleShowOrders = async (userId, userName) => {
+    try {
+      console.log('[handleShowOrders] Loading orders for user:', userId);
+      const orders = await getUserOrders(userId);
+      console.log('[handleShowOrders] Orders loaded:', orders);
+      setSelectedUserOrders({ userId, userName, orders });
+    } catch (err) {
+      console.error('[handleShowOrders] Error loading orders:', err);
+      setError(err.message);
+      // Show empty orders even if error
+      setSelectedUserOrders({ userId, userName, orders: [] });
     }
   };
 
@@ -112,7 +140,7 @@ const UsersView = () => {
                         type="text"
                         value={editData.name}
                         onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded w-full"
+                        className="px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-gray-900 font-semibold w-full"
                       />
                     ) : (
                       user.name || '-'
@@ -124,7 +152,7 @@ const UsersView = () => {
                         type="text"
                         value={editData.phone}
                         onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded w-full"
+                        className="px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-gray-900 font-semibold w-full"
                       />
                     ) : (
                       user.phone || '-'
@@ -160,16 +188,24 @@ const UsersView = () => {
                       <>
                         <button
                           onClick={() => handleEdit(user)}
-                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700"
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
                         >
                           Редагувати
                         </button>
                         {user.role !== 'manager' && (
                           <button
                             onClick={() => handlePromoteToManager(user.id)}
-                            className="px-3 py-1 bg-purple-600 text-white rounded text-xs font-semibold hover:bg-purple-700"
+                            className="px-3 py-1 bg-purple-600 text-white rounded text-xs font-semibold hover:bg-purple-700 transition-colors"
                           >
-                            Зробити менеджером
+                            Менеджер
+                          </button>
+                        )}
+                        {user.role === 'manager' && (
+                          <button
+                            onClick={() => handleDemoteFromManager(user.id)}
+                            className="px-3 py-1 bg-gray-600 text-white rounded text-xs font-semibold hover:bg-gray-700 transition-colors"
+                          >
+                            Користувач
                           </button>
                         )}
                         <button
@@ -182,9 +218,15 @@ const UsersView = () => {
                               setExpandedUserId(user.id);
                             }
                           }}
-                          className="px-3 py-1 bg-orange-600 text-white rounded text-xs font-semibold hover:bg-orange-700"
+                          className="px-3 py-1 bg-orange-600 text-white rounded text-xs font-semibold hover:bg-orange-700 transition-colors"
                         >
                           {expandedUserId === user.id ? 'Приховати' : 'Замовлення'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.name || user.email)}
+                          className="px-3 py-1 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 transition-colors"
+                        >
+                          Видалити
                         </button>
                       </>
                     )}
