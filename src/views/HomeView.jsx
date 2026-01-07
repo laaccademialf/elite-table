@@ -140,7 +140,7 @@ export const HomeView = () => {
               {/* Image Tile with beige border (square) */}
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-white mb-4 shadow-sm group-hover:shadow-lg transition-all border-[3px] border-[#C5A059]">
                 {/* Availability Banner (attached, with rounded top-left) */}
-                <div className="absolute top-0 left-0 z-10">
+                <div className="absolute -top-[3px] -left-[3px] z-10">
                   <div className="px-3 py-1 text-[10px] font-extrabold uppercase rounded-tl-2xl rounded-br-xl bg-[#C5A059] text-white tracking-wide">
                     {globalDates.start
                       ? ((availabilityMap[product.id] ?? null) === null
