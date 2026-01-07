@@ -24,7 +24,24 @@ export const ItemDetailView = () => {
   const [maxAvailable, setMaxAvailable] = useState(null);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
   const priceNum = Number(selectedItem.price) || 0;
-  const days = (globalDates?.start && globalDates?.end) ? (globalDates.end - globalDates.start + 1) : 1;
+  
+  // Безпечно розраховуємо кількість днів з об'єктів дат
+  const days = useMemo(() => {
+    if (!globalDates?.start || !globalDates?.end) return 1;
+    try {
+      const startDate = globalDates.start instanceof Date 
+        ? globalDates.start 
+        : new Date(globalDates.start.year, globalDates.start.month, globalDates.start.day);
+      const endDate = globalDates.end instanceof Date 
+        ? globalDates.end 
+        : new Date(globalDates.end.year, globalDates.end.month, globalDates.end.day);
+      const diffMs = endDate.getTime() - startDate.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
+      return Math.max(1, diffDays);
+    } catch {
+      return 1;
+    }
+  }, [globalDates?.start, globalDates?.end]);
   
   useEffect(() => {
     const fetchAvailability = async () => {
