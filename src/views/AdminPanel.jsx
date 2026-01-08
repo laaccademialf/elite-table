@@ -627,7 +627,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                       </div>
                     ) : (
                       filteredProducts.map((product) => (
-                      <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center">
+                      <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h3 className="font-bold text-slate-900">{product.name}</h3>
@@ -639,25 +639,46 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                           </div>
                           <p className="text-slate-600 text-sm">{product.description}</p>
                           <p className="text-slate-900 font-bold mt-2">
-                            {product.price} ₴ | Кількість: {product.quantity}
+                            {product.price} ₴
                           </p>
                           <span className="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">
                             {product.category}
                           </span>
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEdit(product)}
-                            className="p-3 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(product.id)}
-                            className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-col items-center gap-1">
+                            <label className="text-xs text-slate-600 font-semibold">Кількість</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={product.quantity}
+                              onChange={async (e) => {
+                                const newQuantity = parseInt(e.target.value) || 0;
+                                try {
+                                  await updateProduct(product.id, { quantity: newQuantity });
+                                  await loadData();
+                                } catch (error) {
+                                  console.error('Error updating quantity:', error);
+                                  alert('Помилка оновлення кількості');
+                                }
+                              }}
+                              className="w-20 px-3 py-2 border-2 border-slate-300 rounded-lg text-center font-bold text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEdit(product)}
+                              className="p-3 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200"
+                            >
+                              <Edit size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product.id)}
+                              className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                       ))
