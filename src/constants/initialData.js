@@ -14,6 +14,7 @@ export const INITIAL_ITEMS = [
     price: 25,
     count: 50,
     material: "Порцеляна",
+    sku: "ART-001",
     image:
       "https://images.unsplash.com/photo-1577106263524-a76e5e7f1231?q=80&w=800",
     description: "Елегантна порцеляна з ручним золотим напиленням.",
@@ -25,6 +26,7 @@ export const INITIAL_ITEMS = [
     price: 15,
     count: 20,
     material: "Кришталь",
+    sku: "ART-002",
     image:
       "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?q=80&w=800",
     description: "Вінтажні келихи з глибоким різьбленням.",
@@ -36,6 +38,7 @@ export const INITIAL_ITEMS = [
     price: 30,
     count: 100,
     material: "Сріблення",
+    sku: "ART-003",
     image:
       "https://images.unsplash.com/photo-1593510987185-1ec22559398f?q=80&w=800",
     description: "Мінімалістичні прибори з ідеальним поліруванням.",

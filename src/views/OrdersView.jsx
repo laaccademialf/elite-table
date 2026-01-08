@@ -24,6 +24,36 @@ const formatDateRange = (startDate, endDate) => {
   return `${start} — ${end}`;
 };
 
+// Helper to calculate rental days from date strings (DD.MM.YYYY format)
+const calculateRentalDays = (eventDate, eventEndDate) => {
+  if (!eventDate || !eventEndDate) return 1;
+  
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split('.');
+    if (parts.length !== 3) return null;
+    const [day, month, year] = parts.map(Number);
+    return new Date(year, month - 1, day);
+  };
+  
+  const startDate = parseDate(eventDate);
+  const endDate = parseDate(eventEndDate);
+  
+  if (!startDate || !endDate) return 1;
+  
+  const diffTime = Math.abs(endDate - startDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+  return Math.max(1, diffDays);
+};
+
+const formatCustomerName = (order) => {
+  if (!order) return 'Клієнт';
+  if (order.customerName && order.customerName.trim()) return order.customerName.trim();
+  if (order.customerEmail) return order.customerEmail.split('@')[0];
+  if (order.customerPhone) return order.customerPhone;
+  return 'Клієнт';
+};
+
 export function OrdersView() {
   const { currentUser, orders, setView } = useAppContext();
   const [expandedId, setExpandedId] = useState(null);
@@ -74,6 +104,8 @@ export function OrdersView() {
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
+      case 'in_progress':
+        return 'bg-orange-100 text-orange-800';
       case 'confirmed':
         return 'bg-blue-100 text-blue-800';
       case 'delivered':
@@ -89,6 +121,8 @@ export function OrdersView() {
     switch (status) {
       case 'pending':
         return 'Очікування';
+      case 'in_progress':
+        return 'В роботі';
       case 'confirmed':
         return 'Підтверджено';
       case 'delivered':
@@ -154,7 +188,7 @@ export function OrdersView() {
                   <div className="grid md:grid-cols-2 gap-8 mb-6">
                     <div>
                       <h4 className="font-bold text-slate-900 mb-3">Клієнт</h4>
-                      <p className="text-slate-600">{order.customerName}</p>
+                      <p className="text-slate-600">{formatCustomerName(order)}</p>
                       <p className="text-slate-600">{order.customerEmail}</p>
                       <p className="text-slate-600">{order.customerPhone}</p>
                     </div>
@@ -170,26 +204,36 @@ export function OrdersView() {
                   </div>
 
                   <div>
-                    <h4 className="font-bold text-slate-900 mb-3">Товари</h4>
-                    <div className="bg-white rounded-xl p-4 space-y-2">
-                      {order.items?.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="flex justify-between items-center py-2 border-b border-slate-200 last:border-b-0"
-                        >
-                          <div>
-                            <p className="font-semibold text-slate-900">
-                              {item.productName}
-                            </p>
-                            <p className="text-sm text-slate-600">
-                              Кількість: {item.quantity}
-                            </p>
-                          </div>
-                          <p className="font-bold text-slate-900">
-                            {item.price * item.quantity} ₴
-                          </p>
-                        </div>
-                      ))}
+                    <h4 className="font-bold text-slate-900 mb-3">Товари (оренда на {calculateRentalDays(order.eventDate, order.eventEndDate)} днів)</h4>
+                    <div className="bg-white rounded-xl p-4 overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-200">
+                            <th className="text-left py-2 px-2 font-semibold text-slate-700 w-16">Артикул</th>
+                            <th className="text-left py-2 px-2 font-semibold text-slate-700">Назва</th>
+                            <th className="text-center py-2 px-2 font-semibold text-slate-700 w-12">Кіл-сть</th>
+                            <th className="text-right py-2 px-2 font-semibold text-slate-700 w-20">Ціна/день</th>
+                            <th className="text-center py-2 px-2 font-semibold text-slate-700 w-10">Дні</th>
+                            <th className="text-right py-2 px-2 font-semibold text-slate-700 w-20">Сума</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {order.items?.map((item, idx) => {
+                            const rentalDays = calculateRentalDays(order.eventDate, order.eventEndDate);
+                            const itemTotal = item.price * item.quantity * rentalDays;
+                            return (
+                              <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                                <td className="py-2 px-2 text-slate-600 text-xs font-mono">{item.sku || '—'}</td>
+                                <td className="py-2 px-2 text-slate-900">{item.productName}</td>
+                                <td className="py-2 px-2 text-center text-slate-600">{item.quantity}</td>
+                                <td className="py-2 px-2 text-right text-slate-600">{item.price} ₴</td>
+                                <td className="py-2 px-2 text-center text-slate-600 font-semibold">{rentalDays}</td>
+                                <td className="py-2 px-2 text-right font-semibold text-slate-900">{itemTotal.toFixed(0)} ₴</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 

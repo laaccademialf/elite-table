@@ -219,6 +219,9 @@ export const HomeView = () => {
               <h3 className="text-sm md:text-base font-bold text-slate-900 uppercase line-clamp-2">
                 {product.name}
               </h3>
+              {product.sku && (
+                <p className="text-xs font-mono text-gray-500 mb-1">Артикул: {product.sku}</p>
+              )}
               <p className="text-slate-600 text-xs line-clamp-1 mb-2">{product.description}</p>
               <p className="text-lg font-bold text-slate-900">
                 {product.price} ₴ <span className="text-xs text-slate-500 font-normal">/од/доба</span>

@@ -79,7 +79,10 @@ export const ItemDetailView = () => {
         
         {/* Назва і ціна */}
         <div>
-          <h1 className="text-2xl font-black italic uppercase text-gray-900 leading-tight mb-3">{selectedItem.title}</h1>
+          <h1 className="text-2xl font-black italic uppercase text-gray-900 leading-tight mb-3">{selectedItem.name || selectedItem.name || selectedItem.title}</h1>
+          {selectedItem.sku && (
+            <p className="text-xs font-mono text-gray-500 mb-2">Артикул: {selectedItem.sku}</p>
+          )}
           <div className="flex items-baseline gap-3 mb-4">
             <span className="text-4xl font-black text-[#C5A059]">{priceNum} ₴</span>
             <span className="text-sm text-gray-600 font-bold">/од/доба</span>
@@ -152,20 +155,30 @@ export const ItemDetailView = () => {
 
       {/* Desktop: оригінальний layout */}
       <div className="hidden md:block">
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Зліва: фото */}
           <div className="relative aspect-square rounded-2xl overflow-hidden bg-white shadow-xl border-[3px] border-[#C5A059]">
             <SafeImage src={selectedItem.image} className="w-full h-full object-cover" />
           </div>
           
-          <div className="flex flex-col justify-center space-y-4">
-            <p className="text-[10px] font-black uppercase text-[#C5A059]">{selectedItem.category}</p>
-            <h1 className="text-4xl md:text-5xl font-black italic uppercase text-gray-900 leading-tight">{selectedItem.title}</h1>
+          {/* Справа: контент */}
+          <div className="flex flex-col justify-between gap-4">
+            {/* Верхня частина: категорія, назва, артикул */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase text-[#C5A059]">{selectedItem.category}</p>
+              <h1 className="text-xl md:text-2xl font-black italic uppercase text-gray-900 leading-tight">{selectedItem.name || selectedItem.title}</h1>
+              {selectedItem.sku && (
+                <p className="text-xs font-mono text-gray-500">Артикул: {selectedItem.sku}</p>
+              )}
+            </div>
             
-            <div className="bg-gray-50 p-5 rounded-3xl border border-gray-100">
+            {/* Опис - розширюється до низу */}
+            <div className="bg-gray-50 p-5 rounded-3xl border border-gray-100 flex flex-col flex-grow">
               <p className="text-[10px] font-black uppercase text-gray-500 mb-2">Опис</p>
               <p className="text-sm italic text-gray-700">{selectedItem.description}</p>
             </div>
             
+            {/* Нижня частина: ціна */}
             <div className="bg-[#C5A059]/10 p-4 rounded-2xl border border-[#C5A059]/20">
               <p className="text-[10px] font-black uppercase text-[#C5A059] mb-1">Ціна за добу</p>
               <p className="font-black text-gray-900 text-2xl">{priceNum} ₴</p>
@@ -173,7 +186,7 @@ export const ItemDetailView = () => {
           </div>
         </div>
 
-        <div className="bg-gray-900 p-6 md:p-8 rounded-[32px] shadow-2xl">
+        <div className="bg-gray-900 p-6 md:p-8 rounded-[32px] shadow-2xl mt-8">
           <div className="mb-6">
             <p className={`text-[10px] font-black uppercase mb-2 ${
               maxAvailable === 0 ? 'text-red-400' : 

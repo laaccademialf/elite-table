@@ -11,7 +11,7 @@ export const Navbar = ({
   setGlobalDates,
   cart,
 }) => {
-  const { currentUser, handleLogout, refreshUser } = useAppContext();
+  const { currentUser, handleLogout, refreshUser, pendingBadge } = useAppContext();
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   return (
@@ -74,7 +74,7 @@ export const Navbar = ({
           {currentUser?.role === "manager" && (
             <button
               onClick={() => setIsAdminMode(!isAdminMode)}
-              className={`p-2 rounded-lg transition-all duration-200 shadow ${
+              className={`relative p-2 rounded-lg transition-all duration-200 shadow ${
                 isAdminMode
                   ? "bg-slate-900 text-white shadow-lg scale-105"
                   : "text-slate-600 hover:bg-[#F5EBDD] hover:scale-105"
@@ -82,6 +82,11 @@ export const Navbar = ({
               title="Панель менеджера"
             >
               <Settings size={18} />
+              {pendingBadge > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg">
+                  {pendingBadge}
+                </span>
+              )}
             </button>
           )}
 

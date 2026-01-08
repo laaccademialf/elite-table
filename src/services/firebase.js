@@ -331,7 +331,7 @@ export const createOrder = async (orderData) => {
       userId: resolvedUserId,
       items: orderData.items, // Array of { productId, quantity, price }
       totalPrice: orderData.totalPrice,
-      status: 'pending', // 'pending', 'confirmed', 'delivered', 'cancelled'
+      status: 'pending', // 'pending', 'in_progress', 'confirmed', 'delivered', 'cancelled'
       eventDate: orderData.eventDate, // Date of event
         eventEndDate: orderData.eventEndDate, // End date of event
       customerName: orderData.customerName,
@@ -453,7 +453,7 @@ export const getAvailableQuantity = async (productId, startDate, endDate) => {
       try {
         const ordersQuery = query(
           collection(db, 'orders'),
-          where('status', 'in', ['pending', 'confirmed'])
+          where('status', 'in', ['pending', 'in_progress', 'confirmed'])
         );
 
         const ordersSnapshot = await getDocs(ordersQuery);
@@ -498,7 +498,7 @@ export const getAvailableQuantity = async (productId, startDate, endDate) => {
 
 // ==================== AVAILABILITY AGGREGATION ====================
 
-const isBookingStatus = (status) => ['pending', 'confirmed'].includes(status);
+const isBookingStatus = (status) => ['pending', 'in_progress', 'confirmed'].includes(status);
 
 const dateStringsInclusive = (start, end) => {
   const res = [];
@@ -573,10 +573,40 @@ export const getOrders = async (filters = {}) => {
     }
     q = query(q, ...constraints);
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
+    const orders = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+
+    // Enrich orders with SKU from products if missing
+    const enrichedOrders = await Promise.all(
+      orders.map(async (order) => {
+        if (!order.items || order.items.length === 0) return order;
+        
+        const enrichedItems = await Promise.all(
+          order.items.map(async (item) => {
+            if (item.sku) return item; // Already has SKU
+            
+            // Try to fetch product to get SKU
+            if (item.productId) {
+              try {
+                const product = await getProductById(item.productId);
+                if (product?.sku) {
+                  return { ...item, sku: product.sku };
+                }
+              } catch (e) {
+                // Silently fail, just use existing item without SKU
+              }
+            }
+            return item;
+          })
+        );
+        
+        return { ...order, items: enrichedItems };
+      })
+    );
+
+    return enrichedOrders;
   } catch (error) {
     console.error('Error fetching orders:', error);
     throw error;
@@ -622,6 +652,19 @@ export const updateOrderStatus = async (orderId, status) => {
   }
 };
 
+export const updateOrderManagerNotes = async (orderId, managerNotes) => {
+  try {
+    const docRef = doc(db, 'orders', orderId);
+    await updateDoc(docRef, {
+      managerNotes: managerNotes || '',
+      updatedAt: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error('Error updating order notes:', error);
+    throw error;
+  }
+};
+
 export const cancelOrder = async (orderId) => {
   try {
     const docRef = doc(db, 'orders', orderId);
@@ -642,6 +685,7 @@ export const assignOrderToManager = async (orderId, managerId, managerName) => {
       assignedManagerId: managerId,
       assignedManagerName: managerName,
       assignedAt: Timestamp.now(),
+      status: 'in_progress',
       updatedAt: Timestamp.now(),
     });
   } catch (error) {
@@ -676,6 +720,7 @@ export const getOrderStats = async (dateRange = {}, managerId = null) => {
     const totalOrders = orders.length;
     const completedOrders = orders.filter((o) => o.status === 'delivered').length;
     const pendingOrders = orders.filter((o) => o.status === 'pending').length;
+    const inProgressOrders = orders.filter((o) => o.status === 'in_progress').length;
     const cancelledOrders = orders.filter((o) => o.status === 'cancelled').length;
     const confirmedOrders = orders.filter((o) => o.status === 'confirmed').length;
 
@@ -709,12 +754,30 @@ export const getOrderStats = async (dateRange = {}, managerId = null) => {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 10);
 
+    // Отримуємо всі товари для сопоставлення категорій
+    let allProducts = [];
+    try {
+      allProducts = await getProducts();
+    } catch (e) {
+      console.warn('Could not fetch products for category mapping:', e);
+    }
+
+    const productIdToCategory = {};
+    allProducts.forEach(p => {
+      productIdToCategory[p.id] = p.category || 'Інше';
+    });
+
     // Виручка по категоріях (потрібно мати categoryId/category в items)
     const categoryRevenue = {};
     orders.forEach(order => {
       if (order.items) {
         order.items.forEach(item => {
-          const cat = item.category || 'Інше';
+          // Намагаємось отримати категорію з item.category, якщо немає - з бази по productId
+          let cat = item.category;
+          if (!cat && item.productId) {
+            cat = productIdToCategory[item.productId];
+          }
+          cat = cat || 'Інше';
           categoryRevenue[cat] = (categoryRevenue[cat] || 0) + ((item.price || 0) * (item.quantity || 0));
         });
       }
@@ -751,6 +814,7 @@ export const getOrderStats = async (dateRange = {}, managerId = null) => {
       totalOrders,
       completedOrders,
       pendingOrders,
+      inProgressOrders,
       cancelledOrders,
       confirmedOrders,
       averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,

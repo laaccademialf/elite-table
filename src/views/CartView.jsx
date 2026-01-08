@@ -78,23 +78,49 @@ export const CartView = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 animate-in slide-in-from-bottom-8 duration-500 text-gray-900">
-      <h2 className="text-4xl font-black italic uppercase mb-12 border-b pb-8 flex items-center gap-4"><ShoppingBag size={32} /> Кошик</h2>
+      {/* Sticky header з кнопками, заголовком та інфо */}
+      <div className="sticky top-20 z-20 bg-slate-50 pt-6 pb-6 space-y-6 -mx-6 px-6">
+        <div className="flex items-center justify-between">
+          <button 
+            onClick={() => setView('home')}
+            className="flex items-center gap-2 px-6 py-3 border-2 border-[#C5A059] text-[#C5A059] font-black uppercase text-sm hover:bg-[#C5A059] hover:text-white transition-colors rounded-2xl"
+          >
+            ← Каталог
+          </button>
+          <h2 className="text-4xl font-black italic uppercase flex items-center gap-4"><ShoppingBag size={32} /> Кошик</h2>
+          <button 
+            onClick={() => setView('checkout')}
+            disabled={globalDates.start ? insufficiencies.length > 0 : false}
+            className="flex items-center gap-2 px-6 py-3 bg-[#C5A059] text-white font-black uppercase text-sm hover:bg-[#b2904f] transition-colors rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Оформити →
+          </button>
+        </div>
+
+        {cart.length > 0 && (
+          <>
+            <div className="bg-[#C5A059]/10 p-4 rounded-[24px] border border-[#C5A059]/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CalendarIcon size={20} className="text-[#C5A059]" />
+                <div>
+                  <p className="text-[9px] font-black uppercase text-[#C5A059]">Період оренди</p>
+                  <p className="text-sm font-black">{globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : ''} {globalDates.end ? `- ${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : ''}</p>
+                </div>
+              </div>
+              <p className="text-sm font-black">{days} {days === 1 ? 'доба' : 'доби'}</p>
+            </div>
+
+            <div className="bg-gray-900 text-white p-6 rounded-[32px] shadow-xl">
+              <div className="flex justify-between text-2xl font-black"><span>Разом</span><span className="text-[#C5A059]">{total} ₴</span></div>
+            </div>
+          </>
+        )}
+      </div>
       
       {cart.length === 0 ? (
         <div className="text-center py-20 bg-gray-50 rounded-[48px] border border-dashed"><p className="text-gray-400 uppercase text-xs font-black">Кошик порожній</p></div>
       ) : (
         <div className="space-y-6">
-          <div className="bg-[#C5A059]/10 p-6 rounded-[32px] border border-[#C5A059]/20 flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <CalendarIcon size={24} className="text-[#C5A059]" />
-              <div>
-                <p className="text-[10px] font-black uppercase text-[#C5A059]">Період оренди</p>
-                <p className="text-lg font-black">{globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : ''} {globalDates.end ? `- ${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : ''}</p>
-              </div>
-            </div>
-            <p className="text-lg font-black">{days} {days === 1 ? 'доба' : 'доби'}</p>
-          </div>
-
           {/* AI блок видалено за побажанням дизайну */}
 
           {cart.map(item => (
@@ -102,6 +128,9 @@ export const CartView = () => {
               <SafeImage src={item.image} className="w-24 h-24 md:w-28 md:h-28 rounded-2xl object-cover" />
               <div className="flex-1">
                 <h4 className="font-black uppercase text-xl md:text-2xl tracking-tight">{item.title}</h4>
+                {item.sku && (
+                  <p className="text-xs font-mono text-gray-500 mt-1">Артикул: {item.sku}</p>
+                )}
                 <p className="text-xs md:text-sm font-bold text-[#C5A059] uppercase mt-1">{item.price} ₴ /од/доба × {item.quantity} од.</p>
                 {globalDates.start && (
                   <div className="mt-2 text-xs">
@@ -163,17 +192,6 @@ export const CartView = () => {
               </ul>
             </div>
           )}
-
-          <div className="mt-12 bg-gray-900 text-white p-10 rounded-[48px] shadow-2xl">
-            <div className="flex justify-between text-3xl font-black mb-10"><span>Разом</span><span className="text-[#C5A059]">{total} ₴</span></div>
-            <button 
-              onClick={() => setView('checkout')} 
-              disabled={globalDates.start ? insufficiencies.length > 0 : false}
-              className="w-full py-6 bg-[#C5A059] text-white font-black rounded-full uppercase tracking-widest text-xs disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {globalDates.start && insufficiencies.length > 0 ? 'Недостатньо товарів' : 'Оформити'}
-            </button>
-          </div>
         </div>
       )}
     </div>

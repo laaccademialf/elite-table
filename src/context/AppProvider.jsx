@@ -1,6 +1,7 @@
-import { collection, onSnapshot, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useState, useEffect, useContext } from "react";
+import { useRef } from "react";
 import { AppContext } from "./AppContextDefinition";
 import {
   getCurrentUser,
@@ -91,6 +92,26 @@ export function AppProvider({ children }) {
   const [adminTab, setAdminTab] = useState("inventory");
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
+
+  // Notifications
+  const [pendingBadge, setPendingBadge] = useState(0);
+  const [pendingNotifications, setPendingNotifications] = useState([]);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const saved = localStorage.getItem('pendingSoundEnabled');
+    return saved !== 'false';
+  });
+  const [soundType, setSoundType] = useState(() => {
+    if (typeof window === 'undefined') return 'bell';
+    return localStorage.getItem('pendingSoundType') || 'bell';
+  });
+  const [pushEnabled, setPushEnabled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('pendingPushEnabled') === 'true';
+  });
+  const pendingInitialLoad = useRef(false);
+  const windowFocused = useRef(true);
 
   // Booking
   const [globalDates, setGlobalDates] = useState({ start: null, end: null });
@@ -156,7 +177,9 @@ export function AppProvider({ children }) {
             quantity: it.count,
             category: it.category,
             image: it.image,
+            sku: it.sku || '',
           }));
+          console.log('[AppProvider] Mapped products with SKU:', mapped);
           setProducts(mapped);
           console.log('[AppProvider] Using INITIAL_ITEMS fallback');
         } catch (e2) {
@@ -167,6 +190,219 @@ export function AppProvider({ children }) {
 
     loadProducts();
   }, [selectedCategory]);
+
+  // Helper: play different sound types
+  const playSound = (type = soundType) => {
+    if (!soundEnabled || typeof window === 'undefined') return;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+
+      switch (type) {
+        case 'bell': // High-pitched bell
+          osc.type = 'triangle';
+          osc.frequency.value = 1200;
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.25, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+          osc.start();
+          osc.stop(now + 0.35);
+          break;
+        case 'alarm': // Loud alarm
+          osc.type = 'square';
+          osc.frequency.value = 800;
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.3, now + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+          osc.start();
+          osc.stop(now + 0.55);
+          break;
+        case 'chime': // Melodic chime (two notes)
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1046, now); // C6
+          osc.frequency.setValueAtTime(1319, now + 0.15); // E6
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.2, now + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+          osc.start();
+          osc.stop(now + 0.4);
+          break;
+        default:
+          osc.type = 'triangle';
+          osc.frequency.value = 1200;
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.25, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+          osc.start();
+          osc.stop(now + 0.35);
+      }
+    } catch (err) {
+      console.warn('Sound playback failed', err);
+    }
+  };
+
+  // Push notification helper
+  const showPushNotification = (title, options = {}) => {
+    if (!pushEnabled || !windowFocused.current || typeof window === 'undefined') return;
+    if (!('Notification' in window)) return;
+    
+    if (Notification.permission === 'granted') {
+      new Notification(title, {
+        icon: '/logo.svg',
+        badge: '/logo.svg',
+        tag: 'pending-order',
+        ...options,
+      });
+    }
+  };
+
+  // Track window focus
+  useEffect(() => {
+    const handleFocus = () => { windowFocused.current = true; };
+    const handleBlur = () => { windowFocused.current = false; };
+    
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, []);
+
+  // Listen pending orders for managers (anywhere in app)
+  useEffect(() => {
+    if (!currentUser || currentUser.role !== 'manager') {
+      setPendingBadge(0);
+      setPendingNotifications([]);
+      return;
+    }
+    pendingInitialLoad.current = false;
+    const q = query(collection(db, 'orders'), where('status', '==', 'pending'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      setPendingBadge(snapshot.size || 0);
+      const isInitial = !pendingInitialLoad.current;
+      if (!pendingInitialLoad.current) pendingInitialLoad.current = true;
+
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          if (isInitial) return; // не сповіщаємо про існуючі на старті
+          const data = change.doc.data();
+          const customerName = (data.customerName && data.customerName.trim())
+            || (data.customerEmail ? data.customerEmail.split('@')[0] : null)
+            || data.customerPhone
+            || 'Новий клієнт';
+          const contactPhone = data.customerPhone || '';
+          const contactEmail = data.customerEmail || '';
+          const notif = {
+            id: `${change.doc.id}-${Date.now()}`,
+            orderId: change.doc.id,
+            customer: customerName,
+            contactPhone,
+            contactEmail,
+            total: data.totalPrice || data.totalAmount || data.total || 0,
+          };
+          setPendingNotifications((prev) => [notif, ...prev].slice(0, 4));
+          // Show push notification if window not focused
+          if (!windowFocused.current) {
+            showPushNotification('Нове замовлення', {
+              body: `${customerName} · ${notif.total.toFixed(0)} ₴`,
+            });
+          }
+        }
+      });
+    }, (err) => console.error('[AppProvider] pending listener error', err));
+
+    return () => unsub();
+  }, [currentUser]);
+
+  // Periodic sound when there are pending orders
+  useEffect(() => {
+    if (!soundEnabled || pendingBadge === 0) return;
+    // одразу пінг
+    playSound(soundType);
+    const id = setInterval(() => {
+      if (pendingBadge > 0) playSound(soundType);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [pendingBadge, soundEnabled, soundType]);
+
+  const toggleSound = () => {
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pendingSoundEnabled', String(next));
+      }
+      return next;
+    });
+  };
+
+  const updateSoundType = (type) => {
+    setSoundType(type);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pendingSoundType', type);
+    }
+  };
+
+  const togglePushNotifications = async () => {
+    if (!('Notification' in window)) {
+      alert('Ваш браузер не підтримує сповіщення');
+      return;
+    }
+    
+    if (!pushEnabled) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setPushEnabled(true);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('pendingPushEnabled', 'true');
+        }
+      } else {
+        alert('Дозвіл на сповіщення не надано');
+      }
+    } else {
+      setPushEnabled(false);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pendingPushEnabled', 'false');
+      }
+    }
+  };
+
+  // Remove notification with optional fade delay
+  const removeNotification = (notificationId, delayMs = 3000) => {
+    const performRemoval = () => {
+      setPendingNotifications((prev) => {
+        const updated = prev.filter((n) => n.id !== notificationId);
+        console.log('[AppProvider] removeNotification: removed', notificationId, 'remaining:', updated.length);
+        return updated;
+      });
+    };
+    
+    if (delayMs > 0) {
+      setTimeout(performRemoval, delayMs);
+    } else {
+      performRemoval();
+    }
+  };
+
+  // Auto-remove notifications for orders that are no longer pending
+  useEffect(() => {
+    if (pendingNotifications.length === 0) return;
+    setPendingNotifications((prev) => 
+      prev.filter((notif) => {
+        const order = orders.find((o) => o.id === notif.orderId);
+        // If order exists and is no longer pending, filter it out
+        if (order && order.status !== 'pending') {
+          return false;
+        }
+        return true;
+      })
+    );
+  }, [orders]);
 
   // Load user's orders
   useEffect(() => {
@@ -255,14 +491,16 @@ export function AppProvider({ children }) {
       }
 
       // Якщо користувач залогінений, підставляємо дані з профілю якщо поля порожні
-      const name = customerInfo.name || currentUser?.name || "";
       const email = customerInfo.email || currentUser?.email || "";
+      const emailName = email ? email.split('@')[0] : "";
+      const name = customerInfo.name || currentUser?.name || currentUser?.displayName || emailName;
       const phone = customerInfo.phone || currentUser?.phone || "";
 
       const orderPayload = {
         items: cart.map((item) => ({
           productId: item.id,
           productName: item.name,
+          sku: item.sku || '',
           quantity: item.quantity,
           price: item.price,
           category: item.category || 'Інше',
@@ -396,6 +634,20 @@ export function AppProvider({ children }) {
     setAiConcept,
     isTtsLoading,
     setIsTtsLoading,
+
+    // Notifications
+    pendingBadge,
+    pendingNotifications,
+    soundEnabled,
+    toggleSound,
+    soundType,
+    updateSoundType,
+    pushEnabled,
+    togglePushNotifications,
+    removeNotification,
+    playSound,
+    expandedOrderId,
+    setExpandedOrderId,
 
     // Functions
     setSelectedItem,

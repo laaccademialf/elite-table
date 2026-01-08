@@ -8,11 +8,12 @@ import {
   getOrderStats,
   getOrders,
   updateOrderStatus,
+  updateOrderManagerNotes,
   deleteOrder,
   createProductsBulk,
   assignOrderToManager,
 } from '../services/firebase';
-import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown, Download, FileUp, ArrowUp, ArrowDown, UserCheck } from 'lucide-react';
+import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown, Download, FileUp, ArrowUp, ArrowDown, UserCheck, Bell } from 'lucide-react';
 import CategoryManager from '../components/CategoryManager';
 import DateRangePicker from '../components/DateRangePicker';
 import { getCategories } from '../services/categories';
@@ -42,8 +43,39 @@ const formatDateRange = (startDate, endDate) => {
   return `${start} — ${end}`;
 };
 
+// Helper to calculate rental days from date strings (DD.MM.YYYY format)
+const calculateRentalDays = (eventDate, eventEndDate) => {
+  if (!eventDate || !eventEndDate) return 1;
+  
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split('.');
+    if (parts.length !== 3) return null;
+    const [day, month, year] = parts.map(Number);
+    return new Date(year, month - 1, day);
+  };
+  
+  const startDate = parseDate(eventDate);
+  const endDate = parseDate(eventEndDate);
+  
+  if (!startDate || !endDate) return 1;
+  
+  const diffTime = Math.abs(endDate - startDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+  return Math.max(1, diffDays);
+};
+
+// Safe customer display name
+const formatCustomerName = (order) => {
+  if (!order) return 'Клієнт';
+  if (order.customerName && order.customerName.trim()) return order.customerName.trim();
+  if (order.customerEmail) return order.customerEmail.split('@')[0];
+  if (order.customerPhone) return order.customerPhone;
+  return 'Клієнт';
+};
+
 export function AdminPanel() {
-  const { adminTab, setAdminTab, currentUser } = useAppContext();
+  const { adminTab, setAdminTab, currentUser, pendingBadge, pendingNotifications, soundEnabled, toggleSound, removeNotification, soundType, updateSoundType, pushEnabled, togglePushNotifications, playSound, expandedOrderId, setExpandedOrderId: setContextExpandedOrderId } = useAppContext();
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState(null);
@@ -54,13 +86,19 @@ export function AdminPanel() {
   // Підменю для "Товари"
   const [inventorySubTab, setInventorySubTab] = useState('categories'); // 'categories' | 'products'
 
+  // Settings UI state
+  const [expandSoundType, setExpandSoundType] = useState(false);
+
   // Filters state
   const [productCategoryFilter, setProductCategoryFilter] = useState('all');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [orderManagerFilter, setOrderManagerFilter] = useState('all');
   const [orderDateFilter, setOrderDateFilter] = useState({ start: null, end: null });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [localExpandedOrderId, setLocalExpandedOrderId] = useState(null);
+  const [editingOrderNotes, setEditingOrderNotes] = useState({});
+  const [savingNotes, setSavingNotes] = useState({});
+  const [notesSaved, setNotesSaved] = useState({});
 
   // Product form state
   const [editingId, setEditingId] = useState(null);
@@ -89,6 +127,14 @@ export function AdminPanel() {
   useEffect(() => {
     getCategories().then(setCategories);
   }, []);
+
+  // Sync expanded order from context
+  useEffect(() => {
+    if (expandedOrderId) {
+      setLocalExpandedOrderId(expandedOrderId);
+      setContextExpandedOrderId(null);
+    }
+  }, [expandedOrderId, setContextExpandedOrderId]);
 
   // Load data based on tab
   useEffect(() => {
@@ -322,9 +368,19 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
     }
   };
 
-  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+  const handleUpdateOrderStatus = async (order, newStatus) => {
+    if (!order.assignedManagerId) {
+      alert('Спочатку призначте менеджера перед зміною статусу');
+      return;
+    }
+
+    if (newStatus === 'pending' && order.status !== 'pending') {
+      alert('Повернути в "Очікування" після старту роботи не можна');
+      return;
+    }
+
     try {
-      await updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(order.id, newStatus);
       loadData();
     } catch (error) {
       console.error('Error updating order:', error);
@@ -334,11 +390,39 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
   const handleAssignToMe = async (orderId) => {
     try {
       const managerName = currentUser.name || currentUser.displayName || currentUser.email || 'Менеджер';
+      
+      // Знайди сповіщення для цього замовлення
+      const notif = pendingNotifications.find((n) => n.orderId === orderId);
+      const notifId = notif?.id;
+      console.log('[AdminPanel] handleAssignToMe for order', orderId, 'notification:', notifId);
+      
       await assignOrderToManager(orderId, currentUser.uid, managerName);
+      
+      // Видали сповіщення плавно через 3 секунди
+      if (notifId) {
+        console.log('[AdminPanel] Scheduling notification removal for', notifId);
+        removeNotification(notifId, 3000);
+      }
+      
       loadData();
     } catch (error) {
       console.error('Error assigning order:', error);
       alert('Помилка при призначенні замовлення');
+    }
+  };
+
+  const handleSaveManagerNotes = async (orderId) => {
+    try {
+      setSavingNotes((prev) => ({ ...prev, [orderId]: true }));
+      const notes = editingOrderNotes[orderId] ?? '';
+      await updateOrderManagerNotes(orderId, notes);
+      setNotesSaved((prev) => ({ ...prev, [orderId]: true }));
+      await loadData();
+    } catch (error) {
+      console.error('Error saving notes:', error);
+      alert('Помилка при збереженні нотаток');
+    } finally {
+      setSavingNotes((prev) => ({ ...prev, [orderId]: false }));
     }
   };
 
@@ -361,6 +445,8 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'in_progress':
+        return 'bg-orange-100 text-orange-800 border-orange-300';
       case 'confirmed':
         return 'bg-blue-100 text-blue-800 border-blue-300';
       case 'delivered':
@@ -376,6 +462,8 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
     switch (status) {
       case 'pending':
         return 'Очікування';
+      case 'in_progress':
+        return 'В роботі';
       case 'confirmed':
         return 'Підтверджено';
       case 'delivered':
@@ -516,7 +604,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
         {/* Tabs */}
         <div className="flex gap-4 mb-8 bg-white rounded-2xl p-4 shadow-sm">
-          {['inventory', 'orders', 'analytics', 'users'].map((tab) => (
+          {['inventory', 'orders', 'analytics', 'users', 'settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setAdminTab(tab)}
@@ -530,6 +618,12 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
               {tab === 'orders' && '📦 Замовлення'}
               {tab === 'analytics' && '📊 Аналітика'}
               {tab === 'users' && '👥 Користувачі'}
+              {tab === 'settings' && '⚙️ Налаштування'}
+              {tab === 'orders' && pendingBadge > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center text-xs font-bold bg-amber-500 text-white rounded-full px-2 py-0.5">
+                  {pendingBadge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -697,97 +791,97 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                       </div>
                     ) : (
                       filteredProducts.map((product, idx) => (
-                      <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-slate-900">{product.name}</h3>
-                            {product.sku && (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-mono">
-                                {product.sku}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-slate-600 text-sm">{product.description}</p>
-                          <p className="text-slate-900 font-bold mt-2">
-                            {product.price} ₴
-                          </p>
-                          <span className="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">
-                            {product.category}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col gap-1">
-                            <button
-                              onClick={() => moveProduct(idx, -1)}
-                              disabled={idx === 0 || loading}
-                              className="p-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
-                              title="Вгору"
-                            >
-                              <ArrowUp size={16} />
-                            </button>
-                            <button
-                              onClick={() => moveProduct(idx, 1)}
-                              disabled={idx === filteredProducts.length - 1 || loading}
-                              className="p-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
-                              title="Вниз"
-                            >
-                              <ArrowDown size={16} />
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={async () => {
-                                const newQuantity = Math.max(0, product.quantity - 1);
-                                try {
-                                  await updateProduct(product.id, { quantity: newQuantity });
-                                  await loadData();
-                                } catch (error) {
-                                  console.error('Error updating quantity:', error);
-                                  alert('Помилка оновлення кількості');
-                                }
-                              }}
-                              className="w-10 h-10 flex items-center justify-center bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition text-xl"
-                            >
-                              −
-                            </button>
-                            <div className="flex flex-col items-center min-w-[60px]">
-                              <span className="text-xs text-slate-600 font-semibold">Кількість</span>
-                              <span className="text-lg font-bold text-slate-900">{product.quantity}</span>
+                        <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-slate-900">{product.name}</h3>
+                              {product.sku && (
+                                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-mono">
+                                  {product.sku}
+                                </span>
+                              )}
                             </div>
-                            <button
-                              onClick={async () => {
-                                const newQuantity = product.quantity + 1;
-                                try {
-                                  await updateProduct(product.id, { quantity: newQuantity });
-                                  await loadData();
-                                } catch (error) {
-                                  console.error('Error updating quantity:', error);
-                                  alert('Помилка оновлення кількості');
-                                }
-                              }}
-                              className="w-10 h-10 flex items-center justify-center bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition text-xl"
-                            >
-                              +
-                            </button>
+                            <p className="text-slate-600 text-sm">{product.description}</p>
+                            <p className="text-slate-900 font-bold mt-2">
+                              {product.price} ₴
+                            </p>
+                            <span className="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">
+                              {product.category}
+                            </span>
                           </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleEdit(product)}
-                              className="p-3 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200"
-                            >
-                              <Edit size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(product.id)}
-                              className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200"
-                            >
-                              <Trash2 size={18} />
-                            </button>
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col gap-1">
+                              <button
+                                onClick={() => moveProduct(idx, -1)}
+                                disabled={idx === 0 || loading}
+                                className="p-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                                title="Вгору"
+                              >
+                                <ArrowUp size={16} />
+                              </button>
+                              <button
+                                onClick={() => moveProduct(idx, 1)}
+                                disabled={idx === filteredProducts.length - 1 || loading}
+                                className="p-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                                title="Вниз"
+                              >
+                                <ArrowDown size={16} />
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={async () => {
+                                  const newQuantity = Math.max(0, product.quantity - 1);
+                                  try {
+                                    await updateProduct(product.id, { quantity: newQuantity });
+                                    await loadData();
+                                  } catch (error) {
+                                    console.error('Error updating quantity:', error);
+                                    alert('Помилка оновлення кількості');
+                                  }
+                                }}
+                                className="w-10 h-10 flex items-center justify-center bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition text-xl"
+                              >
+                                −
+                              </button>
+                              <div className="flex flex-col items-center min-w-[60px]">
+                                <span className="text-xs text-slate-600 font-semibold">Кількість</span>
+                                <span className="text-lg font-bold text-slate-900">{product.quantity}</span>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  const newQuantity = product.quantity + 1;
+                                  try {
+                                    await updateProduct(product.id, { quantity: newQuantity });
+                                    await loadData();
+                                  } catch (error) {
+                                    console.error('Error updating quantity:', error);
+                                    alert('Помилка оновлення кількості');
+                                  }
+                                }}
+                                className="w-10 h-10 flex items-center justify-center bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition text-xl"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEdit(product)}
+                                className="p-3 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200"
+                              >
+                                <Edit size={18} />
+                              </button>
+                                <button
+                                  onClick={() => handleDelete(product.id)}
+                                  className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                      ))
-                    )}
+                        ))
+                      )}
                   </div>
                 </div>
               </div>
@@ -807,7 +901,8 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   className="px-4 py-2 bg-white border-2 border-slate-300 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                 >
                   <option value="all">Всі статуси</option>
-                  <option value="pending">Очікування</option>
+                    <option value="pending">Очікування</option>
+                    <option value="in_progress">В роботі</option>
                   <option value="confirmed">Підтверджено</option>
                   <option value="delivered">Доставлено</option>
                   <option value="cancelled">Скасовано</option>
@@ -859,7 +954,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                 <div key={order.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
                   {/* Compacted Order Header */}
                   <button
-                    onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                    onClick={() => setLocalExpandedOrderId(localExpandedOrderId === order.id ? null : order.id)}
                     className="w-full p-6 flex justify-between items-center hover:bg-slate-50 transition text-left"
                   >
                     <div className="flex-1 flex items-center gap-6">
@@ -868,7 +963,10 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                           Замовлення #{order.id?.slice(0, 8)}
                         </h3>
                         <p className="text-slate-600 text-sm">
-                          {order.customerName} • {formatDateRange(order.eventDate, order.eventEndDate)}
+                          {formatCustomerName(order)} • {formatDateRange(order.eventDate, order.eventEndDate)}
+                        </p>
+                        <p className="text-slate-500 text-xs">
+                          {order.customerPhone || order.customerEmail || '—'}
                         </p>
                       </div>
                       <div className="text-right">
@@ -877,7 +975,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                     </div>
                     <ChevronDown 
                       size={20} 
-                      className={`ml-4 transition-transform ${expandedOrderId === order.id ? 'rotate-180' : ''}`}
+                      className={`ml-4 transition-transform ${localExpandedOrderId === order.id ? 'rotate-180' : ''}`}
                     />
                   </button>
 
@@ -904,14 +1002,17 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                     
                     <select
                       value={order.status}
+                      disabled={!order.assignedManagerId}
+                      title={!order.assignedManagerId ? 'Призначте менеджера перед зміною статусу' : ''}
                       onChange={(e) => {
                         e.stopPropagation();
-                        handleUpdateOrderStatus(order.id, e.target.value);
+                        handleUpdateOrderStatus(order, e.target.value);
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      className={`px-4 py-2 border-2 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all text-sm ${getStatusColor(order.status)}`}
+                      className={`px-4 py-2 border-2 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all text-sm ${getStatusColor(order.status)} ${!order.assignedManagerId ? 'opacity-60 cursor-not-allowed' : ''}`}
                     >
-                      <option value="pending">Очікування</option>
+                      <option value="pending" disabled={order.status !== 'pending'}>Очікування</option>
+                      <option value="in_progress">В роботі</option>
                       <option value="confirmed">Підтверджено</option>
                       <option value="delivered">Доставлено</option>
                       <option value="cancelled">Скасовано</option>
@@ -929,18 +1030,18 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   </div>
 
                   {/* Expanded Details */}
-                  {expandedOrderId === order.id && (
+                  {localExpandedOrderId === order.id && (
                     <div className="px-6 pb-6 space-y-4 border-t border-slate-100 pt-4">
                       <div className="grid md:grid-cols-2 gap-4">
                         <div>
                           <p className="text-slate-600 text-sm">
-                            <span className="font-semibold">Клієнт:</span> {order.customerName}
+                            <span className="font-semibold">Клієнт:</span> {formatCustomerName(order)}
                           </p>
                           <p className="text-slate-600 text-sm">
                             <span className="font-semibold">Email:</span> {order.customerEmail}
                           </p>
                           <p className="text-slate-600 text-sm">
-                            <span className="font-semibold">Телефон:</span> {order.customerPhone}
+                            <span className="font-semibold">Телефон:</span> {order.customerPhone || '—'}
                           </p>
                         </div>
                         <div>
@@ -954,14 +1055,67 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                       </div>
 
                       <div className="bg-slate-50 rounded-xl p-4">
-                        <h4 className="font-semibold text-slate-900 mb-2 text-sm">Товари:</h4>
-                        <ul className="space-y-1 text-slate-600 text-sm">
-                          {order.items?.map((item, idx) => (
-                            <li key={idx}>
-                              • {item.productName} × {item.quantity} ({item.price} ₴)
-                            </li>
-                          ))}
-                        </ul>
+                        <h4 className="font-semibold text-slate-900 mb-3 text-sm">Товари (оренда на {calculateRentalDays(order.eventDate, order.eventEndDate)} днів):</h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-slate-200">
+                                <th className="text-left py-2 px-2 font-semibold text-slate-700 w-16">Артикул</th>
+                                <th className="text-left py-2 px-2 font-semibold text-slate-700">Назва</th>
+                                <th className="text-center py-2 px-2 font-semibold text-slate-700 w-12">Кіл-сть</th>
+                                <th className="text-right py-2 px-2 font-semibold text-slate-700 w-20">Ціна/день</th>
+                                <th className="text-center py-2 px-2 font-semibold text-slate-700 w-10">Дні</th>
+                                <th className="text-right py-2 px-2 font-semibold text-slate-700 w-20">Сума</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {order.items?.map((item, idx) => {
+                                const rentalDays = calculateRentalDays(order.eventDate, order.eventEndDate);
+                                const itemTotal = item.price * item.quantity * rentalDays;
+                                return (
+                                  <tr key={idx} className="border-b border-slate-100 hover:bg-slate-100 transition">
+                                    <td className="py-2 px-2 text-slate-600 text-xs font-mono">{item.sku || '—'}</td>
+                                    <td className="py-2 px-2 text-slate-900">{item.productName}</td>
+                                    <td className="py-2 px-2 text-center text-slate-600">{item.quantity}</td>
+                                    <td className="py-2 px-2 text-right text-slate-600">{item.price} ₴</td>
+                                    <td className="py-2 px-2 text-center text-slate-600 font-semibold">{rentalDays}</td>
+                                    <td className="py-2 px-2 text-right font-semibold text-slate-900">{itemTotal.toFixed(0)} ₴</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Manager Notes */}
+                      <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-slate-900 text-sm">📝 Приватні нотатки менеджера</h4>
+                          {notesSaved[order.id] && !savingNotes[order.id] && (
+                            <span className="text-xs font-semibold text-emerald-600">Збережено</span>
+                          )}
+                        </div>
+                        <textarea
+                          value={editingOrderNotes[order.id] ?? order.managerNotes ?? ''}
+                          onChange={(e) => {
+                            setNotesSaved((prev) => ({ ...prev, [order.id]: false }));
+                            setEditingOrderNotes((prev) => ({ ...prev, [order.id]: e.target.value }));
+                          }}
+                          placeholder="Додайте приватні замітки (видимі тільки для менеджерів)..."
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-[#C5A059] focus:border-[#C5A059] transition"
+                          rows="3"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSaveManagerNotes(order.id);
+                          }}
+                          disabled={savingNotes[order.id]}
+                          className="mt-3 px-4 py-2 bg-[#C5A059] text-white rounded-xl font-semibold hover:bg-[#b2904f] transition-colors text-sm disabled:opacity-60"
+                        >
+                          {savingNotes[order.id] ? 'Збереження...' : 'Зберегти нотатки'}
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1471,10 +1625,15 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   (stats.orders || []).forEach(o => {
                     const key = o.userId || o.customerEmail || o.customerPhone;
                     if (!key) return;
+                    const displayName = (o.customerName && o.customerName.trim())
+                      || (o.customerEmail ? o.customerEmail.split('@')[0] : '')
+                      || o.customerPhone
+                      || 'Клієнт';
+
                     if (!customerMap[key]) {
                       customerMap[key] = {
                         id: key,
-                        name: o.customerName || 'Клієнт',
+                        name: displayName,
                         email: o.customerEmail || '',
                         phone: o.customerPhone || '',
                         orders: 0,
@@ -1567,6 +1726,98 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                 })()}
               </>
             )}
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {adminTab === 'settings' && (
+          <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
+            <h2 className="text-xl font-bold text-slate-900 mb-6">Налаштування сповіщень</h2>
+            
+            {/* Sound Toggle */}
+            <div className="flex items-center justify-between border border-slate-100 rounded-xl p-4 mb-4">
+              <div>
+                <p className="font-semibold text-slate-900">Звук нових замовлень</p>
+                <p className="text-sm text-slate-500">Дзвінок поки вкладка відкрита</p>
+              </div>
+              <button
+                onClick={toggleSound}
+                className={`w-14 h-8 rounded-full p-1 flex items-center transition ${soundEnabled ? 'bg-slate-900' : 'bg-slate-300'}`}
+                aria-label="Toggle sound"
+              >
+                <span className={`bg-white w-6 h-6 rounded-full shadow transform transition ${soundEnabled ? 'translate-x-6' : ''}`}></span>
+              </button>
+            </div>
+
+            {/* Sound Type Selection (Collapsible) */}
+            <button
+              onClick={() => setExpandSoundType(!expandSoundType)}
+              className="w-full flex items-center justify-between border border-slate-100 rounded-xl p-4 mb-4 hover:bg-slate-50 transition"
+            >
+              <div className="text-left">
+                <p className="font-semibold text-slate-900">Тип звуку</p>
+                <p className="text-sm text-slate-500">
+                  {soundType === 'bell' && '🔔 Дзвінок (м\'який)'}
+                  {soundType === 'alarm' && '🚨 Сигнал (гучний)'}
+                  {soundType === 'chime' && '🎵 Мелодія (двотональна)'}
+                </p>
+              </div>
+              <ChevronDown 
+                size={20} 
+                className={`text-slate-600 transition-transform ${expandSoundType ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {expandSoundType && (
+              <div className="border border-slate-100 rounded-xl p-4 mb-4 bg-slate-50 space-y-2">
+                {[
+                  { value: 'bell', label: '🔔 Дзвінок (м\'який)', desc: 'Приємний дзвін' },
+                  { value: 'alarm', label: '🚨 Сигнал (гучний)', desc: 'Гучний тривожний звук' },
+                  { value: 'chime', label: '🎵 Мелодія (двотональна)', desc: 'Музичні ноти' },
+                ].map((option) => (
+                  <label key={option.value} className="flex items-center gap-3 p-3 rounded-lg hover:bg-white transition cursor-pointer">
+                    <input
+                      type="radio"
+                      name="soundType"
+                      value={option.value}
+                      checked={soundType === option.value}
+                      onChange={(e) => updateSoundType(e.target.value)}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900">{option.label}</p>
+                      <p className="text-xs text-slate-500">{option.desc}</p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        playSound(option.value);
+                      }}
+                      className="px-3 py-1 bg-slate-900 text-white rounded text-xs font-semibold hover:bg-slate-800 transition"
+                    >
+                      Прослухай
+                    </button>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {/* Push Notifications */}
+            <div className="flex items-center justify-between border border-slate-100 rounded-xl p-4 mb-4">
+              <div>
+                <p className="font-semibold text-slate-900">Push-сповіщення браузера</p>
+                <p className="text-sm text-slate-500">Отримувати коли вкладка закрита</p>
+              </div>
+              <button
+                onClick={togglePushNotifications}
+                className={`w-14 h-8 rounded-full p-1 flex items-center transition ${pushEnabled ? 'bg-slate-900' : 'bg-slate-300'}`}
+                aria-label="Toggle push notifications"
+              >
+                <span className={`bg-white w-6 h-6 rounded-full shadow transform transition ${pushEnabled ? 'translate-x-6' : ''}`}></span>
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500">💡 In-app сповіщення показуються внизу справа панелі. Push-сповіщення приходять на пристрій, навіть коли браузер закритий (потребує дозвіл).</p>
           </div>
         )}
 

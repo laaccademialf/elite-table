@@ -242,6 +242,8 @@ const UsersView = () => {
                                       className={`ml-2 px-2 py-1 rounded text-xs font-semibold text-white ${
                                         order.status === 'pending'
                                           ? 'bg-yellow-500'
+                                          : order.status === 'in_progress'
+                                          ? 'bg-orange-500'
                                           : order.status === 'confirmed'
                                           ? 'bg-green-500'
                                           : order.status === 'delivered'
@@ -251,6 +253,8 @@ const UsersView = () => {
                                     >
                                       {order.status === 'pending'
                                         ? 'Очікує'
+                                        : order.status === 'in_progress'
+                                        ? 'В роботі'
                                         : order.status === 'confirmed'
                                         ? 'Підтверджено'
                                         : order.status === 'delivered'
