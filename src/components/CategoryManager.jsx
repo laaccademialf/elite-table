@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '../services/categories';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 
 export default function CategoryManager({ onCategoryChange }) {
   const [categories, setCategories] = useState([]);
@@ -67,6 +68,29 @@ export default function CategoryManager({ onCategoryChange }) {
     await loadCategories();
   };
 
+  const moveCategory = async (index, direction) => {
+    // direction: -1 up, +1 down
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= categories.length) return;
+    const current = categories[index];
+    const target = categories[targetIndex];
+
+    // Призначаємо fallback order, якщо його немає
+    const currentOrder = current.order ?? index + 1;
+    const targetOrder = target.order ?? targetIndex + 1;
+
+    setLoading(true);
+    try {
+      await Promise.all([
+        updateCategory(current.id, { ...current, order: targetOrder }),
+        updateCategory(target.id, { ...target, order: currentOrder }),
+      ]);
+      await loadCategories();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
       <h3 className="text-xl font-bold mb-4">Категорії товарів</h3>
@@ -114,7 +138,7 @@ export default function CategoryManager({ onCategoryChange }) {
       </form>
       {loading ? <p>Завантаження...</p> : (
         <ul className="space-y-2">
-          {categories.map(cat => (
+          {categories.map((cat, idx) => (
             <li key={cat.id} className="flex items-center gap-3">
               {cat.icon && (
                 <img 
@@ -124,10 +148,30 @@ export default function CategoryManager({ onCategoryChange }) {
                   onError={(e) => e.target.style.display = 'none'} 
                 />
               )}
-              <span className="font-semibold text-slate-900">{cat.name}</span>
-              <span className="text-slate-500 text-sm">{cat.description}</span>
-              <button onClick={() => handleEdit(cat)} className="text-blue-600 hover:underline ml-2">Редагувати</button>
-              <button onClick={() => handleDelete(cat.id)} className="text-red-600 hover:underline">Видалити</button>
+              <div className="flex flex-col">
+                <span className="font-semibold text-slate-900">{cat.name}</span>
+                <span className="text-slate-500 text-sm">{cat.description}</span>
+              </div>
+              <div className="flex items-center gap-1 ml-auto">
+                <button
+                  onClick={() => moveCategory(idx, -1)}
+                  disabled={idx === 0 || loading}
+                  className="p-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                  title="Вгору"
+                >
+                  <ArrowUp size={16} />
+                </button>
+                <button
+                  onClick={() => moveCategory(idx, 1)}
+                  disabled={idx === categories.length - 1 || loading}
+                  className="p-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                  title="Вниз"
+                >
+                  <ArrowDown size={16} />
+                </button>
+                <button onClick={() => handleEdit(cat)} className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg font-semibold">Редагувати</button>
+                <button onClick={() => handleDelete(cat.id)} className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg font-semibold">Видалити</button>
+              </div>
             </li>
           ))}
         </ul>

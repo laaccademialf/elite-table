@@ -1,4 +1,4 @@
-import { collection, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useState, useEffect, useContext } from "react";
 import { AppContext } from "./AppContextDefinition";
@@ -17,16 +17,19 @@ export function AppProvider({ children }) {
     // Live categories sync
     useEffect(() => {
       try {
+        const catQuery = query(collection(db, 'categories'), orderBy('order', 'asc'));
         const unsubscribe = onSnapshot(
-          collection(db, 'categories'),
+          catQuery,
           (snapshot) => {
             const fetchedCategories = snapshot.docs.map((doc) => ({
               id: doc.id,
               ...doc.data(),
             }));
-            console.log('[AppProvider] Firestore categories:', fetchedCategories);
-            setCategories(fetchedCategories);
-            localStorage.setItem('elite_table_categories', JSON.stringify(fetchedCategories));
+            // Сортуємо додатково на клієнті, якщо деякі записи без order
+            const sorted = fetchedCategories.sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
+            console.log('[AppProvider] Firestore categories:', sorted);
+            setCategories(sorted);
+            localStorage.setItem('elite_table_categories', JSON.stringify(sorted));
           },
           (error) => {
             console.error('[AppProvider] Error loading categories:', error);
@@ -42,15 +45,17 @@ export function AppProvider({ children }) {
               }
             }
             // Якщо помилка, спробуємо getDocs
-            getDocs(collection(db, 'categories'))
+            const catQueryFallback = query(collection(db, 'categories'), orderBy('order', 'asc'));
+            getDocs(catQueryFallback)
               .then((snapshot) => {
                 const fetchedCategories = snapshot.docs.map((doc) => ({
                   id: doc.id,
                   ...doc.data(),
                 }));
-                console.log('[AppProvider] Categories loaded via getDocs:', fetchedCategories);
-                setCategories(fetchedCategories);
-                localStorage.setItem('elite_table_categories', JSON.stringify(fetchedCategories));
+                const sorted = fetchedCategories.sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
+                console.log('[AppProvider] Categories loaded via getDocs:', sorted);
+                setCategories(sorted);
+                localStorage.setItem('elite_table_categories', JSON.stringify(sorted));
               })
               .catch((err) => {
                 console.error('[AppProvider] Failed to load categories:', err);
