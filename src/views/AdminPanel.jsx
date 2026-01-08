@@ -327,7 +327,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
   const handleAssignToMe = async (orderId) => {
     try {
-      const managerName = currentUser.displayName || currentUser.email || 'Менеджер';
+      const managerName = currentUser.name || currentUser.displayName || currentUser.email || 'Менеджер';
       await assignOrderToManager(orderId, currentUser.uid, managerName);
       loadData();
     } catch (error) {
