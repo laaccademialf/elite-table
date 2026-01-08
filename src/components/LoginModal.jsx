@@ -8,7 +8,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('customer');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +21,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
       if (isLogin) {
         userCredential = await loginUser(email, password);
       } else {
-        userCredential = await registerUser(email, password, { name, phone, role });
+        userCredential = await registerUser(email, password, { name, phone });
       }
       // Підтягуємо профіль одразу після логіну
       const uid = userCredential?.user?.uid || (userCredential && userCredential.uid);
@@ -100,14 +99,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                   className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
                   required
                 />
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-gray-900 font-semibold"
-                >
-                  <option value="customer">Клієнт</option>
-                  <option value="manager">Менеджер</option>
-                </select>
               </>
             )}
 
