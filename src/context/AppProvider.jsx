@@ -217,7 +217,7 @@ export function AppProvider({ children }) {
     setCart((prev) => prev.map((c) => (c.id === id ? { ...c, quantity: q } : c)));
   };
 
-  const handleOrderSubmit = async (e) => {
+  const handleOrderSubmit = async (e, autoRegUserId = null) => {
     e.preventDefault();
 
     // Якщо користувач не залогінений, дозволяємо оформлення як гість
@@ -271,8 +271,9 @@ export function AppProvider({ children }) {
         address: customerInfo.address,
         notes: customerInfo.notes || '',
       };
-      if (currentUser && currentUser.uid) {
-        orderPayload.userId = currentUser.uid;
+      // Передаємо userId: або з контексту, або з авто-реєстрації (мобільний)
+      if ((currentUser && currentUser.uid) || autoRegUserId) {
+        orderPayload.userId = autoRegUserId || currentUser.uid;
       }
 
       const orderId = await createOrder(orderPayload);
@@ -283,9 +284,10 @@ export function AppProvider({ children }) {
       setGlobalDates({ start: null, end: null });
 
       // Якщо залогінений — оновлюємо currentUser і замовлення, одразу переводимо на orders
-      if (currentUser && currentUser.uid && typeof refreshUser === 'function') {
+      const userIdForFetch = autoRegUserId || (currentUser && currentUser.uid);
+      if (userIdForFetch && typeof refreshUser === 'function') {
         await refreshUser();
-        const updatedOrders = await getOrders({ userId: currentUser.uid });
+        const updatedOrders = await getOrders({ userId: userIdForFetch });
         setOrders(updatedOrders);
         setView("orders");
       } else {

@@ -85,9 +85,9 @@ export const CheckoutView = () => {
           await new Promise(resolve => setTimeout(resolve, 500));
           await refreshUser();
         }
-        // Чекаємо оновлення стану перед оформленням
+        // Чекаємо оновлення стану перед оформленням, передаємо userId з авто-реєстрації
         setTimeout(async () => {
-          await handleOrderSubmit(e);
+          await handleOrderSubmit(e, result.uid);
         }, 100);
       } catch (error) {
         setAutoRegError(error.message || "Помилка реєстрації. Спробуйте ще раз.");
