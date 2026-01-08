@@ -1249,12 +1249,12 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   const orderSeenPerProduct = {};
                   (stats.orders || []).forEach(o => {
                     (o.items || []).forEach(item => {
-                      const pid = item.productId;
+                      const pid = item.productId || item.productName || item.name;
                       if (!pid) return;
                       if (!productAgg[pid]) {
                         productAgg[pid] = {
-                          productId: pid,
-                          name: item.productName || 'Товар',
+                          productId: item.productId || null,
+                          name: item.productName || item.name || 'Товар',
                           category: item.category || 'Інше',
                           revenue: 0,
                           quantity: 0,
@@ -1277,7 +1277,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                     productMap[p.id] = p;
                   });
                   const rows = Object.values(productAgg).map(r => {
-                    const p = productMap[r.productId] || {};
+                    const p = r.productId ? (productMap[r.productId] || {}) : {};
                     const avgPrice = r.quantity > 0 ? r.revenue / r.quantity : 0;
                     return {
                       ...r,
