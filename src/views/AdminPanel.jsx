@@ -1294,9 +1294,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
             {analyticsSubTab === 'products' && (
               <>
-                {console.log('RENDERING PRODUCTS TAB')}
                 {(() => {
-                  console.log('INSIDE PRODUCTS IIFE');
                   // Агрегація по товарах з orders
                   const productAgg = {};
                   const orderSeenPerProduct = {};
@@ -1370,10 +1368,6 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   const totalQty = rows.reduce((s,r)=>s+r.quantity,0);
                   const avgPriceSold = totalQty > 0 ? (totalRev / totalQty) : 0;
 
-                  console.log('DEBUG: stats.orders.length =', stats.orders ? stats.orders.length : 'NO ORDERS');
-                  console.log('DEBUG: productAgg keys =', Object.keys(productAgg).length);
-                  console.log('DEBUG: rows.length =', rows.length);
-                  console.log('DEBUG: rows sample =', rows.slice(0, 3));
                   console.log('DEBUG: productsWithSales =', productsWithSales);
                   console.log('DEBUG: zeroSales =', zeroSales);
                   console.log('DEBUG: totalQty =', totalQty);
