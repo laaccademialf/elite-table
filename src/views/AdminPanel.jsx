@@ -1317,6 +1317,10 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   const totalQty = rows.reduce((s,r)=>s+r.quantity,0);
                   const avgPriceSold = totalQty > 0 ? (totalRev / totalQty) : 0;
 
+                  console.log('DEBUG: productsWithSales =', productsWithSales);
+                  console.log('DEBUG: zeroSales =', zeroSales);
+                  console.log('DEBUG: totalQty =', totalQty);
+
                   return (
                     <>
                       {/* Metrics */}
