@@ -218,6 +218,43 @@ export const deleteProduct = async (productId) => {
   }
 };
 
+export const createProductsBulk = async (products) => {
+  try {
+    const results = {
+      success: [],
+      errors: []
+    };
+
+    for (const product of products) {
+      try {
+        const productData = {
+          name: product.name,
+          description: product.description || '',
+          price: product.price,
+          quantity: product.quantity,
+          category: product.category || '',
+          imageUrl: product.imageUrl || '',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        };
+
+        const docRef = await addDoc(collection(db, 'products'), productData);
+        results.success.push({ ...productData, id: docRef.id });
+      } catch (error) {
+        results.errors.push({ 
+          product: product.name, 
+          error: error.message 
+        });
+      }
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Error creating products in bulk:', error);
+    throw error;
+  }
+};
+
 // ==================== ORDERS (ЗАМОВЛЕННЯ) ====================
 
 export const deleteOrder = async (orderId) => {

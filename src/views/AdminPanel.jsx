@@ -9,13 +9,15 @@ import {
   getOrders,
   updateOrderStatus,
   deleteOrder,
+  createProductsBulk,
 } from '../services/firebase';
-import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown } from 'lucide-react';
+import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown, Download, FileUp } from 'lucide-react';
 import CategoryManager from '../components/CategoryManager';
 import DateRangePicker from '../components/DateRangePicker';
 import { getCategories } from '../services/categories';
 import { CustomCalendar } from '../components/CustomCalendar';
 import UsersView from './UserManagement';
+import { exportProductsToExcel, downloadExcelTemplate, importProductsFromExcel } from '../utils/excelUtils';
 
 // Helper to format date object or string to DD.MM.YYYY
 const formatDate = (date) => {
@@ -67,6 +69,10 @@ export function AdminPanel() {
     category: '',
     image: '',
   });
+
+  // Import/Export state
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
 
   // Load categories on mount
   useEffect(() => {
@@ -182,6 +188,77 @@ export function AdminPanel() {
       category: 'plates',
       image: '',
     });
+  };
+
+  const handleExportProducts = () => {
+    try {
+      exportProductsToExcel(filteredProducts);
+    } catch (error) {
+      console.error('Error exporting products:', error);
+      alert('Помилка експорту товарів');
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    try {
+      downloadExcelTemplate();
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      alert('Помилка завантаження шаблону');
+    }
+  };
+
+  const handleImportProducts = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImportLoading(true);
+    setImportResult(null);
+
+    try {
+      // Імпортуємо дані з Excel
+      const productsData = await importProductsFromExcel(file);
+      
+      if (productsData.length === 0) {
+        alert('Файл не містить валідних товарів');
+        return;
+      }
+
+      // Підтвердження від користувача
+      const confirmed = window.confirm(
+        `Знайдено ${productsData.length} товарів для імпорту. Продовжити?`
+      );
+      
+      if (!confirmed) {
+        setImportLoading(false);
+        return;
+      }
+
+      // Створюємо товари масово
+      const result = await createProductsBulk(productsData);
+      
+      setImportResult(result);
+      
+      // Показуємо результат
+      const message = `
+Імпорт завершено!
+Успішно: ${result.success.length}
+Помилки: ${result.errors.length}
+${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.errors.map(e => `- ${e.product}: ${e.error}`).join('\n') : ''}
+      `.trim();
+      
+      alert(message);
+      
+      // Оновлюємо список товарів
+      await loadData();
+    } catch (error) {
+      console.error('Error importing products:', error);
+      alert('Помилка імпорту: ' + error.message);
+    } finally {
+      setImportLoading(false);
+      // Скидаємо input, щоб можна було імпортувати той самий файл знову
+      event.target.value = '';
+    }
   };
 
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
@@ -479,6 +556,42 @@ export function AdminPanel() {
                 </div>
                 {/* Products List */}
                 <div className="lg:col-span-2">
+                  {/* Import/Export Controls */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-6 border border-blue-200">
+                    <h3 className="text-sm font-bold text-slate-900 mb-3">Імпорт / Експорт товарів</h3>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={handleDownloadTemplate}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-500 text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition shadow-sm"
+                      >
+                        <Download size={18} />
+                        Завантажити шаблон
+                      </button>
+                      <label className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition cursor-pointer shadow-sm">
+                        <FileUp size={18} />
+                        {importLoading ? 'Імпорт...' : 'Імпортувати Excel'}
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleImportProducts}
+                          disabled={importLoading}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        onClick={handleExportProducts}
+                        disabled={filteredProducts.length === 0}
+                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-xl font-semibold hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+                      >
+                        <Upload size={18} />
+                        Експортувати в Excel
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-3">
+                      💡 Завантажте шаблон, заповніть його даними та імпортуйте для швидкого додавання товарів
+                    </p>
+                  </div>
+
                   <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-slate-900">Товари ({filteredProducts.length})</h2>
                     <select
