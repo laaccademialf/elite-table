@@ -82,7 +82,8 @@ export function AdminPanel() {
   const [analyticsDateRange, setAnalyticsDateRange] = useState({ start: null, end: null });
   const [showAnalyticsDatePicker, setShowAnalyticsDatePicker] = useState(false);
   const [analyticsManagerFilter, setAnalyticsManagerFilter] = useState('all');
-  const [analyticsSubTab, setAnalyticsSubTab] = useState('sales'); // 'sales' | 'customers'
+  const [analyticsSubTab, setAnalyticsSubTab] = useState('sales'); // 'sales' | 'customers' | 'products'
+  const [analyticsProducts, setAnalyticsProducts] = useState([]);
 
   // Load categories on mount
   useEffect(() => {
@@ -121,8 +122,12 @@ export function AdminPanel() {
           dateRange = { startDate: Timestamp.fromDate(startDate), endDate: Timestamp.fromDate(endDate) };
         }
         const managerId = analyticsManagerFilter === 'all' ? null : analyticsManagerFilter;
-        const data = await getOrderStats(dateRange, managerId);
+        const [data, prods] = await Promise.all([
+          getOrderStats(dateRange, managerId),
+          getProducts(),
+        ]);
         setStats(data);
+        setAnalyticsProducts(prods || []);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -1031,6 +1036,12 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
               >
                 Користувачі
               </button>
+              <button
+                onClick={() => setAnalyticsSubTab('products')}
+                className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${analyticsSubTab === 'products' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              >
+                Товари
+              </button>
             </div>
 
             {analyticsSubTab === 'sales' && (
@@ -1230,6 +1241,157 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
               </div>
             )}
 
+            {analyticsSubTab === 'products' && (
+              <>
+                {(() => {
+                  // Агрегація по товарах з orders
+                  const productAgg = {};
+                  const orderSeenPerProduct = {};
+                  (stats.orders || []).forEach(o => {
+                    (o.items || []).forEach(item => {
+                      const pid = item.productId;
+                      if (!pid) return;
+                      if (!productAgg[pid]) {
+                        productAgg[pid] = {
+                          productId: pid,
+                          name: item.productName || 'Товар',
+                          category: item.category || 'Інше',
+                          revenue: 0,
+                          quantity: 0,
+                          orders: 0,
+                        };
+                        orderSeenPerProduct[pid] = new Set();
+                      }
+                      productAgg[pid].revenue += (item.price || 0) * (item.quantity || 0);
+                      productAgg[pid].quantity += (item.quantity || 0);
+                      if (!orderSeenPerProduct[pid].has(o.id)) {
+                        orderSeenPerProduct[pid].add(o.id);
+                        productAgg[pid].orders += 1;
+                      }
+                    });
+                  });
+
+                  // Збагачуємо даними товарів (sku, залишок)
+                  const productMap = {};
+                  (analyticsProducts || []).forEach(p => {
+                    productMap[p.id] = p;
+                  });
+                  const rows = Object.values(productAgg).map(r => {
+                    const p = productMap[r.productId] || {};
+                    const avgPrice = r.quantity > 0 ? r.revenue / r.quantity : 0;
+                    return {
+                      ...r,
+                      sku: p.sku || '',
+                      stock: p.quantity ?? '-',
+                      avgPrice,
+                    };
+                  }).sort((a,b) => b.revenue - a.revenue);
+
+                  // ABC класифікація по виручці
+                  const totalRev = rows.reduce((s,r)=>s+r.revenue,0) || 1;
+                  let cumulative = 0;
+                  rows.forEach(r => {
+                    cumulative += r.revenue;
+                    const share = (cumulative / totalRev) * 100;
+                    r.abc = share <= 80 ? 'A' : share <= 95 ? 'B' : 'C';
+                  });
+
+                  // Метрики
+                  const productsWithSales = rows.length;
+                  const zeroSales = (analyticsProducts || []).filter(p => !productAgg[p.id]);
+                  const totalQty = rows.reduce((s,r)=>s+r.quantity,0);
+                  const avgPriceSold = totalQty > 0 ? (totalRev / totalQty) : 0;
+
+                  return (
+                    <>
+                      {/* Metrics */}
+                      <div className="grid md:grid-cols-4 gap-4">
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 shadow-sm text-white">
+                          <h3 className="text-blue-100 font-semibold mb-2 text-sm">Товарів з продажами</h3>
+                          <p className="text-3xl font-bold">{productsWithSales}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 shadow-sm text-white">
+                          <h3 className="text-red-100 font-semibold mb-2 text-sm">Без продажів</h3>
+                          <p className="text-3xl font-bold">{zeroSales.length}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 shadow-sm text-white">
+                          <h3 className="text-purple-100 font-semibold mb-2 text-sm">Продано одиниць</h3>
+                          <p className="text-3xl font-bold">{totalQty}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 shadow-sm text-white">
+                          <h3 className="text-orange-100 font-semibold mb-2 text-sm">Сер. ціна продажу</h3>
+                          <p className="text-3xl font-bold">{avgPriceSold.toFixed(0)} ₴</p>
+                        </div>
+                      </div>
+
+                      {/* Product Performance Table */}
+                      <div className="bg-white rounded-2xl p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-xl font-bold text-slate-900">Ефективність товарів</h3>
+                          <p className="text-sm text-slate-500">Класи ABC за кумулятивною виручкою</p>
+                        </div>
+                        {rows.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-slate-200">
+                                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">SKU</th>
+                                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Товар</th>
+                                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Категорія</th>
+                                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">К-ть</th>
+                                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Замовлень</th>
+                                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Виручка</th>
+                                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Сер. ціна</th>
+                                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Залишок</th>
+                                  <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">ABC</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {rows.slice(0, 50).map(r => (
+                                  <tr key={r.productId} className="border-b border-slate-100 hover:bg-slate-50">
+                                    <td className="py-3 px-4 text-sm text-slate-600">{r.sku || '—'}</td>
+                                    <td className="py-3 px-4 text-sm font-medium text-slate-900">{r.name}</td>
+                                    <td className="py-3 px-4 text-sm text-slate-600">{r.category}</td>
+                                    <td className="py-3 px-4 text-sm text-right text-slate-600">{r.quantity}</td>
+                                    <td className="py-3 px-4 text-sm text-right text-slate-600">{r.orders}</td>
+                                    <td className="py-3 px-4 text-sm text-right font-bold text-slate-900">{r.revenue.toFixed(0)} ₴</td>
+                                    <td className="py-3 px-4 text-sm text-right text-slate-600">{r.avgPrice.toFixed(0)} ₴</td>
+                                    <td className="py-3 px-4 text-sm text-right text-slate-600">{r.stock}</td>
+                                    <td className="py-3 px-4 text-sm text-center">
+                                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                                        r.abc === 'A' ? 'bg-green-100 text-green-700' : r.abc === 'B' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-700'
+                                      }`}>{r.abc}</span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-slate-500 text-center py-8">Немає даних</p>
+                        )}
+                      </div>
+
+                      {/* Zero Sales Products */}
+                      {zeroSales.length > 0 && (
+                        <div className="bg-white rounded-2xl p-6 shadow-sm">
+                          <h3 className="text-xl font-bold text-slate-900 mb-4">Товари без продажів</h3>
+                          <div className="grid md:grid-cols-3 gap-3">
+                            {zeroSales.slice(0, 18).map(p => (
+                              <div key={p.id} className="bg-slate-50 rounded-xl p-4">
+                                <div className="text-sm font-semibold text-slate-900">{p.name}</div>
+                                <div className="text-xs text-slate-600">SKU: {p.sku || '—'} • Категорія: {p.category || '—'}</div>
+                                <div className="text-xs text-slate-600 mt-1">Залишок: {p.quantity ?? '-'}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </>
+            )}
             {/* Manager Performance */}
             {stats.managerStats && stats.managerStats.length > 0 && (
               <div className="bg-white rounded-2xl p-6 shadow-sm">
