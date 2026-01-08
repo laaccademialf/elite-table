@@ -1245,7 +1245,9 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
             {analyticsSubTab === 'products' && (
               <>
+                {console.log('RENDERING PRODUCTS TAB')}
                 {(() => {
+                  console.log('INSIDE PRODUCTS IIFE');
                   // Агрегація по товарах з orders
                   const productAgg = {};
                   const orderSeenPerProduct = {};
