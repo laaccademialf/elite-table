@@ -141,6 +141,12 @@ export const registerUserWithPhone = async (phoneNumber, name = '') => {
 
 export const addProduct = async (productData) => {
   try {
+    // Визначаємо наступний order
+    const q = query(collection(db, 'products'), orderBy('order', 'desc'), limit(1));
+    const snapshot = await getDocs(q);
+    const maxOrder = snapshot.docs.length > 0 ? (snapshot.docs[0].data().order ?? 0) : 0;
+    const nextOrder = maxOrder + 1;
+
     const docRef = await addDoc(collection(db, 'products'), {
       sku: productData.sku || '',
       name: productData.name,
@@ -149,6 +155,7 @@ export const addProduct = async (productData) => {
       quantity: productData.quantity,
       category: productData.category, // 'plates', 'glasses', 'cutlery', 'textiles', etc.
       image: productData.image || '',
+      order: productData.order ?? nextOrder,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
@@ -168,15 +175,21 @@ export const getProducts = async (filters = {}) => {
       constraints.push(where('category', '==', filters.category));
     }
 
+    // Завжди сортуємо за order
+    constraints.push(orderBy('order', 'asc'));
+
     if (constraints.length > 0) {
       q = query(q, ...constraints);
     }
 
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
+    const products = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+    
+    // Додатково сортуємо на клієнті для товарів без order
+    return products.sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
   } catch (error) {
     console.error('Error fetching products:', error);
     throw error;

@@ -11,7 +11,7 @@ import {
   deleteOrder,
   createProductsBulk,
 } from '../services/firebase';
-import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown, Download, FileUp } from 'lucide-react';
+import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown, Download, FileUp, ArrowUp, ArrowDown } from 'lucide-react';
 import CategoryManager from '../components/CategoryManager';
 import DateRangePicker from '../components/DateRangePicker';
 import { getCategories } from '../services/categories';
@@ -194,6 +194,29 @@ export function AdminPanel() {
       category: 'plates',
       image: '',
     });
+  };
+
+  const moveProduct = async (index, direction) => {
+    // direction: -1 up, +1 down
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= filteredProducts.length) return;
+    const current = filteredProducts[index];
+    const target = filteredProducts[targetIndex];
+
+    // Призначаємо fallback order, якщо його немає
+    const currentOrder = current.order ?? index + 1;
+    const targetOrder = target.order ?? targetIndex + 1;
+
+    setLoading(true);
+    try {
+      await Promise.all([
+        updateProduct(current.id, { order: targetOrder }),
+        updateProduct(target.id, { order: currentOrder }),
+      ]);
+      await loadData();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExportProducts = () => {
@@ -626,7 +649,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                         <p className="text-slate-600 text-lg">Товарів не знайдено</p>
                       </div>
                     ) : (
-                      filteredProducts.map((product) => (
+                      filteredProducts.map((product, idx) => (
                       <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -646,6 +669,24 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => moveProduct(idx, -1)}
+                              disabled={idx === 0 || loading}
+                              className="p-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                              title="Вгору"
+                            >
+                              <ArrowUp size={16} />
+                            </button>
+                            <button
+                              onClick={() => moveProduct(idx, 1)}
+                              disabled={idx === filteredProducts.length - 1 || loading}
+                              className="p-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                              title="Вниз"
+                            >
+                              <ArrowDown size={16} />
+                            </button>
+                          </div>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={async () => {
