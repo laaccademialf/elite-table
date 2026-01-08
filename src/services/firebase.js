@@ -142,6 +142,7 @@ export const registerUserWithPhone = async (phoneNumber, name = '') => {
 export const addProduct = async (productData) => {
   try {
     const docRef = await addDoc(collection(db, 'products'), {
+      sku: productData.sku || '',
       name: productData.name,
       description: productData.description,
       price: productData.price,
@@ -218,31 +219,67 @@ export const deleteProduct = async (productId) => {
   }
 };
 
+export const getProductBySku = async (sku) => {
+  try {
+    if (!sku) return null;
+    const q = query(collection(db, 'products'), where('sku', '==', sku));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return null;
+    const doc = querySnapshot.docs[0];
+    return { id: doc.id, ...doc.data() };
+  } catch (error) {
+    console.error('Error fetching product by SKU:', error);
+    throw error;
+  }
+};
+
 export const createProductsBulk = async (products) => {
   try {
     const results = {
-      success: [],
+      created: [],
+      updated: [],
       errors: []
     };
 
     for (const product of products) {
       try {
+        // Перевіряємо чи існує товар з таким артикулом
+        let existingProduct = null;
+        if (product.sku) {
+          existingProduct = await getProductBySku(product.sku);
+        }
+
         const productData = {
+          sku: product.sku || '',
           name: product.name,
           description: product.description || '',
           price: product.price,
           quantity: product.quantity,
           category: product.category || '',
           image: product.image || '',
-          createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
         };
 
-        const docRef = await addDoc(collection(db, 'products'), productData);
-        results.success.push({ ...productData, id: docRef.id });
+        if (existingProduct) {
+          // Оновлюємо існуючий товар
+          await updateProduct(existingProduct.id, productData);
+          results.updated.push({ 
+            ...productData, 
+            id: existingProduct.id,
+            sku: product.sku 
+          });
+        } else {
+          // Створюємо новий товар
+          productData.createdAt = Timestamp.now();
+          const docRef = await addDoc(collection(db, 'products'), productData);
+          results.created.push({ 
+            ...productData, 
+            id: docRef.id 
+          });
+        }
       } catch (error) {
         results.errors.push({ 
-          product: product.name, 
+          product: product.sku ? `${product.sku} - ${product.name}` : product.name, 
           error: error.message 
         });
       }

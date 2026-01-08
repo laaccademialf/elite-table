@@ -62,6 +62,7 @@ export function AdminPanel() {
   // Product form state
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
+    sku: '',
     name: '',
     description: '',
     price: '',
@@ -115,6 +116,7 @@ export function AdminPanel() {
       setLoading(true);
       if (editingId) {
         await updateProduct(editingId, {
+          sku: formData.sku,
           name: formData.name,
           description: formData.description,
           price: parseFloat(formData.price),
@@ -124,6 +126,7 @@ export function AdminPanel() {
         });
       } else {
         await addProduct({
+          sku: formData.sku,
           name: formData.name,
           description: formData.description,
           price: parseFloat(formData.price),
@@ -134,6 +137,7 @@ export function AdminPanel() {
       }
 
       setFormData({
+        sku: '',
         name: '',
         description: '',
         price: '',
@@ -154,6 +158,7 @@ export function AdminPanel() {
   const handleEdit = (product) => {
     setEditingId(product.id);
     setFormData({
+      sku: product.sku || '',
       name: product.name,
       description: product.description,
       price: product.price,
@@ -181,6 +186,7 @@ export function AdminPanel() {
   const handleCancel = () => {
     setEditingId(null);
     setFormData({
+      sku: '',
       name: '',
       description: '',
       price: '',
@@ -242,7 +248,8 @@ export function AdminPanel() {
       // Показуємо результат
       const message = `
 Імпорт завершено!
-Успішно: ${result.success.length}
+Створено нових: ${result.created.length}
+Оновлено існуючих: ${result.updated.length}
 Помилки: ${result.errors.length}
 ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.errors.map(e => `- ${e.product}: ${e.error}`).join('\n') : ''}
       `.trim();
@@ -487,6 +494,13 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   <form onSubmit={handleAddProduct} className="space-y-4">
                     <input
                       type="text"
+                      placeholder="Артикул (опціонально)"
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                    />
+                    <input
+                      type="text"
                       placeholder="Назва"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -615,7 +629,14 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                       filteredProducts.map((product) => (
                       <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center">
                         <div className="flex-1">
-                          <h3 className="font-bold text-slate-900">{product.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-slate-900">{product.name}</h3>
+                            {product.sku && (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-mono">
+                                {product.sku}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-slate-600 text-sm">{product.description}</p>
                           <p className="text-slate-900 font-bold mt-2">
                             {product.price} ₴ | Кількість: {product.quantity}

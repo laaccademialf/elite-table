@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 export const exportProductsToExcel = (products) => {
   // Формуємо дані для експорту
   const data = products.map(product => ({
+    'Артикул': product.sku || '',
     'Назва': product.name || '',
     'Опис': product.description || '',
     'Ціна': product.price || 0,
@@ -20,6 +21,7 @@ export const exportProductsToExcel = (products) => {
   
   // Встановлюємо ширину колонок
   const columnWidths = [
+    { wch: 15 }, // Артикул
     { wch: 30 }, // Назва
     { wch: 50 }, // Опис
     { wch: 10 }, // Ціна
@@ -45,6 +47,7 @@ export const downloadExcelTemplate = () => {
   // Створюємо приклад даних для шаблону
   const templateData = [
     {
+      'Артикул': 'TABLE-001',
       'Назва': 'Приклад: Стіл банкетний',
       'Опис': 'Приклад: Великий стіл для банкетів розміром 180x80 см',
       'Ціна': 500,
@@ -53,6 +56,7 @@ export const downloadExcelTemplate = () => {
       'Посилання на фото': 'https://example.com/photo.jpg'
     },
     {
+      'Артикул': '',
       'Назва': '',
       'Опис': '',
       'Ціна': 0,
@@ -67,6 +71,7 @@ export const downloadExcelTemplate = () => {
   
   // Встановлюємо ширину колонок
   const columnWidths = [
+    { wch: 15 }, // Артикул
     { wch: 30 }, // Назва
     { wch: 50 }, // Опис
     { wch: 10 }, // Ціна
@@ -122,6 +127,7 @@ export const importProductsFromExcel = (file) => {
         const products = jsonData
           .filter(row => row['Назва'] && row['Назва'].trim() !== '' && !row['Назва'].startsWith('Приклад:'))
           .map(row => ({
+            sku: String(row['Артикул'] || '').trim(),
             name: String(row['Назва'] || '').trim(),
             description: String(row['Опис'] || '').trim(),
             price: parseFloat(row['Ціна']) || 0,
