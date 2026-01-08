@@ -677,15 +677,41 @@ export const deleteUser = async (userId) => {
   }
 };
 
-export const getUserOrders = async (userId) => {
+export const getUserOrders = async (userId, userEmail = null, userPhone = null) => {
   try {
-    console.log('[getUserOrders] Fetching orders for userId:', userId);
-    const ordersQuery = query(
+    console.log('[getUserOrders] Fetching orders for userId:', userId, 'email:', userEmail, 'phone:', userPhone);
+    
+    // Спочатку шукаємо за userId
+    let ordersQuery = query(
       collection(db, 'orders'),
       where('userId', '==', userId)
     );
-    const ordersSnapshot = await getDocs(ordersQuery);
-    console.log('[getUserOrders] Found', ordersSnapshot.docs.length, 'orders');
+    let ordersSnapshot = await getDocs(ordersQuery);
+    console.log('[getUserOrders] Found', ordersSnapshot.docs.length, 'orders by userId');
+    
+    // Якщо нічого не знайдено по userId, шукаємо по email або телефону
+    // (для замовлень, створених раніше без userId)
+    if (ordersSnapshot.docs.length === 0 && userEmail) {
+      console.log('[getUserOrders] No orders by userId, trying by email:', userEmail);
+      ordersQuery = query(
+        collection(db, 'orders'),
+        where('customerEmail', '==', userEmail)
+      );
+      ordersSnapshot = await getDocs(ordersQuery);
+      console.log('[getUserOrders] Found', ordersSnapshot.docs.length, 'orders by email');
+    }
+    
+    // Якщо ще нічого не знайдено, шукаємо по телефону
+    if (ordersSnapshot.docs.length === 0 && userPhone) {
+      console.log('[getUserOrders] No orders by email, trying by phone:', userPhone);
+      ordersQuery = query(
+        collection(db, 'orders'),
+        where('customerPhone', '==', userPhone)
+      );
+      ordersSnapshot = await getDocs(ordersQuery);
+      console.log('[getUserOrders] Found', ordersSnapshot.docs.length, 'orders by phone');
+    }
+    
     return ordersSnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),

@@ -64,10 +64,10 @@ const UsersView = () => {
     }
   };
 
-  const handleShowOrders = async (userId, userName) => {
+  const handleShowOrders = async (userId, userName, userEmail, userPhone) => {
     try {
-      console.log('[handleShowOrders] Loading orders for user:', userId);
-      const orders = await getUserOrders(userId);
+      console.log('[handleShowOrders] Loading orders for user:', userId, 'email:', userEmail, 'phone:', userPhone);
+      const orders = await getUserOrders(userId, userEmail, userPhone);
       console.log('[handleShowOrders] Orders loaded:', orders);
       setSelectedUserOrders({ userId, userName, orders });
     } catch (err) {
@@ -185,7 +185,7 @@ const UsersView = () => {
                               setExpandedUserId(null);
                               setSelectedUserOrders(null);
                             } else {
-                              handleShowOrders(user.id, user.name);
+                              handleShowOrders(user.id, user.name, user.email, user.phone);
                               setExpandedUserId(user.id);
                             }
                           }}
