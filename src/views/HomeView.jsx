@@ -79,38 +79,31 @@ export const HomeView = () => {
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-700">
       {/* Hero Section */}
-      <div className="mb-6 bg-gradient-to-br from-[#FFF7ED] to-[#F8E9D2] p-2 md:p-3 rounded-xl shadow border border-[#F3E5C8] transition-all duration-300">
-        <div className="flex flex-col gap-4">
+      <div className="mb-6 bg-gradient-to-br from-[#FFF7ED] to-[#F8E9D2] p-3 md:p-4 rounded-xl shadow border border-[#F3E5C8] transition-all duration-300">
+        <div className="flex flex-col md:flex-row items-center md:items-center justify-between gap-4 min-h-[110px]">
           {/* Header and DatePicker */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-2 md:gap-4 min-h-[120px]">
-            <div className="flex-1 flex flex-col items-center md:items-start justify-center px-2 md:px-6">
-              <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 uppercase tracking-tight drop-shadow-sm">ВАША ОСОБЛИВА ПОДІЯ</h2>
-              <p className="text-slate-600 text-xs md:text-sm mb-1 md:mb-2">Оберіть дату, щоб почати магію сервірування</p>
-              <DateRangePicker value={globalDates} onChange={setGlobalDates} />
-            </div>
+          <div className="flex-1 flex flex-col items-center md:items-start gap-1 md:gap-2 px-1 md:px-4">
+            <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 uppercase tracking-tight drop-shadow-sm">ВАША ОСОБЛИВА ПОДІЯ</h2>
+            <p className="text-slate-600 text-xs md:text-sm">Оберіть дату, щоб почати магію сервірування</p>
+            <DateRangePicker value={globalDates} onChange={setGlobalDates} />
           </div>
 
-          {/* Social Links and Phone */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4 px-2 md:px-6 pb-2">
-            {/* Phone */}
-            <div className="flex items-center gap-2">
+          {/* Phone + Socials */}
+          <div className="flex flex-col items-center md:items-end gap-2 md:pr-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
               <Phone size={18} className="text-[#C5A059]" />
-              <a href="tel:+380443338948" className="text-slate-900 font-semibold hover:text-[#C5A059] transition">
-                +38 (044) 333-8948
-              </a>
+              <a href="tel:+380443338948" className="hover:text-[#C5A059] transition">+38 (044) 333-8948</a>
             </div>
-
-            {/* Social Media */}
             <div className="flex items-center gap-3">
-              <span className="text-xs text-slate-600 font-medium">Дивіться гарні фото:</span>
+              <span className="px-2 py-1 text-[11px] md:text-xs font-semibold text-slate-800 bg-white/80 rounded-full border border-[#F3E5C8]">Чарівне у соцмережах</span>
               <a href="https://www.instagram.com/rentco.com.ua/" target="_blank" rel="noopener noreferrer" className="text-[#E4405F] hover:text-[#C5A059] transition" aria-label="Instagram">
-                <Instagram size={20} />
+                <Instagram size={22} />
               </a>
               <a href="https://www.pinterest.com/rentcokiev/" target="_blank" rel="noopener noreferrer" className="text-[#E60023] hover:text-[#C5A059] transition font-bold text-sm" aria-label="Pinterest">
                 P
               </a>
               <a href="https://www.facebook.com/RENTCOKiev/" target="_blank" rel="noopener noreferrer" className="text-[#1877F2] hover:text-[#C5A059] transition" aria-label="Facebook">
-                <Facebook size={20} />
+                <Facebook size={22} />
               </a>
             </div>
           </div>
