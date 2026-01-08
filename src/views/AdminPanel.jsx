@@ -974,7 +974,9 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
         {/* Analytics Tab */}
         {adminTab === 'analytics' && stats && (
-          <div className="space-y-6">
+          <div>
+            {console.log('DEBUG: analyticsSubTab =', analyticsSubTab)}
+            <div className="space-y-6">
             {/* Filters Section */}
             <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
               {/* Date Filter */}
@@ -1043,6 +1045,8 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                 Товари
               </button>
             </div>
+
+            {console.log('DEBUG: rendering sub-tabs, analyticsSubTab =', analyticsSubTab, 'stats.topProducts =', stats?.topProducts?.length)}
 
             {analyticsSubTab === 'sales' && (
             <>
