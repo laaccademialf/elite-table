@@ -125,6 +125,49 @@ export function AppProvider({ children }) {
   const [orderQuantity, setOrderQuantity] = useState("1");
   const [bookingStatus, setBookingStatus] = useState("idle");
 
+  // Persistence keys
+  const CART_STORAGE_KEY = 'elite_table_cart_v1';
+  const DATES_STORAGE_KEY = 'elite_table_dates_v1';
+
+  // Load persisted cart and dates on mount
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const cachedCart = localStorage.getItem(CART_STORAGE_KEY);
+      if (cachedCart) {
+        const parsed = JSON.parse(cachedCart);
+        if (Array.isArray(parsed)) setCart(parsed);
+      }
+      const cachedDates = localStorage.getItem(DATES_STORAGE_KEY);
+      if (cachedDates) {
+        const parsedDates = JSON.parse(cachedDates);
+        if (parsedDates && typeof parsedDates === 'object') setGlobalDates(parsedDates);
+      }
+    } catch (e) {
+      console.warn('[AppProvider] Failed to load persisted cart/dates', e);
+    }
+  }, []);
+
+  // Persist cart on change
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    } catch (e) {
+      console.warn('[AppProvider] Failed to persist cart', e);
+    }
+  }, [cart]);
+
+  // Persist dates on change
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(globalDates));
+    } catch (e) {
+      console.warn('[AppProvider] Failed to persist dates', e);
+    }
+  }, [globalDates]);
+
   // AI Features
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiConcept, setAiConcept] = useState(null);
@@ -525,6 +568,13 @@ export function AppProvider({ children }) {
       setCart([]);
       setCustomerInfo({ name: "", phone: "", address: "", email: "", notes: "" });
       setGlobalDates({ start: null, end: null });
+      // Clear persisted cart and dates
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(CART_STORAGE_KEY);
+          localStorage.removeItem(DATES_STORAGE_KEY);
+        }
+      } catch {}
 
       // Якщо залогінений — оновлюємо currentUser і замовлення, одразу переводимо на orders
       const userIdForFetch = autoRegUserId || (currentUser && currentUser.uid);
@@ -549,6 +599,13 @@ export function AppProvider({ children }) {
       setCart([]);
       setOrders([]);
       setView("home");
+      // Clear persisted cart and dates on logout
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(CART_STORAGE_KEY);
+          localStorage.removeItem(DATES_STORAGE_KEY);
+        }
+      } catch {}
     } catch (error) {
       console.error("Error logging out:", error);
     }
