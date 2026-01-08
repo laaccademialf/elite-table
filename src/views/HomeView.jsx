@@ -3,7 +3,6 @@ import {
   Calendar as CalendarIcon,
   Instagram,
   Facebook,
-  Pinterest,
   Phone,
 } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
@@ -107,8 +106,8 @@ export const HomeView = () => {
               <a href="https://www.instagram.com/rentco.com.ua/" target="_blank" rel="noopener noreferrer" className="text-[#E4405F] hover:text-[#C5A059] transition" aria-label="Instagram">
                 <Instagram size={20} />
               </a>
-              <a href="https://www.pinterest.com/rentcokiev/" target="_blank" rel="noopener noreferrer" className="text-[#E60023] hover:text-[#C5A059] transition" aria-label="Pinterest">
-                <Pinterest size={20} />
+              <a href="https://www.pinterest.com/rentcokiev/" target="_blank" rel="noopener noreferrer" className="text-[#E60023] hover:text-[#C5A059] transition font-bold text-sm" aria-label="Pinterest">
+                P
               </a>
               <a href="https://www.facebook.com/RENTCOKiev/" target="_blank" rel="noopener noreferrer" className="text-[#1877F2] hover:text-[#C5A059] transition" aria-label="Facebook">
                 <Facebook size={20} />
