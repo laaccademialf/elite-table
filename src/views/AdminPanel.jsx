@@ -1243,6 +1243,55 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
               </div>
             )}
 
+
+
+            {/* Manager Performance */}
+            {stats.managerStats && stats.managerStats.length > 0 && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Ефективність менеджерів</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Менеджер</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Замовлень</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Завершено</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Виручка</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Середній чек</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Конверсія</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.managerStats.map((manager) => {
+                        const avgCheck = manager.totalOrders > 0 ? manager.revenue / manager.totalOrders : 0;
+                        const conversionRate = manager.totalOrders > 0 ? (manager.completedOrders / manager.totalOrders) * 100 : 0;
+                        return (
+                          <tr key={manager.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 text-sm font-medium text-slate-900">{manager.name}</td>
+                            <td className="py-3 px-4 text-sm text-right text-slate-600">{manager.totalOrders}</td>
+                            <td className="py-3 px-4 text-sm text-right text-slate-600">{manager.completedOrders}</td>
+                            <td className="py-3 px-4 text-sm text-right font-bold text-slate-900">{manager.revenue.toFixed(0)} ₴</td>
+                            <td className="py-3 px-4 text-sm text-right text-slate-600">{avgCheck.toFixed(0)} ₴</td>
+                            <td className="py-3 px-4 text-sm text-right">
+                              <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                                conversionRate >= 70 ? 'bg-green-100 text-green-700' : 
+                                conversionRate >= 50 ? 'bg-yellow-100 text-yellow-700' : 
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {conversionRate.toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            </>
+            )}
+
             {analyticsSubTab === 'products' && (
               <>
                 {console.log('RENDERING PRODUCTS TAB')}
@@ -1418,55 +1467,6 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   );
                 })()}
               </>
-            )}
-
-
-
-            {/* Manager Performance */}
-            {stats.managerStats && stats.managerStats.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <h3 className="text-xl font-bold text-slate-900 mb-4">Ефективність менеджерів</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Менеджер</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Замовлень</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Завершено</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Виручка</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Середній чек</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Конверсія</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.managerStats.map((manager) => {
-                        const avgCheck = manager.totalOrders > 0 ? manager.revenue / manager.totalOrders : 0;
-                        const conversionRate = manager.totalOrders > 0 ? (manager.completedOrders / manager.totalOrders) * 100 : 0;
-                        return (
-                          <tr key={manager.id} className="border-b border-slate-100 hover:bg-slate-50">
-                            <td className="py-3 px-4 text-sm font-medium text-slate-900">{manager.name}</td>
-                            <td className="py-3 px-4 text-sm text-right text-slate-600">{manager.totalOrders}</td>
-                            <td className="py-3 px-4 text-sm text-right text-slate-600">{manager.completedOrders}</td>
-                            <td className="py-3 px-4 text-sm text-right font-bold text-slate-900">{manager.revenue.toFixed(0)} ₴</td>
-                            <td className="py-3 px-4 text-sm text-right text-slate-600">{avgCheck.toFixed(0)} ₴</td>
-                            <td className="py-3 px-4 text-sm text-right">
-                              <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                                conversionRate >= 70 ? 'bg-green-100 text-green-700' : 
-                                conversionRate >= 50 ? 'bg-yellow-100 text-yellow-700' : 
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                {conversionRate.toFixed(1)}%
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-            </>
             )}
 
             {analyticsSubTab === 'customers' && (
