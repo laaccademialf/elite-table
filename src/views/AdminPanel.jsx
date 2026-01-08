@@ -646,14 +646,10 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className="flex flex-col items-center gap-1">
-                            <label className="text-xs text-slate-600 font-semibold">Кількість</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={product.quantity}
-                              onChange={async (e) => {
-                                const newQuantity = parseInt(e.target.value) || 0;
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={async () => {
+                                const newQuantity = Math.max(0, product.quantity - 1);
                                 try {
                                   await updateProduct(product.id, { quantity: newQuantity });
                                   await loadData();
@@ -662,8 +658,29 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                                   alert('Помилка оновлення кількості');
                                 }
                               }}
-                              className="w-20 px-3 py-2 border-2 border-slate-300 rounded-lg text-center font-bold text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                            />
+                              className="w-10 h-10 flex items-center justify-center bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition text-xl"
+                            >
+                              −
+                            </button>
+                            <div className="flex flex-col items-center min-w-[60px]">
+                              <span className="text-xs text-slate-600 font-semibold">Кількість</span>
+                              <span className="text-lg font-bold text-slate-900">{product.quantity}</span>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                const newQuantity = product.quantity + 1;
+                                try {
+                                  await updateProduct(product.id, { quantity: newQuantity });
+                                  await loadData();
+                                } catch (error) {
+                                  console.error('Error updating quantity:', error);
+                                  alert('Помилка оновлення кількості');
+                                }
+                              }}
+                              className="w-10 h-10 flex items-center justify-center bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition text-xl"
+                            >
+                              +
+                            </button>
                           </div>
                           <div className="flex gap-2">
                             <button
