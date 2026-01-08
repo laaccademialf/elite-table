@@ -175,8 +175,8 @@ export const getProducts = async (filters = {}) => {
       constraints.push(where('category', '==', filters.category));
     }
 
-    // Завжди сортуємо за order
-    constraints.push(orderBy('order', 'asc'));
+    // НЕ використовуємо orderBy в запиті, бо старі товари без order не повернуться
+    // Firestore не повертає документи без поля, якщо робиш orderBy по цьому полю
 
     if (constraints.length > 0) {
       q = query(q, ...constraints);
@@ -188,7 +188,7 @@ export const getProducts = async (filters = {}) => {
       ...doc.data(),
     }));
     
-    // Додатково сортуємо на клієнті для товарів без order
+    // Сортуємо на клієнті: товари з order йдуть за своїм порядком, без order - в кінець
     return products.sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
   } catch (error) {
     console.error('Error fetching products:', error);
