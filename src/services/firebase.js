@@ -650,7 +650,7 @@ export const getOrderStats = async (dateRange = {}) => {
     q = query(q, ...constraints);
 
     const querySnapshot = await getDocs(q);
-    const orders = querySnapshot.docs.map((doc) => doc.data());
+    const orders = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
     // Calculate stats
     const totalRevenue = orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
@@ -658,6 +658,48 @@ export const getOrderStats = async (dateRange = {}) => {
     const completedOrders = orders.filter((o) => o.status === 'delivered').length;
     const pendingOrders = orders.filter((o) => o.status === 'pending').length;
     const cancelledOrders = orders.filter((o) => o.status === 'cancelled').length;
+    const confirmedOrders = orders.filter((o) => o.status === 'confirmed').length;
+
+    // Виручка по днях
+    const revenueByDate = {};
+    orders.forEach(order => {
+      if (order.createdAt) {
+        const date = order.createdAt.toDate?.() || new Date(order.createdAt);
+        const dateKey = date.toISOString().split('T')[0];
+        revenueByDate[dateKey] = (revenueByDate[dateKey] || 0) + (order.totalPrice || 0);
+      }
+    });
+
+    // Топ товарів
+    const productStats = {};
+    orders.forEach(order => {
+      if (order.items) {
+        order.items.forEach(item => {
+          const key = item.productName || item.productId;
+          if (!productStats[key]) {
+            productStats[key] = { name: key, revenue: 0, count: 0, quantity: 0 };
+          }
+          productStats[key].revenue += (item.price || 0) * (item.quantity || 0);
+          productStats[key].count += 1;
+          productStats[key].quantity += item.quantity || 0;
+        });
+      }
+    });
+
+    const topProducts = Object.values(productStats)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+
+    // Виручка по категоріях (потрібно мати categoryId/category в items)
+    const categoryRevenue = {};
+    orders.forEach(order => {
+      if (order.items) {
+        order.items.forEach(item => {
+          const cat = item.category || 'Інше';
+          categoryRevenue[cat] = (categoryRevenue[cat] || 0) + ((item.price || 0) * (item.quantity || 0));
+        });
+      }
+    });
 
     return {
       totalRevenue,
@@ -665,7 +707,12 @@ export const getOrderStats = async (dateRange = {}) => {
       completedOrders,
       pendingOrders,
       cancelledOrders,
+      confirmedOrders,
       averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+      revenueByDate,
+      topProducts,
+      categoryRevenue,
+      orders, // Повертаємо всі замовлення для додаткового аналізу
     };
   } catch (error) {
     console.error('Error fetching stats:', error);

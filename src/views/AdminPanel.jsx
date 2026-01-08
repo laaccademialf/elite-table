@@ -75,6 +75,10 @@ export function AdminPanel() {
   const [importLoading, setImportLoading] = useState(false);
   const [importResult, setImportResult] = useState(null);
 
+  // Analytics filters
+  const [analyticsDateRange, setAnalyticsDateRange] = useState({ start: null, end: null });
+  const [showAnalyticsDatePicker, setShowAnalyticsDatePicker] = useState(false);
+
   // Load categories on mount
   useEffect(() => {
     getCategories().then(setCategories);
@@ -83,7 +87,7 @@ export function AdminPanel() {
   // Load data based on tab
   useEffect(() => {
     loadData();
-  }, [adminTab]);
+  }, [adminTab, analyticsDateRange]);
 
   const loadData = async () => {
     setLoading(true);
@@ -95,7 +99,23 @@ export function AdminPanel() {
         const allOrders = await getOrders({ limit: 100 });
         setOrders(allOrders);
       } else if (adminTab === 'analytics') {
-        const data = await getOrderStats();
+        // Завантажуємо статистику з фільтром по датах
+        let dateRange = {};
+        if (analyticsDateRange.start && analyticsDateRange.end) {
+          const startDate = new Date(
+            analyticsDateRange.start.year,
+            analyticsDateRange.start.month,
+            analyticsDateRange.start.day
+          );
+          const endDate = new Date(
+            analyticsDateRange.end.year,
+            analyticsDateRange.end.month,
+            analyticsDateRange.end.day,
+            23, 59, 59
+          );
+          dateRange = { startDate: Timestamp.fromDate(startDate), endDate: Timestamp.fromDate(endDate) };
+        }
+        const data = await getOrderStats(dateRange);
         setStats(data);
       }
     } catch (error) {
@@ -891,36 +911,228 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
         {/* Analytics Tab */}
         {adminTab === 'analytics' && stats && (
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            {/* Date Filter */}
             <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h3 className="text-slate-600 font-semibold mb-2">Загальна виручка</h3>
-              <p className="text-4xl font-bold text-slate-900">{stats.totalRevenue} ₴</p>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-slate-900">Фільтр по датах</h3>
+                {analyticsDateRange.start && (
+                  <button
+                    onClick={() => {
+                      setAnalyticsDateRange({ start: null, end: null });
+                    }}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    Скинути фільтр
+                  </button>
+                )}
+              </div>
+              <DateRangePicker
+                value={analyticsDateRange}
+                onChange={setAnalyticsDateRange}
+              />
+              {analyticsDateRange.start && (
+                <p className="text-sm text-slate-600 mt-2">
+                  Період: {analyticsDateRange.start.day}.{analyticsDateRange.start.month + 1}.{analyticsDateRange.start.year} 
+                  {analyticsDateRange.end && ` - ${analyticsDateRange.end.day}.${analyticsDateRange.end.month + 1}.${analyticsDateRange.end.year}`}
+                </p>
+              )}
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h3 className="text-slate-600 font-semibold mb-2">Всього замовлень</h3>
-              <p className="text-4xl font-bold text-slate-900">{stats.totalOrders}</p>
+            {/* Key Metrics */}
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 shadow-sm text-white">
+                <h3 className="text-blue-100 font-semibold mb-2 text-sm">Загальна виручка</h3>
+                <p className="text-3xl font-bold">{stats.totalRevenue?.toLocaleString()} ₴</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 shadow-sm text-white">
+                <h3 className="text-green-100 font-semibold mb-2 text-sm">Всього замовлень</h3>
+                <p className="text-3xl font-bold">{stats.totalOrders}</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 shadow-sm text-white">
+                <h3 className="text-purple-100 font-semibold mb-2 text-sm">Середній чек</h3>
+                <p className="text-3xl font-bold">{stats.averageOrderValue?.toFixed(0)} ₴</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 shadow-sm text-white">
+                <h3 className="text-orange-100 font-semibold mb-2 text-sm">Конверсія</h3>
+                <p className="text-3xl font-bold">
+                  {stats.totalOrders > 0 ? Math.round((stats.completedOrders / stats.totalOrders) * 100) : 0}%
+                </p>
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h3 className="text-slate-600 font-semibold mb-2">Завершено</h3>
-              <p className="text-4xl font-bold text-green-600">{stats.completedOrders}</p>
+            {/* Order Status Distribution */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Статус замовлень</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
+                      <span className="text-slate-700">Очікування</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900">{stats.pendingOrders}</span>
+                      <span className="text-xs text-slate-500">
+                        ({stats.totalOrders > 0 ? Math.round((stats.pendingOrders / stats.totalOrders) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2">
+                    <div
+                      className="bg-yellow-500 h-2 rounded-full"
+                      style={{ width: `${stats.totalOrders > 0 ? (stats.pendingOrders / stats.totalOrders) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+                      <span className="text-slate-700">Підтверджено</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900">{stats.confirmedOrders}</span>
+                      <span className="text-xs text-slate-500">
+                        ({stats.totalOrders > 0 ? Math.round((stats.confirmedOrders / stats.totalOrders) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full"
+                      style={{ width: `${stats.totalOrders > 0 ? (stats.confirmedOrders / stats.totalOrders) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                      <span className="text-slate-700">Завершено</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900">{stats.completedOrders}</span>
+                      <span className="text-xs text-slate-500">
+                        ({stats.totalOrders > 0 ? Math.round((stats.completedOrders / stats.totalOrders) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full"
+                      style={{ width: `${stats.totalOrders > 0 ? (stats.completedOrders / stats.totalOrders) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full bg-red-500"></div>
+                      <span className="text-slate-700">Скасовано</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900">{stats.cancelledOrders}</span>
+                      <span className="text-xs text-slate-500">
+                        ({stats.totalOrders > 0 ? Math.round((stats.cancelledOrders / stats.totalOrders) * 100) : 0}%)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full"
+                      style={{ width: `${stats.totalOrders > 0 ? (stats.cancelledOrders / stats.totalOrders) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Revenue Chart (simplified bars) */}
+              <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Виручка по днях</h3>
+                {stats.revenueByDate && Object.keys(stats.revenueByDate).length > 0 ? (
+                  <div className="space-y-2">
+                    {Object.entries(stats.revenueByDate)
+                      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+                      .slice(-7)
+                      .map(([date, revenue]) => {
+                        const maxRevenue = Math.max(...Object.values(stats.revenueByDate));
+                        const percentage = (revenue / maxRevenue) * 100;
+                        const dateObj = new Date(date);
+                        const formattedDate = `${dateObj.getDate()}.${dateObj.getMonth() + 1}`;
+                        return (
+                          <div key={date} className="flex items-center gap-3">
+                            <span className="text-xs text-slate-600 w-12">{formattedDate}</span>
+                            <div className="flex-1 bg-slate-100 rounded-full h-6 relative overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-blue-500 to-blue-600 h-6 rounded-full flex items-center justify-end pr-2"
+                                style={{ width: `${percentage}%` }}
+                              >
+                                <span className="text-xs font-bold text-white">{revenue.toFixed(0)} ₴</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-center py-8">Немає даних</p>
+                )}
+              </div>
             </div>
 
+            {/* Top Products */}
             <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h3 className="text-slate-600 font-semibold mb-2">Очікування</h3>
-              <p className="text-4xl font-bold text-yellow-600">{stats.pendingOrders}</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-4">Топ-10 товарів за виручкою</h3>
+              {stats.topProducts && stats.topProducts.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">#</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Товар</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Виручка</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Замовлень</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">К-ть</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.topProducts.map((product, idx) => (
+                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4 text-sm text-slate-600">{idx + 1}</td>
+                          <td className="py-3 px-4 text-sm font-medium text-slate-900">{product.name}</td>
+                          <td className="py-3 px-4 text-sm text-right font-bold text-slate-900">{product.revenue.toFixed(0)} ₴</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-600">{product.count}</td>
+                          <td className="py-3 px-4 text-sm text-right text-slate-600">{product.quantity}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-slate-500 text-center py-8">Немає даних</p>
+              )}
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h3 className="text-slate-600 font-semibold mb-2">Скасовано</h3>
-              <p className="text-4xl font-bold text-red-600">{stats.cancelledOrders}</p>
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h3 className="text-slate-600 font-semibold mb-2">Середнє замовлення</h3>
-              <p className="text-4xl font-bold text-slate-900">{stats.averageOrderValue.toFixed(2)} ₴</p>
-            </div>
+            {/* Category Revenue */}
+            {stats.categoryRevenue && Object.keys(stats.categoryRevenue).length > 0 && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Виручка по категоріях</h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  {Object.entries(stats.categoryRevenue)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([category, revenue]) => (
+                      <div key={category} className="bg-slate-50 rounded-xl p-4">
+                        <h4 className="text-sm font-semibold text-slate-700 mb-1">{category}</h4>
+                        <p className="text-2xl font-bold text-slate-900">{revenue.toFixed(0)} ₴</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {stats.totalRevenue > 0 ? ((revenue / stats.totalRevenue) * 100).toFixed(1) : 0}% від загальної
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
