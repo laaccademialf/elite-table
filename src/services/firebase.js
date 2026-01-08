@@ -635,9 +635,24 @@ export const cancelOrder = async (orderId) => {
   }
 };
 
+export const assignOrderToManager = async (orderId, managerId, managerName) => {
+  try {
+    const docRef = doc(db, 'orders', orderId);
+    await updateDoc(docRef, {
+      assignedManagerId: managerId,
+      assignedManagerName: managerName,
+      assignedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error('Error assigning order to manager:', error);
+    throw error;
+  }
+};
+
 // ==================== ANALYTICS (АНАЛІТИКА) ====================
 
-export const getOrderStats = async (dateRange = {}) => {
+export const getOrderStats = async (dateRange = {}, managerId = null) => {
   try {
     let q = collection(db, 'orders');
     const constraints = [];
@@ -645,6 +660,10 @@ export const getOrderStats = async (dateRange = {}) => {
     if (dateRange.startDate && dateRange.endDate) {
       constraints.push(where('createdAt', '>=', dateRange.startDate));
       constraints.push(where('createdAt', '<=', dateRange.endDate));
+    }
+
+    if (managerId) {
+      constraints.push(where('assignedManagerId', '==', managerId));
     }
 
     q = query(q, ...constraints);
@@ -701,6 +720,32 @@ export const getOrderStats = async (dateRange = {}) => {
       }
     });
 
+    // Аналітика по менеджерам
+    const managerStats = {};
+    orders.forEach(order => {
+      if (order.assignedManagerId) {
+        const managerId = order.assignedManagerId;
+        const managerName = order.assignedManagerName || 'Невідомий';
+        if (!managerStats[managerId]) {
+          managerStats[managerId] = {
+            id: managerId,
+            name: managerName,
+            totalOrders: 0,
+            completedOrders: 0,
+            revenue: 0,
+          };
+        }
+        managerStats[managerId].totalOrders += 1;
+        if (order.status === 'delivered') {
+          managerStats[managerId].completedOrders += 1;
+        }
+        managerStats[managerId].revenue += order.totalPrice || 0;
+      }
+    });
+
+    const managerStatsArray = Object.values(managerStats)
+      .sort((a, b) => b.revenue - a.revenue);
+
     return {
       totalRevenue,
       totalOrders,
@@ -712,6 +757,7 @@ export const getOrderStats = async (dateRange = {}) => {
       revenueByDate,
       topProducts,
       categoryRevenue,
+      managerStats: managerStatsArray,
       orders, // Повертаємо всі замовлення для додаткового аналізу
     };
   } catch (error) {

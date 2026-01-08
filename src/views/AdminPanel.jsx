@@ -10,14 +10,16 @@ import {
   updateOrderStatus,
   deleteOrder,
   createProductsBulk,
+  assignOrderToManager,
 } from '../services/firebase';
-import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown, Download, FileUp, ArrowUp, ArrowDown } from 'lucide-react';
+import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown, Download, FileUp, ArrowUp, ArrowDown, UserCheck } from 'lucide-react';
 import CategoryManager from '../components/CategoryManager';
 import DateRangePicker from '../components/DateRangePicker';
 import { getCategories } from '../services/categories';
 import { CustomCalendar } from '../components/CustomCalendar';
 import UsersView from './UserManagement';
 import { exportProductsToExcel, downloadExcelTemplate, importProductsFromExcel } from '../utils/excelUtils';
+import { Timestamp } from 'firebase/firestore';
 
 // Helper to format date object or string to DD.MM.YYYY
 const formatDate = (date) => {
@@ -78,6 +80,7 @@ export function AdminPanel() {
   // Analytics filters
   const [analyticsDateRange, setAnalyticsDateRange] = useState({ start: null, end: null });
   const [showAnalyticsDatePicker, setShowAnalyticsDatePicker] = useState(false);
+  const [analyticsManagerFilter, setAnalyticsManagerFilter] = useState('all');
 
   // Load categories on mount
   useEffect(() => {
@@ -87,7 +90,7 @@ export function AdminPanel() {
   // Load data based on tab
   useEffect(() => {
     loadData();
-  }, [adminTab, analyticsDateRange]);
+  }, [adminTab, analyticsDateRange, analyticsManagerFilter]);
 
   const loadData = async () => {
     setLoading(true);
@@ -99,7 +102,7 @@ export function AdminPanel() {
         const allOrders = await getOrders({ limit: 100 });
         setOrders(allOrders);
       } else if (adminTab === 'analytics') {
-        // Завантажуємо статистику з фільтром по датах
+        // Завантажуємо статистику з фільтром по датах та менеджерам
         let dateRange = {};
         if (analyticsDateRange.start && analyticsDateRange.end) {
           const startDate = new Date(
@@ -115,7 +118,8 @@ export function AdminPanel() {
           );
           dateRange = { startDate: Timestamp.fromDate(startDate), endDate: Timestamp.fromDate(endDate) };
         }
-        const data = await getOrderStats(dateRange);
+        const managerId = analyticsManagerFilter === 'all' ? null : analyticsManagerFilter;
+        const data = await getOrderStats(dateRange, managerId);
         setStats(data);
       }
     } catch (error) {
@@ -317,6 +321,16 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
       loadData();
     } catch (error) {
       console.error('Error updating order:', error);
+    }
+  };
+
+  const handleAssignToMe = async (orderId) => {
+    try {
+      await assignOrderToManager(orderId, currentUser.uid, currentUser.email);
+      loadData();
+    } catch (error) {
+      console.error('Error assigning order:', error);
+      alert('Помилка при призначенні замовлення');
     }
   };
 
@@ -839,6 +853,25 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
                   {/* Horizontal Action Buttons (always visible) */}
                   <div className="px-6 pb-4 flex items-center gap-3 border-t border-slate-100 pt-4">
+                    {/* Manager Assignment */}
+                    {order.assignedManagerId ? (
+                      <div className="px-4 py-2 bg-green-100 text-green-700 rounded-xl font-semibold text-sm flex items-center gap-2">
+                        <UserCheck size={16} />
+                        {order.assignedManagerName || 'Призначено'}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAssignToMe(order.id);
+                        }}
+                        className="px-4 py-2 bg-blue-100 text-blue-600 rounded-xl font-semibold hover:bg-blue-200 transition-colors flex items-center gap-2 text-sm"
+                      >
+                        <UserCheck size={16} />
+                        Взяти в роботу
+                      </button>
+                    )}
+                    
                     <select
                       value={order.status}
                       onChange={(e) => {
@@ -912,31 +945,51 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
         {/* Analytics Tab */}
         {adminTab === 'analytics' && stats && (
           <div className="space-y-6">
-            {/* Date Filter */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-slate-900">Фільтр по датах</h3>
+            {/* Filters Section */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
+              {/* Date Filter */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-slate-900">Фільтр по датах</h3>
+                  {analyticsDateRange.start && (
+                    <button
+                      onClick={() => {
+                        setAnalyticsDateRange({ start: null, end: null });
+                      }}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Скинути фільтр
+                    </button>
+                  )}
+                </div>
+                <DateRangePicker
+                  value={analyticsDateRange}
+                  onChange={setAnalyticsDateRange}
+                />
                 {analyticsDateRange.start && (
-                  <button
-                    onClick={() => {
-                      setAnalyticsDateRange({ start: null, end: null });
-                    }}
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    Скинути фільтр
-                  </button>
+                  <p className="text-sm text-slate-600 mt-2">
+                    Період: {analyticsDateRange.start.day}.{analyticsDateRange.start.month + 1}.{analyticsDateRange.start.year} 
+                    {analyticsDateRange.end && ` - ${analyticsDateRange.end.day}.${analyticsDateRange.end.month + 1}.${analyticsDateRange.end.year}`}
+                  </p>
                 )}
               </div>
-              <DateRangePicker
-                value={analyticsDateRange}
-                onChange={setAnalyticsDateRange}
-              />
-              {analyticsDateRange.start && (
-                <p className="text-sm text-slate-600 mt-2">
-                  Період: {analyticsDateRange.start.day}.{analyticsDateRange.start.month + 1}.{analyticsDateRange.start.year} 
-                  {analyticsDateRange.end && ` - ${analyticsDateRange.end.day}.${analyticsDateRange.end.month + 1}.${analyticsDateRange.end.year}`}
-                </p>
-              )}
+
+              {/* Manager Filter */}
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 mb-3">Фільтр по менеджерам</h3>
+                <select
+                  value={analyticsManagerFilter}
+                  onChange={(e) => setAnalyticsManagerFilter(e.target.value)}
+                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                >
+                  <option value="all">Всі менеджери</option>
+                  {stats.managerStats?.map(manager => (
+                    <option key={manager.id} value={manager.id}>
+                      {manager.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Key Metrics */}
@@ -1130,6 +1183,51 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                         </p>
                       </div>
                     ))}
+                </div>
+              </div>
+            )}
+
+            {/* Manager Performance */}
+            {stats.managerStats && stats.managerStats.length > 0 && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Ефективність менеджерів</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Менеджер</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Замовлень</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Завершено</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Виручка</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Середній чек</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Конверсія</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.managerStats.map((manager) => {
+                        const avgCheck = manager.totalOrders > 0 ? manager.revenue / manager.totalOrders : 0;
+                        const conversionRate = manager.totalOrders > 0 ? (manager.completedOrders / manager.totalOrders) * 100 : 0;
+                        return (
+                          <tr key={manager.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 text-sm font-medium text-slate-900">{manager.name}</td>
+                            <td className="py-3 px-4 text-sm text-right text-slate-600">{manager.totalOrders}</td>
+                            <td className="py-3 px-4 text-sm text-right text-slate-600">{manager.completedOrders}</td>
+                            <td className="py-3 px-4 text-sm text-right font-bold text-slate-900">{manager.revenue.toFixed(0)} ₴</td>
+                            <td className="py-3 px-4 text-sm text-right text-slate-600">{avgCheck.toFixed(0)} ₴</td>
+                            <td className="py-3 px-4 text-sm text-right">
+                              <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                                conversionRate >= 70 ? 'bg-green-100 text-green-700' : 
+                                conversionRate >= 50 ? 'bg-yellow-100 text-yellow-700' : 
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {conversionRate.toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
