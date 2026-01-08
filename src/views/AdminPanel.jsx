@@ -974,10 +974,8 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
         {/* Analytics Tab */}
         {adminTab === 'analytics' && stats && (
-          <div>
-            {console.log('DEBUG: analyticsSubTab =', analyticsSubTab)}
-            <div className="space-y-6">
-            {/* Filters Section */}
+          <div className="space-y-6">
+            {(() => { console.log('DEBUG: analyticsSubTab =', analyticsSubTab); return null; })()}
             <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
               {/* Date Filter */}
               <div>
@@ -1046,7 +1044,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
               </button>
             </div>
 
-            {console.log('DEBUG: rendering sub-tabs, analyticsSubTab =', analyticsSubTab, 'stats.topProducts =', stats?.topProducts?.length)}
+            {(() => { console.log('DEBUG: rendering sub-tabs, analyticsSubTab =', analyticsSubTab, 'stats.topProducts =', stats?.topProducts?.length); return null; })()}
 
             {analyticsSubTab === 'sales' && (
             <>
