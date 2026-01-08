@@ -82,6 +82,7 @@ export function AdminPanel() {
   const [analyticsDateRange, setAnalyticsDateRange] = useState({ start: null, end: null });
   const [showAnalyticsDatePicker, setShowAnalyticsDatePicker] = useState(false);
   const [analyticsManagerFilter, setAnalyticsManagerFilter] = useState('all');
+  const [analyticsSubTab, setAnalyticsSubTab] = useState('sales'); // 'sales' | 'customers'
 
   // Load categories on mount
   useEffect(() => {
@@ -1016,6 +1017,24 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
               </div>
             </div>
 
+            {/* Analytics Sub-Tabs */}
+            <div className="bg-white rounded-2xl p-2 shadow-sm flex w-full gap-2">
+              <button
+                onClick={() => setAnalyticsSubTab('sales')}
+                className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${analyticsSubTab === 'sales' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              >
+                Продажі
+              </button>
+              <button
+                onClick={() => setAnalyticsSubTab('customers')}
+                className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all ${analyticsSubTab === 'customers' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              >
+                Користувачі
+              </button>
+            </div>
+
+            {analyticsSubTab === 'sales' && (
+            <>
             {/* Key Metrics */}
             <div className="grid md:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 shadow-sm text-white">
@@ -1254,6 +1273,113 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   </table>
                 </div>
               </div>
+            )}
+            </>
+            )}
+
+            {analyticsSubTab === 'customers' && (
+              <>
+                {/* Customers Key Metrics */}
+                {(() => {
+                  const customerMap = {};
+                  (stats.orders || []).forEach(o => {
+                    const key = o.userId || o.customerEmail || o.customerPhone;
+                    if (!key) return;
+                    if (!customerMap[key]) {
+                      customerMap[key] = {
+                        id: key,
+                        name: o.customerName || 'Клієнт',
+                        email: o.customerEmail || '',
+                        phone: o.customerPhone || '',
+                        orders: 0,
+                        revenue: 0,
+                        lastOrderAt: null,
+                      };
+                    }
+                    customerMap[key].orders += 1;
+                    customerMap[key].revenue += o.totalPrice || 0;
+                    const d = o.createdAt?.toDate ? o.createdAt.toDate() : (o.createdAt ? new Date(o.createdAt) : null);
+                    if (d && (!customerMap[key].lastOrderAt || d > customerMap[key].lastOrderAt)) {
+                      customerMap[key].lastOrderAt = d;
+                    }
+                  });
+                  const customers = Object.values(customerMap).sort((a,b) => b.revenue - a.revenue);
+                  const uniqueCustomers = customers.length;
+                  const repeatCustomers = customers.filter(c => c.orders > 1).length;
+                  const repeatRate = uniqueCustomers > 0 ? (repeatCustomers / uniqueCustomers) * 100 : 0;
+                  const avgOrdersPerCustomer = uniqueCustomers > 0 ? (stats.totalOrders / uniqueCustomers) : 0;
+                  const avgRevenuePerCustomer = uniqueCustomers > 0 ? (stats.totalRevenue / uniqueCustomers) : 0;
+
+                  return (
+                    <>
+                      <div className="grid md:grid-cols-4 gap-4">
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 shadow-sm text-white">
+                          <h3 className="text-blue-100 font-semibold mb-2 text-sm">Унікальні клієнти</h3>
+                          <p className="text-3xl font-bold">{uniqueCustomers}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 shadow-sm text-white">
+                          <h3 className="text-green-100 font-semibold mb-2 text-sm">Повторні клієнти</h3>
+                          <p className="text-3xl font-bold">{repeatCustomers}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 shadow-sm text-white">
+                          <h3 className="text-purple-100 font-semibold mb-2 text-sm">Повторна частка</h3>
+                          <p className="text-3xl font-bold">{repeatRate.toFixed(1)}%</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 shadow-sm text-white">
+                          <h3 className="text-orange-100 font-semibold mb-2 text-sm">Сер. дохід на клієнта</h3>
+                          <p className="text-3xl font-bold">{avgRevenuePerCustomer.toFixed(0)} ₴</p>
+                        </div>
+                      </div>
+
+                      {/* Top Customers Table */}
+                      <div className="bg-white rounded-2xl p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-xl font-bold text-slate-900">Топ клієнтів</h3>
+                          <p className="text-sm text-slate-500">Сер. замовлень/клієнта: {avgOrdersPerCustomer.toFixed(2)}</p>
+                        </div>
+                        {customers.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-slate-200">
+                                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">#</th>
+                                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Клієнт</th>
+                                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Email</th>
+                                  <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Телефон</th>
+                                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Замовлень</th>
+                                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Виручка</th>
+                                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Сер. чек</th>
+                                  <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Останнє</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {customers.slice(0, 20).map((c, idx) => {
+                                  const avg = c.orders > 0 ? c.revenue / c.orders : 0;
+                                  const dateStr = c.lastOrderAt ? `${c.lastOrderAt.getDate()}.${c.lastOrderAt.getMonth()+1}.${c.lastOrderAt.getFullYear()}` : '—';
+                                  return (
+                                    <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                      <td className="py-3 px-4 text-sm text-slate-600">{idx + 1}</td>
+                                      <td className="py-3 px-4 text-sm font-medium text-slate-900">{c.name}</td>
+                                      <td className="py-3 px-4 text-sm text-slate-600">{c.email || '—'}</td>
+                                      <td className="py-3 px-4 text-sm text-slate-600">{c.phone || '—'}</td>
+                                      <td className="py-3 px-4 text-sm text-right text-slate-600">{c.orders}</td>
+                                      <td className="py-3 px-4 text-sm text-right font-bold text-slate-900">{c.revenue.toFixed(0)} ₴</td>
+                                      <td className="py-3 px-4 text-sm text-right text-slate-600">{avg.toFixed(0)} ₴</td>
+                                      <td className="py-3 px-4 text-sm text-right text-slate-600">{dateStr}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-slate-500 text-center py-8">Немає даних</p>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </>
             )}
           </div>
         )}
