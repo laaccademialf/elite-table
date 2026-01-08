@@ -17,15 +17,15 @@ export function AppProvider({ children }) {
     // Live categories sync
     useEffect(() => {
       try {
-        const catQuery = query(collection(db, 'categories'), orderBy('order', 'asc'));
+        // НЕ використовуємо orderBy, щоб отримати всі категорії, навіть без order
         const unsubscribe = onSnapshot(
-          catQuery,
+          collection(db, 'categories'),
           (snapshot) => {
             const fetchedCategories = snapshot.docs.map((doc) => ({
               id: doc.id,
               ...doc.data(),
             }));
-            // Сортуємо додатково на клієнті, якщо деякі записи без order
+            // Сортуємо на клієнті
             const sorted = fetchedCategories.sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
             console.log('[AppProvider] Firestore categories:', sorted);
             setCategories(sorted);
@@ -44,9 +44,8 @@ export function AppProvider({ children }) {
                 console.error('[AppProvider] Error parsing cached categories:', e);
               }
             }
-            // Якщо помилка, спробуємо getDocs
-            const catQueryFallback = query(collection(db, 'categories'), orderBy('order', 'asc'));
-            getDocs(catQueryFallback)
+            // Якщо помилка, спробуємо getDocs без orderBy
+            getDocs(collection(db, 'categories'))
               .then((snapshot) => {
                 const fetchedCategories = snapshot.docs.map((doc) => ({
                   id: doc.id,

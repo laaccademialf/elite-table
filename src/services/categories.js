@@ -6,11 +6,10 @@ import { db } from './firebase';
 // { id, name, description, createdAt, updatedAt }
 
 export const getCategories = async () => {
-  // Сортуємо за полем order (зростання). Для старих записів без order фолбек працює в AppProvider/клієнті.
-  const q = query(collection(db, 'categories'), orderBy('order', 'asc'));
-  const querySnapshot = await getDocs(q);
+  // НЕ використовуємо orderBy, бо старі категорії без order не повернуться
+  const querySnapshot = await getDocs(collection(db, 'categories'));
   const categories = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  // Додатково захищаємося від undefined order: відсортуємо на клієнті, якщо треба
+  // Сортуємо на клієнті: категорії з order за порядком, без order - в кінець
   return categories.sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
 };
 
