@@ -57,6 +57,7 @@ export function AdminPanel() {
   // Filters state
   const [productCategoryFilter, setProductCategoryFilter] = useState('all');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [orderManagerFilter, setOrderManagerFilter] = useState('all');
   const [orderDateFilter, setOrderDateFilter] = useState({ start: null, end: null });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
@@ -326,7 +327,8 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
   const handleAssignToMe = async (orderId) => {
     try {
-      await assignOrderToManager(orderId, currentUser.uid, currentUser.email);
+      const managerName = currentUser.displayName || currentUser.email || 'Менеджер';
+      await assignOrderToManager(orderId, currentUser.uid, managerName);
       loadData();
     } catch (error) {
       console.error('Error assigning order:', error);
@@ -479,6 +481,11 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
   const filteredOrders = orders.filter(order => {
     // Status filter
     if (orderStatusFilter !== 'all' && order.status !== orderStatusFilter) {
+      return false;
+    }
+
+    // Manager filter
+    if (orderManagerFilter !== 'all' && order.assignedManagerId !== orderManagerFilter) {
       return false;
     }
     
@@ -799,14 +806,31 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   <option value="delivered">Доставлено</option>
                   <option value="cancelled">Скасовано</option>
                 </select>
+
+                <select
+                  value={orderManagerFilter}
+                  onChange={(e) => setOrderManagerFilter(e.target.value)}
+                  className="px-4 py-2 bg-white border-2 border-slate-300 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                >
+                  <option value="all">Всі менеджери</option>
+                  {Array.from(new Set(orders.filter(o => o.assignedManagerId).map(o => JSON.stringify({ id: o.assignedManagerId, name: o.assignedManagerName }))))
+                    .map(str => JSON.parse(str))
+                    .map(manager => (
+                      <option key={manager.id} value={manager.id}>
+                        {manager.name}
+                      </option>
+                    ))}
+                </select>
+
                 <DateRangePicker
                   value={{ start: orderDateFilter.start, end: orderDateFilter.end }}
                   onChange={(dateRange) => setOrderDateFilter({ start: dateRange.start, end: dateRange.end })}
                 />
-                {(orderStatusFilter !== 'all' || orderDateFilter.start || orderDateFilter.end) && (
+                {(orderStatusFilter !== 'all' || orderManagerFilter !== 'all' || orderDateFilter.start || orderDateFilter.end) && (
                   <button
                     onClick={() => {
                       setOrderStatusFilter('all');
+                      setOrderManagerFilter('all');
                       setOrderDateFilter({ start: null, end: null });
                     }}
                     className="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-300 transition-colors whitespace-nowrap"
@@ -980,7 +1004,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                 <select
                   value={analyticsManagerFilter}
                   onChange={(e) => setAnalyticsManagerFilter(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full px-4 py-3 bg-white border-2 border-slate-300 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm hover:border-slate-400"
                 >
                   <option value="all">Всі менеджери</option>
                   {stats.managerStats?.map(manager => (
