@@ -265,6 +265,7 @@ export function AppProvider({ children }) {
           productName: item.name,
           quantity: item.quantity,
           price: item.price,
+          category: item.category || 'Інше',
         })),
         totalPrice,
         eventDate: globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : '',
