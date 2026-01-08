@@ -7,7 +7,6 @@ export default function LoginView({ onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('customer');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +21,7 @@ export default function LoginView({ onLoginSuccess }) {
         await loginUser(email, password);
       } else {
         // Register
-        await registerUser(email, password, { name, phone, role });
+        await registerUser(email, password, { name, phone });
       }
       onLoginSuccess();
     } catch (err) {
@@ -88,14 +87,6 @@ export default function LoginView({ onLoginSuccess }) {
                 className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
                 required
               />
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-slate-900"
-              >
-                <option value="customer">Клієнт</option>
-                <option value="manager">Менеджер</option>
-              </select>
             </>
           )}
 
