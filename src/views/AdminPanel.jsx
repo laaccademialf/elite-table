@@ -1276,7 +1276,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                   (analyticsProducts || []).forEach(p => {
                     productMap[p.id] = p;
                   });
-                  const rows = Object.values(productAgg).map(r => {
+                  let rows = Object.values(productAgg).map(r => {
                     const p = r.productId ? (productMap[r.productId] || {}) : {};
                     const avgPrice = r.quantity > 0 ? r.revenue / r.quantity : 0;
                     return {
@@ -1286,6 +1286,21 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                       avgPrice,
                     };
                   }).sort((a,b) => b.revenue - a.revenue);
+
+                  // Fallback: build rows from topProducts when no orders matched
+                  if (rows.length === 0 && Array.isArray(stats.topProducts) && stats.topProducts.length > 0) {
+                    rows = stats.topProducts.map(tp => ({
+                      productId: null,
+                      name: tp.name,
+                      category: '—',
+                      revenue: tp.revenue || 0,
+                      quantity: tp.quantity || 0,
+                      orders: tp.count || 0,
+                      sku: '',
+                      stock: '-',
+                      avgPrice: (tp.quantity && tp.quantity > 0) ? (tp.revenue / tp.quantity) : 0,
+                    })).sort((a,b) => b.revenue - a.revenue);
+                  }
 
                   // ABC класифікація по виручці
                   const totalRev = rows.reduce((s,r)=>s+r.revenue,0) || 1;
