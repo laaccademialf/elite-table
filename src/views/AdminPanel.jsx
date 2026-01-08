@@ -1411,6 +1411,52 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                 })()}
               </>
             )}
+
+            {/* Products Tab - Simple version showing topProducts */}
+            {analyticsSubTab === 'products' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-slate-900">Аналітика по товарах</h2>
+                {stats.topProducts && stats.topProducts.length > 0 ? (
+                  <div className="bg-white rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-xl font-bold text-slate-900 mb-4">Топ товарів по виручці</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-200">
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">#</th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Товар</th>
+                            <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Виручка</th>
+                            <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">К-ть</th>
+                            <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Замовлень</th>
+                            <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Сер. ціна</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stats.topProducts.map((p, idx) => {
+                            const avgPrice = p.quantity && p.quantity > 0 ? p.revenue / p.quantity : 0;
+                            return (
+                              <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                                <td className="py-3 px-4 text-sm text-slate-600">{idx + 1}</td>
+                                <td className="py-3 px-4 text-sm font-medium text-slate-900">{p.name}</td>
+                                <td className="py-3 px-4 text-sm text-right font-bold text-slate-900">{p.revenue.toFixed(0)} ₴</td>
+                                <td className="py-3 px-4 text-sm text-right text-slate-600">{p.quantity}</td>
+                                <td className="py-3 px-4 text-sm text-right text-slate-600">{p.count}</td>
+                                <td className="py-3 px-4 text-sm text-right text-slate-600">{avgPrice.toFixed(0)} ₴</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
+                    <p className="text-slate-500 py-8">Немає даних по товарах</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Manager Performance */}
             {stats.managerStats && stats.managerStats.length > 0 && (
               <div className="bg-white rounded-2xl p-6 shadow-sm">
