@@ -122,6 +122,7 @@ export const importProductsFromExcel = (file) => {
         
         // Конвертуємо в JSON
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        console.log('[importProductsFromExcel] Raw JSON data from Excel:', jsonData);
         
         // Мапимо дані на структуру товару
         const products = jsonData
@@ -136,16 +137,29 @@ export const importProductsFromExcel = (file) => {
             image: String(row['Посилання на фото'] || '').trim()
           }));
         
+        console.log('[importProductsFromExcel] Parsed products:', products);
+        
         // Валідація
         const validProducts = products.filter(product => {
-          if (!product.name) return false;
-          if (product.price < 0) return false;
-          if (product.quantity < 0) return false;
+          if (!product.name) {
+            console.log('[importProductsFromExcel] Invalid product - no name:', product);
+            return false;
+          }
+          if (product.price <= 0) {
+            console.log('[importProductsFromExcel] Invalid product - price <= 0:', product);
+            return false;
+          }
+          if (product.quantity < 0) {
+            console.log('[importProductsFromExcel] Invalid product - quantity < 0:', product);
+            return false;
+          }
           return true;
         });
         
+        console.log('[importProductsFromExcel] Valid products:', validProducts.length, 'of', products.length);
+        
         if (validProducts.length === 0) {
-          reject(new Error('Файл не містить валідних товарів. Переконайтесь, що заповнені обов\'язкові поля: Назва, Ціна, Кількість.'));
+          reject(new Error('Файл не містить валідних товарів. Переконайтесь, що заповнені обов\'язкові поля: Назва (текст), Ціна (число > 0), Кількість (число >= 0).'));
           return;
         }
         
