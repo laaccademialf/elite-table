@@ -1417,6 +1417,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
             {/* Products Tab - Simple version showing topProducts */}
             {analyticsSubTab === 'products' && (
               <div className="space-y-6">
+                {(() => { console.log('PRODUCTS RENDER: stats.topProducts =', stats.topProducts); return null; })()}
                 <h2 className="text-2xl font-bold text-slate-900">Аналітика по товарах</h2>
                 {stats.topProducts && stats.topProducts.length > 0 ? (
                   <div className="bg-white rounded-2xl p-6 shadow-sm">
