@@ -12,7 +12,7 @@ export const exportProductsToExcel = (products) => {
     'Ціна': product.price || 0,
     'Кількість': product.quantity || 0,
     'Категорія': product.category || '',
-    'Посилання на фото': product.imageUrl || ''
+    'Посилання на фото': product.image || ''
   }));
 
   // Створюємо worksheet
@@ -127,7 +127,7 @@ export const importProductsFromExcel = (file) => {
             price: parseFloat(row['Ціна']) || 0,
             quantity: parseInt(row['Кількість']) || 0,
             category: String(row['Категорія'] || '').trim(),
-            imageUrl: String(row['Посилання на фото'] || '').trim()
+            image: String(row['Посилання на фото'] || '').trim()
           }));
         
         // Валідація

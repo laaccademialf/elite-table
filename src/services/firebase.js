@@ -233,7 +233,7 @@ export const createProductsBulk = async (products) => {
           price: product.price,
           quantity: product.quantity,
           category: product.category || '',
-          imageUrl: product.imageUrl || '',
+          image: product.image || '',
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
         };
