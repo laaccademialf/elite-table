@@ -80,6 +80,11 @@ const UsersView = () => {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return '-';
+    // Якщо це строка у форматі DD.MM.YYYY (з eventDate/eventEndDate), повертаємо як є
+    if (typeof timestamp === 'string') {
+      return timestamp;
+    }
+    // Інакше це Timestamp або Date
     const date = timestamp.toDate?.() || new Date(timestamp);
     return date.toLocaleDateString('uk-UA', { year: 'numeric', month: '2-digit', day: '2-digit' });
   };
@@ -266,7 +271,7 @@ const UsersView = () => {
                                       <ul className="mt-1 list-disc list-inside text-xs">
                                         {order.items.map((item, idx) => (
                                           <li key={idx}>
-                                            Продукт ID: {item.productId}, Кількість: {item.quantity}
+                                            {item.productName} × {item.quantity} (₴{item.price?.toFixed(2) || '0.00'})
                                           </li>
                                         ))}
                                       </ul>
