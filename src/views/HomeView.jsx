@@ -269,7 +269,11 @@ export const HomeView = () => {
                         <span className="text-2xl">{icon || '🏷️'}</span>
                       )}
                     </div>
-                    <div className={`h-[40px] md:h-[42px] px-2 py-1 text-[10px] md:text-[11px] font-bold uppercase leading-tight flex items-center justify-center ${isActive ? 'text-slate-900' : 'text-slate-700'}`}>
+                    <div className={`h-[40px] md:h-[42px] px-2 py-1 text-[10px] md:text-[11px] font-bold uppercase leading-tight flex items-center justify-center transition-colors duration-200 ${
+                      isActive
+                        ? 'bg-[#081226] text-white'
+                        : 'bg-white text-slate-700 group-hover:bg-[#081226] group-hover:text-white'
+                    }`}>
                       <span className="clamp-2 text-center">{category.name}</span>
                     </div>
                   </button>
