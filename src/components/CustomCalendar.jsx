@@ -38,21 +38,21 @@ export const CustomCalendar = ({ globalDates, setGlobalDates }) => {
   };
 
   return (
-    <div className="bg-[#FAF3E3] rounded-lg border border-[#F3E5C8] p-2 md:p-3 w-full max-w-xs shadow-sm transition-all duration-300">
+    <div className="bg-[#0b1731] rounded-2xl border border-slate-700 p-2 md:p-3 w-full max-w-xs shadow-xl transition-all duration-300 text-white">
       <div className="flex justify-between items-center mb-2 px-1">
-        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
+        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-300">
           {MONTHS[month]} {year}
         </span>
         <div className="flex gap-1">
-          <button onClick={handlePrev} className="hover:scale-110 transition-transform p-1 rounded hover:bg-[#F3E5C8]">
-            <ChevronLeft size={16} className="text-gray-500" />
+          <button onClick={handlePrev} className="hover:scale-110 transition-transform p-1 rounded hover:bg-slate-800">
+            <ChevronLeft size={16} className="text-slate-300" />
           </button>
-          <button onClick={handleNext} className="hover:scale-110 transition-transform p-1 rounded hover:bg-[#F3E5C8]">
-            <ChevronRight size={16} className="text-gray-500" />
+          <button onClick={handleNext} className="hover:scale-110 transition-transform p-1 rounded hover:bg-slate-800">
+            <ChevronRight size={16} className="text-slate-300" />
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-1 mb-1 text-[11px] text-center text-gray-400 font-bold">
+      <div className="grid grid-cols-7 gap-1 mb-1 text-[11px] text-center text-slate-500 font-bold">
         <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Нд</div>
       </div>
       <div className="grid grid-cols-7 gap-1">
@@ -92,7 +92,7 @@ export const CustomCalendar = ({ globalDates, setGlobalDates }) => {
                 setGlobalDates(next);
               }}
               className={`h-8 w-8 flex items-center justify-center rounded-md text-xs font-bold transition-all duration-150
-                ${isSel ? 'bg-slate-900 text-white shadow' : 'bg-white text-gray-700 hover:bg-[#F5EBDD] border border-[#F3E5C8]'}
+                ${isSel ? 'bg-cyan-400 text-slate-950 shadow' : 'bg-slate-900 text-slate-200 hover:bg-slate-800 border border-slate-700'}
               `}
             >
               {day}

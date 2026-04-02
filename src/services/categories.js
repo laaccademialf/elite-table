@@ -3,7 +3,7 @@ import { Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
 
 // COLLECTION: categories
-// { id, name, description, createdAt, updatedAt }
+// { id, name, description, icon, order, parentId, createdAt, updatedAt }
 
 export const getCategories = async () => {
   // НЕ використовуємо orderBy, бо старі категорії без order не повернуться
@@ -24,6 +24,7 @@ export const addCategory = async (category) => {
     name: category.name,
     description: category.description || '',
     icon: category.icon || '',
+    parentId: category.parentId || null,
     order: category.order ?? nextOrder,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
@@ -37,6 +38,7 @@ export const updateCategory = async (id, data) => {
     name: data.name,
     description: data.description || '',
     icon: data.icon || '',
+    parentId: data.parentId || null,
     ...(data.order !== undefined ? { order: data.order } : {}),
     updatedAt: Timestamp.now(),
   });

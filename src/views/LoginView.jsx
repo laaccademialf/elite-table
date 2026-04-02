@@ -32,14 +32,15 @@ export default function LoginView({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-[#081226] to-slate-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-[#081226] text-white rounded-3xl shadow-xl p-8 border border-slate-700">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">ELITE TABLE</h1>
-          <p className="text-slate-600">Оренда посуду для вашої святкування</p>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-cyan-300 mb-2">LaFamiglia Rentco</p>
+          <h1 className="text-4xl font-bold text-white mb-2">LaFamiglia Rentco</h1>
+          <p className="text-slate-300">Преміальна оренда посуду для вашого свята</p>
         </div>
 
-        <div className="flex gap-4 mb-8 bg-slate-100 rounded-xl p-1">
+        <div className="flex gap-4 mb-8 bg-slate-900 rounded-xl p-1 border border-slate-700">
           <button
             onClick={() => {
               setIsLogin(true);
@@ -112,7 +113,7 @@ export default function LoginView({ onLoginSuccess }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 disabled:opacity-50 transition"
+            className="w-full py-3 bg-cyan-500 text-slate-950 rounded-xl font-bold hover:bg-cyan-400 disabled:opacity-50 transition"
           >
             {loading ? 'Чекаємо...' : isLogin ? 'Увійти' : 'Зареєструватись'}
           </button>

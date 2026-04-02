@@ -41,28 +41,29 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full relative">
+    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#081226] text-white rounded-3xl shadow-2xl max-w-md w-full relative border border-slate-700">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition"
+          className="absolute top-4 right-4 p-2 hover:bg-slate-800 rounded-full transition"
         >
-          <X size={24} className="text-slate-600" />
+          <X size={24} className="text-slate-300" />
         </button>
 
         <div className="p-8">
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-cyan-300 mb-2">LaFamiglia Rentco</p>
+          <h2 className="text-2xl font-bold text-white mb-6">
             {isLogin ? 'Вхід' : 'Реєстрація'}
           </h2>
 
-          <div className="flex gap-2 mb-6 bg-slate-100 rounded-lg p-1">
+          <div className="flex gap-2 mb-6 bg-slate-900 rounded-lg p-1 border border-slate-700">
             <button
               onClick={() => {
                 setIsLogin(true);
                 setError('');
               }}
               className={`flex-1 py-2 rounded font-medium transition ${
-                isLogin ? 'bg-slate-900 text-white' : 'text-slate-600'
+                isLogin ? 'bg-cyan-500 text-slate-950' : 'text-slate-300'
               }`}
             >
               Вхід
@@ -73,7 +74,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                 setError('');
               }}
               className={`flex-1 py-2 rounded font-medium transition ${
-                !isLogin ? 'bg-slate-900 text-white' : 'text-slate-600'
+                !isLogin ? 'bg-cyan-500 text-slate-950' : 'text-slate-300'
               }`}
             >
               Реєстрація
@@ -124,16 +125,16 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 disabled:opacity-50 transition"
+              className="w-full py-2 bg-cyan-500 text-slate-950 rounded-xl font-bold hover:bg-cyan-400 disabled:opacity-50 transition"
             >
               {loading ? 'Чекаємо...' : isLogin ? 'Увійти' : 'Зареєструватись'}
             </button>
           </form>
 
           {isLogin && (
-            <div className="mt-6 pt-6 border-t border-slate-200">
-              <p className="text-sm text-slate-600 mb-2">Demo облік для адміна:</p>
-              <p className="text-xs text-slate-500">
+            <div className="mt-6 pt-6 border-t border-slate-700">
+              <p className="text-sm text-slate-300 mb-2">Demo облік для адміна:</p>
+              <p className="text-xs text-slate-400">
                 <strong>Email:</strong> admin@admin.com<br />
                 <strong>Password:</strong> admin123
               </p>

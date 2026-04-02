@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '../context/useAppContext';
 import {
   addProduct,
@@ -15,6 +15,7 @@ import {
 } from '../services/firebase';
 import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown, Download, FileUp, ArrowUp, ArrowDown, UserCheck, Bell } from 'lucide-react';
 import CategoryManager from '../components/CategoryManager';
+import GalleryManager from '../components/GalleryManager';
 import DateRangePicker from '../components/DateRangePicker';
 import { getCategories } from '../services/categories';
 import { CustomCalendar } from '../components/CustomCalendar';
@@ -128,6 +129,26 @@ export function AdminPanel() {
     getCategories().then(setCategories);
   }, []);
 
+  const categoryOptions = useMemo(() => {
+    const rootCategories = categories.filter((cat) => !cat.parentId);
+
+    if (rootCategories.length === 0) {
+      return categories.map((cat) => ({ value: cat.name, label: cat.name }));
+    }
+
+    return rootCategories.flatMap((parent) => {
+      const children = categories.filter((cat) => cat.parentId === parent.id);
+      if (children.length === 0) {
+        return [{ value: parent.name, label: parent.name }];
+      }
+
+      return [
+        { value: parent.name, label: `${parent.name} (вся група)` },
+        ...children.map((child) => ({ value: child.name, label: `↳ ${child.name}` })),
+      ];
+    });
+  }, [categories]);
+
   // Sync expanded order from context
   useEffect(() => {
     if (expandedOrderId) {
@@ -219,7 +240,7 @@ export function AdminPanel() {
         description: '',
         price: '',
         quantity: '',
-        category: 'plates',
+        category: '',
         image: '',
       });
       setEditingId(null);
@@ -268,7 +289,7 @@ export function AdminPanel() {
       description: '',
       price: '',
       quantity: '',
-      category: 'plates',
+      category: '',
       image: '',
     });
   };
@@ -565,10 +586,23 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
     return true;
   };
 
-  // Filter products by category
-  const filteredProducts = products.filter(product => {
+  // Filter products by category / subcategory group
+  const filteredProducts = products.filter((product) => {
     if (productCategoryFilter === 'all') return true;
-    return product.category === productCategoryFilter;
+
+    const selectedFilterCategory = categories.find((cat) => cat.name === productCategoryFilter);
+    if (!selectedFilterCategory) {
+      return product.category === productCategoryFilter;
+    }
+
+    const relatedCategories = [
+      selectedFilterCategory,
+      ...categories.filter((cat) => cat.parentId === selectedFilterCategory.id),
+    ];
+
+    return relatedCategories.some(
+      (cat) => product.category === cat.name || product.categoryId === cat.id
+    );
   });
 
   // Filter orders by status and date
@@ -604,7 +638,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
         {/* Tabs */}
         <div className="flex gap-4 mb-8 bg-white rounded-2xl p-4 shadow-sm">
-          {['inventory', 'orders', 'analytics', 'users', 'settings'].map((tab) => (
+          {['inventory', 'gallery', 'orders', 'analytics', 'users', 'settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setAdminTab(tab)}
@@ -615,6 +649,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
               }`}
             >
               {tab === 'inventory' && '🍽️ Товари'}
+              {tab === 'gallery' && '🖼️ Галерея'}
               {tab === 'orders' && '📦 Замовлення'}
               {tab === 'analytics' && '📊 Аналітика'}
               {tab === 'users' && '👥 Користувачі'}
@@ -627,6 +662,10 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
             </button>
           ))}
         </div>
+
+        {adminTab === 'gallery' && (
+          <GalleryManager />
+        )}
 
         {/* Inventory Tab */}
         {adminTab === 'inventory' && (
@@ -699,9 +738,9 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-gray-900 font-semibold"
                     >
-                      <option value="">Оберіть категорію</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      <option value="">Оберіть категорію / підкатегорію</option>
+                      {categoryOptions.map((option) => (
+                        <option key={`${option.value}-${option.label}`} value={option.value}>{option.label}</option>
                       ))}
                     </select>
                     <input
@@ -778,8 +817,8 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                       className="px-4 py-2 bg-white border-2 border-slate-300 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                     >
                       <option value="all">Всі категорії</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      {categoryOptions.map((option) => (
+                        <option key={`${option.value}-${option.label}`} value={option.value}>{option.label}</option>
                       ))}
                     </select>
                   </div>

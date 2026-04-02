@@ -10,6 +10,7 @@ import { AdminPanel } from "./views/AdminPanel";
 import { CheckoutView } from "./views/CheckoutView";
 import { PostItemView } from "./views/PostItemView";
 import { OrdersView } from "./views/OrdersView";
+import { GalleryView } from "./views/GalleryView";
 import { Bell } from "lucide-react";
 
 const AppContent = () => {
@@ -34,7 +35,7 @@ const AppContent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-[#C5A059] selection:text-white">
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-cyan-400 selection:text-slate-950">
       <Navbar
         isAdminMode={isAdminMode}
         setIsAdminMode={setIsAdminMode}
@@ -49,6 +50,7 @@ const AppContent = () => {
       ) : (
         <>
           {view === "home" && <HomeView />}
+          {view === "gallery" && <GalleryView />}
           {view === "cart" && <CartView />}
           {view === "item" && <ItemDetailView />}
           {view === "post" && <PostItemView />}
@@ -61,7 +63,7 @@ const AppContent = () => {
       {pendingNotifications.length > 0 && (
         <div className="fixed bottom-4 right-4 z-50 space-y-2 w-72">
           {pendingNotifications.map((n) => (
-            <div key={n.id} onClick={() => handleNotificationClick(n.orderId)} className="bg-slate-900 text-white shadow-xl rounded-2xl px-4 py-3 flex items-start gap-3 border border-slate-800 animate-fade-in cursor-pointer hover:bg-slate-800 hover:border-slate-700 transition-colors">
+            <div key={n.id} onClick={() => handleNotificationClick(n.orderId)} className="bg-[#0f1b3d] text-white shadow-xl rounded-2xl px-4 py-3 flex items-start gap-3 border border-cyan-500/30 animate-fade-in cursor-pointer hover:bg-[#132554] hover:border-cyan-400/50 transition-colors">
               <div className="mt-0.5"><Bell size={16} /></div>
               <div className="text-sm leading-tight">
                 <div className="font-semibold">Нове замовлення</div>

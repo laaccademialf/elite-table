@@ -68,16 +68,16 @@ export default function DateRangePicker({ value, onChange }) {
 
   return (
     <div className="relative" ref={ref}>
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center flex-nowrap whitespace-nowrap">
         <button
-          className="px-3 py-2 rounded-lg border border-slate-200 bg-white shadow-sm text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+          className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-950/70 text-white shadow-sm text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-400"
           onClick={() => { setShow(true); setActiveField('start'); }}
         >
           {format(value?.start) || 'Дата з'}
         </button>
-        <span className="text-slate-400 font-bold">—</span>
+        <span className="text-slate-500 font-bold">—</span>
         <button
-          className="px-3 py-2 rounded-lg border border-slate-200 bg-white shadow-sm text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+          className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-950/70 text-white shadow-sm text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-50"
           onClick={() => { setShow(true); setActiveField('end'); }}
           disabled={!value?.start}
         >
@@ -85,42 +85,42 @@ export default function DateRangePicker({ value, onChange }) {
         </button>
       </div>
       {show && (
-        <div className="absolute z-50 mt-2 left-0 bg-[#FAF3E3] rounded-xl border border-[#F3E5C8] shadow-lg p-4 w-80 animate-in fade-in">
+        <div className="absolute z-50 mt-2 left-0 bg-[#0b1731] rounded-2xl border border-slate-700 shadow-2xl p-4 w-80 animate-in fade-in text-white">
           <div className="flex justify-between items-center mb-2">
             <button onClick={() => {
               if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
               else setViewMonth(viewMonth - 1);
-            }} className="p-1 rounded hover:bg-[#F3E5C8]">
+            }} className="p-1 rounded hover:bg-slate-800">
               &lt;
             </button>
-            <span className="text-xs font-bold uppercase tracking-widest text-gray-600">{MONTHS[viewMonth]} {viewYear}</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-slate-300">{MONTHS[viewMonth]} {viewYear}</span>
             <button onClick={() => {
               if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
               else setViewMonth(viewMonth + 1);
-            }} className="p-1 rounded hover:bg-[#F3E5C8]">
+            }} className="p-1 rounded hover:bg-slate-800">
               &gt;
             </button>
           </div>
-          <div className="grid grid-cols-7 gap-1 mb-1 text-[11px] text-center text-gray-400 font-bold">
+          <div className="grid grid-cols-7 gap-1 mb-1 text-[11px] text-center text-slate-500 font-bold">
             <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Нд</div>
           </div>
           <div className="grid grid-cols-7 gap-1">
             {prevMonthDays.map((d, i) => (
-              <button key={"prev"+i} className="h-8 w-8 text-xs text-gray-300 bg-transparent cursor-not-allowed" disabled>{d}</button>
+              <button key={"prev"+i} className="h-8 w-8 text-xs text-slate-600 bg-transparent cursor-not-allowed" disabled>{d}</button>
             ))}
             {days.map((d) => (
               <button
                 key={d}
                 onClick={() => handleSelect(d, viewMonth, viewYear)}
                 className={`h-8 w-8 flex items-center justify-center rounded-md text-xs font-bold transition-all duration-150
-                  ${isSelected(d, viewMonth, viewYear) ? 'bg-slate-900 text-white shadow' :
-                    isInRange(d, viewMonth, viewYear) ? 'bg-[#EADBC8] text-slate-900' :
-                    'bg-white text-gray-700 hover:bg-[#F5EBDD] border border-[#F3E5C8]'}
+                  ${isSelected(d, viewMonth, viewYear) ? 'bg-cyan-400 text-slate-950 shadow' :
+                    isInRange(d, viewMonth, viewYear) ? 'bg-cyan-500/20 text-cyan-100' :
+                    'bg-slate-900 text-slate-200 hover:bg-slate-800 border border-slate-700'}
                 `}
               >{d}</button>
             ))}
             {nextMonthDays.map((d, i) => (
-              <button key={"next"+i} className="h-8 w-8 text-xs text-gray-300 bg-transparent cursor-not-allowed" disabled>{d}</button>
+              <button key={"next"+i} className="h-8 w-8 text-xs text-slate-600 bg-transparent cursor-not-allowed" disabled>{d}</button>
             ))}
           </div>
         </div>
