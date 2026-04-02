@@ -151,7 +151,7 @@ export const ItemDetailView = () => {
         {/* Опис (коротко, внизу) */}
         {selectedItem.description && (
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-            <p className="text-xs text-slate-600 line-clamp-3">{selectedItem.description}</p>
+            <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">{selectedItem.description}</p>
           </div>
         )}
       </div>
@@ -178,7 +178,7 @@ export const ItemDetailView = () => {
             {/* Опис - розширюється до низу */}
             <div className="bg-[#4a5266] p-5 rounded-3xl border border-slate-500/40 flex flex-col flex-grow shadow-sm">
               <p className="text-[10px] font-black uppercase text-slate-300 mb-2">Опис</p>
-              <p className="text-sm text-white/90">{selectedItem.description}</p>
+              <p className="text-sm text-white/90 whitespace-pre-line leading-relaxed">{selectedItem.description}</p>
             </div>
             
             {/* Нижня частина: ціна */}

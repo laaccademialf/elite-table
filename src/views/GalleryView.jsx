@@ -24,9 +24,9 @@ export const GalleryView = () => {
   }, []);
 
   return (
-    <main className="max-w-7xl mx-auto px-6 pt-0 pb-8 md:pb-10 animate-in fade-in duration-700">
+    <main className="max-w-[1680px] mx-auto px-6 pt-0 pb-8 md:pb-10 animate-in fade-in duration-700">
       <section className="w-screen relative left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#081226] via-[#112248] to-[#081226] text-white px-6 pt-3 pb-5 md:pt-4 md:pb-6 mb-8 border-b border-slate-700 shadow-lg">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1680px] mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 text-xs font-bold uppercase tracking-[0.2em] mb-3">
             <Sparkles size={14} />
             Gallery
@@ -50,7 +50,7 @@ export const GalleryView = () => {
           <p className="text-slate-600">Незабаром тут зʼявляться найкрасивіші фото для натхнення.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-[220px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 auto-rows-[220px]">
           {items.map((item, index) => {
             const featuredTile = item.featured || index % 7 === 0;
             return (

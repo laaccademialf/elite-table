@@ -174,7 +174,7 @@ export const HomeView = () => {
   return (
     <main className="max-w-[1680px] mx-auto px-6 pt-0 pb-8 animate-in fade-in duration-700 text-slate-900">
       {/* Hero Section */}
-      <div className="w-screen relative z-30 left-1/2 -translate-x-1/2 mb-4 bg-gradient-to-r from-[#081226] via-[#112248] to-[#081226] px-6 pt-2 pb-4 md:pt-3 md:pb-4 border-b border-slate-700 transition-all duration-300 shadow-lg">
+      <div className="w-screen relative z-30 left-1/2 -translate-x-1/2 mb-0 bg-gradient-to-r from-[#081226] via-[#112248] to-[#081226] px-6 pt-2 pb-4 md:pt-3 md:pb-4 border-b border-slate-700 transition-all duration-300 shadow-lg">
         <div className="max-w-[1680px] mx-auto flex flex-col md:flex-row items-center md:items-center justify-between gap-3 min-h-[72px]">
           {/* Header and DatePicker */}
           <div className="flex-1 flex flex-col items-center md:items-start gap-1 px-1 self-start md:self-center">
@@ -208,10 +208,10 @@ export const HomeView = () => {
       </div>
 
       {/* Category Filter */}
-      <div className="sticky top-16 z-20 mb-6 transition-all duration-500 ease-out">
-        <div className={`w-screen relative left-1/2 -translate-x-1/2 pt-0 pb-3 overflow-visible transition-all duration-500 ease-out ${
+      <div className="sticky top-16 z-20 mb-6 transition-all duration-500 ease-out -mt-px">
+        <div className={`w-screen relative left-1/2 -translate-x-1/2 pt-0 pb-3 overflow-visible transition-all duration-500 ease-out border-b-[3px] border-slate-800/80 ${
           isCategoryBarSolid
-            ? 'bg-[#081226]/95 backdrop-blur-md border-b border-slate-800 shadow-xl'
+            ? 'bg-[#081226]/95 backdrop-blur-md shadow-xl'
             : 'bg-transparent'
         }`}>
           <div className="max-w-[1680px] mx-auto px-6 pt-3 space-y-3">
@@ -387,13 +387,13 @@ export const HomeView = () => {
       {/* No Products */}
       {filteredProducts.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-slate-300 text-lg mb-4">Товарів немає у цій категорії</p>
+          <p className="text-slate-400 text-lg mb-4">Товарів немає у цій категорії</p>
           <button
             onClick={() => {
               setSelectedParentId(null);
               setSelectedCategory(null);
             }}
-            className="px-6 py-3 bg-cyan-500 text-slate-950 rounded-xl font-bold hover:bg-cyan-400"
+            className="px-6 py-3 bg-[#081226] text-white rounded-xl font-bold border border-slate-700 hover:bg-[#112248] transition-colors"
           >
             Переглянути всі товари
           </button>
