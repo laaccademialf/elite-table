@@ -21,6 +21,7 @@ import { getCategories } from '../services/categories';
 import { CustomCalendar } from '../components/CustomCalendar';
 import UsersView from './UserManagement';
 import { exportProductsToExcel, downloadExcelTemplate, importProductsFromExcel } from '../utils/excelUtils';
+import { downloadOrderInvoicePdf } from '../utils/pdfInvoice';
 import { Timestamp } from 'firebase/firestore';
 
 // Helper to format date object or string to DD.MM.YYYY
@@ -459,6 +460,15 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
       alert('Помилка при видаленні замовлення');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadInvoice = async (order) => {
+    try {
+      await downloadOrderInvoicePdf(order);
+    } catch (error) {
+      console.error('Error generating invoice PDF:', error);
+      alert('Не вдалося згенерувати PDF накладну');
     }
   };
 
@@ -1056,6 +1066,16 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                       <option value="delivered">Доставлено</option>
                       <option value="cancelled">Скасовано</option>
                     </select>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadInvoice(order);
+                      }}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors flex items-center gap-2 text-sm"
+                    >
+                      <Download size={16} />
+                      PDF накладна
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
