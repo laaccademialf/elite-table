@@ -230,7 +230,7 @@ export const HomeView = () => {
           >
             <div className="flex w-max min-w-full items-stretch justify-center gap-3 px-3 pb-2">
               <button
-                className="group w-[96px] md:w-[112px] h-[102px] md:h-[110px] rounded-2xl border-2 px-2 py-2 flex-shrink-0 flex flex-col items-center justify-center border-slate-200 bg-white text-slate-900 transition-all duration-200 ease-out hover:scale-[1.04] hover:shadow-lg hover:ring-2 hover:ring-[#081226]"
+                className="group w-[96px] md:w-[112px] h-[102px] md:h-[110px] rounded-2xl border-2 px-2 py-2 flex-shrink-0 flex flex-col items-center justify-center border-[rgba(148,163,184,0.45)] bg-white text-slate-900 transition-all duration-200 ease-out hover:scale-[1.04] hover:shadow-lg hover:border-[#081226]"
                 onClick={runIfNotDragging(() => {
                   setSelectedParentId(null);
                   setSelectedCategory(null);
@@ -250,7 +250,7 @@ export const HomeView = () => {
                   <button
                     key={category.id}
                     className={`group w-[104px] md:w-[120px] h-[102px] md:h-[110px] rounded-2xl border-2 overflow-hidden flex-shrink-0 bg-white transition-all duration-200 ease-out ${
-                      isActive ? 'border-slate-900 shadow-md' : 'border-slate-200 hover:scale-[1.04] hover:shadow-lg hover:ring-2 hover:ring-[#081226]'
+                      isActive ? 'border-[#081226] shadow-md' : 'border-[rgba(148,163,184,0.45)] hover:scale-[1.04] hover:shadow-lg hover:border-[#081226]'
                     }`}
                     onClick={runIfNotDragging(() => {
                       setSelectedParentId(category.id);
@@ -269,10 +269,10 @@ export const HomeView = () => {
                         <span className="text-2xl">{icon || '🏷️'}</span>
                       )}
                     </div>
-                    <div className={`h-[40px] md:h-[42px] px-2 py-1 text-[10px] md:text-[11px] font-bold uppercase leading-tight flex items-center justify-center transition-colors duration-200 ${
+                    <div className={`h-[40px] md:h-[42px] px-2 py-1 text-[10px] md:text-[11px] font-bold uppercase leading-tight flex items-center justify-center transition-colors duration-200 bg-white ${
                       isActive
-                        ? 'bg-[#081226] text-white'
-                        : 'bg-white text-slate-700 group-hover:bg-[#081226] group-hover:text-white'
+                        ? 'text-slate-900'
+                        : 'text-slate-700'
                     }`}>
                       <span className="clamp-2 text-center">{category.name}</span>
                     </div>
@@ -307,8 +307,8 @@ export const HomeView = () => {
                       })}
                       className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 ease-out ${
                         isActive
-                          ? 'border-slate-900 bg-slate-900 text-white'
-                          : 'border-slate-200 bg-white text-slate-700 hover:scale-105 hover:shadow-md hover:ring-2 hover:ring-[#081226] hover:text-slate-900'
+                          ? 'border-[#081226] bg-[#081226] text-white'
+                          : 'border-[rgba(148,163,184,0.45)] bg-white text-slate-700 hover:scale-105 hover:shadow-md hover:border-[#081226] hover:text-slate-900'
                       }`}
                     >
                       {subcategory.name}
