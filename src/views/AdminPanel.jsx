@@ -661,6 +661,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
           }));
       const rows = [...baseRows];
       const currentRow = { ...(rows[index] || {}) };
+      const orderQuantity = Math.max(1, Number(field === 'quantity' ? value || 1 : currentRow.quantity || 1));
 
       if (field === 'productId') {
         const selectedProduct = products.find((product) => product.id === value);
@@ -672,10 +673,38 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
           price: Number(selectedProduct?.price ?? currentRow.price ?? 0),
           category: selectedProduct?.category || currentRow.category || 'Інше',
         };
+      } else if (field === 'returnedQuantity') {
+        const returnedQuantity = Math.min(orderQuantity, Math.max(0, Number(value || 0)));
+        rows[index] = {
+          ...currentRow,
+          returnedQuantity,
+          brokenQuantity: Math.max(0, orderQuantity - returnedQuantity),
+        };
+      } else if (field === 'brokenQuantity') {
+        const brokenQuantity = Math.min(orderQuantity, Math.max(0, Number(value || 0)));
+        rows[index] = {
+          ...currentRow,
+          brokenQuantity,
+          returnedQuantity: Math.max(0, orderQuantity - brokenQuantity),
+        };
+      } else if (field === 'packedQuantity') {
+        rows[index] = {
+          ...currentRow,
+          packedQuantity: Math.min(orderQuantity, Math.max(0, Number(value || 0))),
+        };
+      } else if (field === 'quantity') {
+        const brokenQuantity = Math.min(orderQuantity, Math.max(0, Number(currentRow.brokenQuantity || 0)));
+        rows[index] = {
+          ...currentRow,
+          quantity: orderQuantity,
+          packedQuantity: Math.min(orderQuantity, Math.max(0, Number(currentRow.packedQuantity || 0))),
+          returnedQuantity: Math.min(orderQuantity - brokenQuantity, Math.max(0, Number(currentRow.returnedQuantity || 0))),
+          brokenQuantity,
+        };
       } else {
         rows[index] = {
           ...currentRow,
-          [field]: ['quantity', 'price', 'packedQuantity', 'returnedQuantity', 'brokenQuantity'].includes(field)
+          [field]: ['price'].includes(field)
             ? Number(value || 0)
             : value,
         };
@@ -783,17 +812,24 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
     const draftItems = editingOrderItems[order.id] ?? (order.items || []);
     const normalizedItems = draftItems
       .filter((item) => item.productId || item.productName)
-      .map((item) => ({
-        productId: item.productId || '',
-        productName: item.productName || 'Товар',
-        sku: item.sku || '',
-        quantity: Math.max(1, Number(item.quantity || 1)),
-        price: Math.max(0, Number(item.price || 0)),
-        category: item.category || 'Інше',
-        packedQuantity: Math.max(0, Number(item.packedQuantity || 0)),
-        returnedQuantity: Math.max(0, Number(item.returnedQuantity || 0)),
-        brokenQuantity: Math.max(0, Number(item.brokenQuantity || 0)),
-      }));
+      .map((item) => {
+        const quantity = Math.max(1, Number(item.quantity || 1));
+        const brokenQuantity = Math.min(quantity, Math.max(0, Number(item.brokenQuantity || 0)));
+        const returnedQuantity = Math.min(quantity - brokenQuantity, Math.max(0, Number(item.returnedQuantity || 0)));
+        const packedQuantity = Math.min(quantity, Math.max(0, Number(item.packedQuantity || 0)));
+
+        return {
+          productId: item.productId || '',
+          productName: item.productName || 'Товар',
+          sku: item.sku || '',
+          quantity,
+          price: Math.max(0, Number(item.price || 0)),
+          category: item.category || 'Інше',
+          packedQuantity,
+          returnedQuantity,
+          brokenQuantity,
+        };
+      });
 
     if (normalizedItems.length === 0) {
       alert('Замовлення повинно містити хоча б одну позицію');
