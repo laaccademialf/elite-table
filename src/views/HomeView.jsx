@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Instagram, Facebook, Phone } from "lucide-react";
+import { Instagram, Facebook, Phone, Minus, Plus, ShoppingCart, Check } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
 import { SafeImage } from "../components/SafeImage";
 import DateRangePicker from "../components/DateRangePicker";
@@ -15,10 +15,16 @@ export const HomeView = () => {
     setView,
     getMaxAvailableForRange,
     categories,
+    addToCart,
+    cart,
+    setCartQuantity,
+    removeFromCart,
   } = useAppContext();
 
   const [selectedParentId, setSelectedParentId] = useState(null);
   const [isCategoryBarSolid, setIsCategoryBarSolid] = useState(false);
+  const [cardQuantities, setCardQuantities] = useState({});
+  const [recentlyAddedId, setRecentlyAddedId] = useState(null);
   const topCategoriesRef = useRef(null);
   const subcategoriesRef = useRef(null);
   const dragStateRef = useRef({
@@ -133,6 +139,28 @@ export const HomeView = () => {
 
     return products;
   }, [products, selectedCategory, selectedParentId, categories]);
+
+  const updateCardQuantity = (productId, nextValue, maxValue) => {
+    const normalizedMax = Number.isFinite(maxValue) ? Math.max(0, maxValue) : Number.MAX_SAFE_INTEGER;
+    const parsed = parseInt(nextValue, 10);
+    const safeValue = Number.isNaN(parsed) ? 1 : parsed;
+    const clamped = normalizedMax > 0 ? Math.min(Math.max(1, safeValue), normalizedMax) : 1;
+
+    setCardQuantities((prev) => ({
+      ...prev,
+      [productId]: clamped,
+    }));
+  };
+
+  useEffect(() => {
+    setCardQuantities((prev) => {
+      const next = { ...prev };
+      cart.forEach((item) => {
+        next[item.id] = Math.max(1, Number(item.quantity || 1));
+      });
+      return next;
+    });
+  }, [cart]);
 
   // Доступність по вибраному діапазону дат
   const [availabilityMap, setAvailabilityMap] = useState({});
@@ -327,6 +355,20 @@ export const HomeView = () => {
         {filteredProducts.map(product => {
           // Знаходимо категорію продукту
           const category = categories.find(cat => cat.id === product.categoryId);
+          const rawMaxAvailable = globalDates.start
+            ? availabilityMap[product.id] ?? product.quantity ?? 0
+            : product.quantity ?? 0;
+          const maxAvailable = Math.max(0, Number(rawMaxAvailable || 0));
+          const cartItem = cart.find((item) => item.id === product.id);
+          const inCartQty = Math.max(0, Number(cartItem?.quantity || 0));
+          const isInCart = inCartQty > 0;
+          const selectedQty = Math.min(
+            Math.max(1, Number(cardQuantities[product.id] || inCartQty || 1)),
+            maxAvailable > 0 ? maxAvailable : 1
+          );
+          const displayQty = isInCart ? inCartQty : selectedQty;
+          const isUnavailable = maxAvailable <= 0;
+
           return (
             <div 
               key={product.id} 
@@ -382,6 +424,99 @@ export const HomeView = () => {
                 <p className="text-lg font-bold text-white mt-auto pt-1 ml-auto text-right">
                   {product.price} ₴ <span className="text-xs text-slate-300 font-normal">/од/доба</span>
                 </p>
+
+                <div
+                  className="mt-3 flex items-center justify-between gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center rounded-full bg-white border border-slate-200 overflow-hidden shadow-sm">
+                    <button
+                      type="button"
+                      aria-label="Зменшити кількість"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isInCart) {
+                          const nextQty = inCartQty - 1;
+                          if (nextQty <= 0) {
+                            removeFromCart(product.id);
+                            setCardQuantities((prev) => ({ ...prev, [product.id]: 1 }));
+                          } else {
+                            setCartQuantity(product.id, nextQty);
+                          }
+                          return;
+                        }
+                        updateCardQuantity(product.id, displayQty - 1, maxAvailable);
+                      }}
+                      className="h-8 w-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 active:scale-95 transition-all"
+                    >
+                      <Minus size={13} />
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={maxAvailable > 0 ? maxAvailable : 1}
+                      value={displayQty}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        if (isInCart) {
+                          const nextQty = Math.max(1, Math.min(maxAvailable || 1, Number(e.target.value) || 1));
+                          setCartQuantity(product.id, nextQty);
+                          return;
+                        }
+                        updateCardQuantity(product.id, e.target.value, maxAvailable);
+                      }}
+                      className="w-8 bg-white text-center text-xs font-bold text-slate-900 outline-none border-0"
+                    />
+                    <button
+                      type="button"
+                      aria-label="Збільшити кількість"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isInCart) {
+                          setCartQuantity(product.id, Math.min(maxAvailable, inCartQty + 1));
+                          return;
+                        }
+                        updateCardQuantity(product.id, displayQty + 1, maxAvailable);
+                      }}
+                      disabled={isUnavailable || displayQty >= maxAvailable}
+                      className="h-8 w-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 active:scale-95 transition-all disabled:opacity-40"
+                    >
+                      <Plus size={13} />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    title={isUnavailable ? 'Товар недоступний' : isInCart ? 'Перейти в кошик' : 'Додати в кошик'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isInCart) {
+                        setView('cart');
+                        return;
+                      }
+                      addToCart(product, selectedQty);
+                      setRecentlyAddedId(product.id);
+                      window.setTimeout(() => {
+                        setRecentlyAddedId((current) => (current === product.id ? null : current));
+                      }, 260);
+                    }}
+                    disabled={isUnavailable}
+                    className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border text-xs font-black transition-all duration-150 active:scale-90 active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isUnavailable
+                        ? 'border-slate-500 bg-slate-600 text-slate-300'
+                        : isInCart
+                          ? 'border-[#E7C983] bg-[#E7C983] text-[#0b1731] shadow-sm'
+                          : 'border-white/20 bg-white text-[#0b1731] hover:bg-[#E7C983]'
+                    } ${recentlyAddedId === product.id ? 'scale-110 shadow-lg' : ''}`}
+                  >
+                    {isInCart ? <Check size={16} /> : <ShoppingCart size={16} />}
+                    {isInCart && (
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#0b1731] text-white text-[10px] leading-4 text-center font-bold">
+                        {inCartQty}
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           );

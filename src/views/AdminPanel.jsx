@@ -12,6 +12,10 @@ import {
   deleteOrder,
   createProductsBulk,
   assignOrderToManager,
+  updateOrderItems,
+  addExtraService,
+  updateExtraService,
+  deleteExtraService,
 } from '../services/firebase';
 import { Upload, Trash2, Edit, Save, X, Calendar, ChevronDown, Download, FileUp, ArrowUp, ArrowDown, UserCheck, Bell } from 'lucide-react';
 import CategoryManager from '../components/CategoryManager';
@@ -68,6 +72,57 @@ const calculateRentalDays = (eventDate, eventEndDate) => {
 };
 
 // Safe customer display name
+const calculateItemsSubtotal = (items = [], rentalDays = 1) => {
+  return items.reduce((sum, item) => {
+    const quantity = Number(item.quantity || 0);
+    const price = Number(item.price || 0);
+    return sum + (quantity * price * Math.max(1, Number(rentalDays || 1)));
+  }, 0);
+};
+
+const parseFlexibleDate = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+
+  if (typeof value === 'string') {
+    if (value.includes('.')) {
+      const [day, month, year] = value.split('.').map(Number);
+      if (day && month && year) return new Date(year, month - 1, day);
+    }
+
+    if (value.includes('-')) {
+      const [year, month, day] = value.split('-').map(Number);
+      if (day && month && year) return new Date(year, month - 1, day);
+    }
+  }
+
+  if (value?.day !== undefined && value?.month !== undefined && value?.year !== undefined) {
+    return new Date(value.year, value.month, value.day);
+  }
+
+  return null;
+};
+
+const toInputDateValue = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getDefaultWarehouseDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  return toInputDateValue(date);
+};
+
+const isSameCalendarDay = (left, right) => {
+  if (!left || !right) return false;
+  return left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate();
+};
+
 const formatCustomerName = (order) => {
   if (!order) return 'Клієнт';
   if (order.customerName && order.customerName.trim()) return order.customerName.trim();
@@ -77,7 +132,7 @@ const formatCustomerName = (order) => {
 };
 
 export function AdminPanel() {
-  const { adminTab, setAdminTab, currentUser, pendingBadge, pendingNotifications, soundEnabled, toggleSound, removeNotification, soundType, updateSoundType, pushEnabled, togglePushNotifications, playSound, expandedOrderId, setExpandedOrderId: setContextExpandedOrderId } = useAppContext();
+  const { adminTab, setAdminTab, currentUser, pendingBadge, pendingNotifications, soundEnabled, toggleSound, removeNotification, soundType, updateSoundType, pushEnabled, togglePushNotifications, playSound, expandedOrderId, setExpandedOrderId: setContextExpandedOrderId, extraServices } = useAppContext();
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState(null);
@@ -86,10 +141,19 @@ export function AdminPanel() {
   const [categories, setCategories] = useState([]);
 
   // Підменю для "Товари"
-  const [inventorySubTab, setInventorySubTab] = useState('categories'); // 'categories' | 'products'
+  const [inventorySubTab, setInventorySubTab] = useState('categories'); // 'categories' | 'products' | 'services'
 
   // Settings UI state
   const [expandSoundType, setExpandSoundType] = useState(false);
+  const [serviceEditingId, setServiceEditingId] = useState(null);
+  const [serviceSaving, setServiceSaving] = useState(false);
+  const [serviceFormData, setServiceFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    billingType: 'fixed',
+    active: true,
+  });
 
   // Filters state
   const [productCategoryFilter, setProductCategoryFilter] = useState('all');
@@ -101,6 +165,9 @@ export function AdminPanel() {
   const [editingOrderNotes, setEditingOrderNotes] = useState({});
   const [savingNotes, setSavingNotes] = useState({});
   const [notesSaved, setNotesSaved] = useState({});
+  const [editingOrderItems, setEditingOrderItems] = useState({});
+  const [editingOrderServices, setEditingOrderServices] = useState({});
+  const [savingOrderEdits, setSavingOrderEdits] = useState({});
 
   // Product form state
   const [editingId, setEditingId] = useState(null);
@@ -124,6 +191,8 @@ export function AdminPanel() {
   const [analyticsManagerFilter, setAnalyticsManagerFilter] = useState('all');
   const [analyticsSubTab, setAnalyticsSubTab] = useState('sales'); // 'sales' | 'customers' | 'products'
   const [analyticsProducts, setAnalyticsProducts] = useState([]);
+  const [warehouseDate, setWarehouseDate] = useState(getDefaultWarehouseDate());
+  const [warehouseMode, setWarehouseMode] = useState('packing');
 
   // Load categories on mount
   useEffect(() => {
@@ -150,6 +219,11 @@ export function AdminPanel() {
     });
   }, [categories]);
 
+  const sortedExtraServices = useMemo(
+    () => [...(extraServices || [])].sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER)),
+    [extraServices]
+  );
+
   // Sync expanded order from context
   useEffect(() => {
     if (expandedOrderId) {
@@ -169,9 +243,13 @@ export function AdminPanel() {
       if (adminTab === 'inventory') {
         const data = await getProducts();
         setProducts(data);
-      } else if (adminTab === 'orders') {
-        const allOrders = await getOrders({ limit: 100 });
+      } else if (adminTab === 'orders' || adminTab === 'warehouse') {
+        const [allOrders, allProducts] = await Promise.all([
+          getOrders({ limit: 100 }),
+          getProducts(),
+        ]);
         setOrders(allOrders);
+        setProducts(allProducts || []);
       } else if (adminTab === 'analytics') {
         // Завантажуємо статистику з фільтром по датах та менеджерам
         let dateRange = {};
@@ -293,6 +371,82 @@ export function AdminPanel() {
       category: '',
       image: '',
     });
+  };
+
+  const resetServiceForm = () => {
+    setServiceEditingId(null);
+    setServiceFormData({
+      name: '',
+      description: '',
+      price: '',
+      billingType: 'fixed',
+      active: true,
+    });
+  };
+
+  const handleSaveExtraService = async (e) => {
+    e.preventDefault();
+
+    if (!serviceFormData.name.trim()) {
+      alert('Вкажіть назву послуги');
+      return;
+    }
+
+    const price = Number(serviceFormData.price);
+    if (Number.isNaN(price) || price < 0) {
+      alert('Вкажіть коректну вартість послуги');
+      return;
+    }
+
+    try {
+      setServiceSaving(true);
+
+      const payload = {
+        name: serviceFormData.name.trim(),
+        description: serviceFormData.description.trim(),
+        price,
+        billingType: serviceFormData.billingType === 'per_day' ? 'per_day' : 'fixed',
+        active: serviceFormData.active,
+      };
+
+      if (serviceEditingId) {
+        await updateExtraService(serviceEditingId, payload);
+      } else {
+        await addExtraService(payload);
+      }
+
+      resetServiceForm();
+    } catch (error) {
+      console.error('Error saving extra service:', error);
+      alert('Не вдалося зберегти послугу');
+    } finally {
+      setServiceSaving(false);
+    }
+  };
+
+  const handleEditService = (service) => {
+    setServiceEditingId(service.id);
+    setServiceFormData({
+      name: service.name || '',
+      description: service.description || '',
+      price: String(service.price ?? ''),
+      billingType: service.billingType || 'fixed',
+      active: service.active !== false,
+    });
+  };
+
+  const handleDeleteService = async (serviceId) => {
+    if (!window.confirm('Видалити цю додаткову послугу?')) return;
+
+    try {
+      await deleteExtraService(serviceId);
+      if (serviceEditingId === serviceId) {
+        resetServiceForm();
+      }
+    } catch (error) {
+      console.error('Error deleting extra service:', error);
+      alert('Не вдалося видалити послугу');
+    }
   };
 
   const moveProduct = async (index, direction) => {
@@ -445,6 +599,243 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
       alert('Помилка при збереженні нотаток');
     } finally {
       setSavingNotes((prev) => ({ ...prev, [orderId]: false }));
+    }
+  };
+
+  const startEditingOrderItems = (order) => {
+    setEditingOrderItems((prev) => ({
+      ...prev,
+      [order.id]: (order.items || []).map((item) => ({
+        productId: item.productId || '',
+        productName: item.productName || '',
+        sku: item.sku || '',
+        quantity: Number(item.quantity || 1),
+        price: Number(item.price || 0),
+        category: item.category || 'Інше',
+        packedQuantity: Number(item.packedQuantity || 0),
+        returnedQuantity: Number(item.returnedQuantity || 0),
+        brokenQuantity: Number(item.brokenQuantity || 0),
+      })),
+    }));
+
+    setEditingOrderServices((prev) => ({
+      ...prev,
+      [order.id]: (order.extraServices || []).map((service) => ({
+        serviceId: service.serviceId || '',
+        name: service.name || '',
+        description: service.description || '',
+        price: Number(service.price || 0),
+        billingType: service.billingType === 'per_day' ? 'per_day' : 'fixed',
+      })),
+    }));
+  };
+
+  const cancelEditingOrderItems = (orderId) => {
+    setEditingOrderItems((prev) => {
+      const next = { ...prev };
+      delete next[orderId];
+      return next;
+    });
+    setEditingOrderServices((prev) => {
+      const next = { ...prev };
+      delete next[orderId];
+      return next;
+    });
+  };
+
+  const updateEditingOrderItem = (orderId, index, field, value) => {
+    setEditingOrderItems((prev) => {
+      const fallbackOrder = orders.find((order) => order.id === orderId);
+      const baseRows = prev[orderId]?.length
+        ? prev[orderId]
+        : (fallbackOrder?.items || []).map((item) => ({
+            productId: item.productId || '',
+            productName: item.productName || '',
+            sku: item.sku || '',
+            quantity: Number(item.quantity || 1),
+            price: Number(item.price || 0),
+            category: item.category || 'Інше',
+            packedQuantity: Number(item.packedQuantity || 0),
+            returnedQuantity: Number(item.returnedQuantity || 0),
+            brokenQuantity: Number(item.brokenQuantity || 0),
+          }));
+      const rows = [...baseRows];
+      const currentRow = { ...(rows[index] || {}) };
+
+      if (field === 'productId') {
+        const selectedProduct = products.find((product) => product.id === value);
+        rows[index] = {
+          ...currentRow,
+          productId: value,
+          productName: selectedProduct?.name || currentRow.productName || '',
+          sku: selectedProduct?.sku || currentRow.sku || '',
+          price: Number(selectedProduct?.price ?? currentRow.price ?? 0),
+          category: selectedProduct?.category || currentRow.category || 'Інше',
+        };
+      } else {
+        rows[index] = {
+          ...currentRow,
+          [field]: ['quantity', 'price', 'packedQuantity', 'returnedQuantity', 'brokenQuantity'].includes(field)
+            ? Number(value || 0)
+            : value,
+        };
+      }
+
+      return {
+        ...prev,
+        [orderId]: rows,
+      };
+    });
+  };
+
+  const addOrderItemRow = (orderId) => {
+    const fallbackProduct = products[0];
+    setEditingOrderItems((prev) => ({
+      ...prev,
+      [orderId]: [
+        ...(prev[orderId] || []),
+        {
+          productId: fallbackProduct?.id || '',
+          productName: fallbackProduct?.name || '',
+          sku: fallbackProduct?.sku || '',
+          quantity: 1,
+          price: Number(fallbackProduct?.price || 0),
+          category: fallbackProduct?.category || 'Інше',
+          packedQuantity: 0,
+          returnedQuantity: 0,
+          brokenQuantity: 0,
+        },
+      ],
+    }));
+  };
+
+  const removeOrderItemRow = (orderId, index) => {
+    setEditingOrderItems((prev) => ({
+      ...prev,
+      [orderId]: (prev[orderId] || []).filter((_, rowIndex) => rowIndex !== index),
+    }));
+  };
+
+  const updateEditingOrderService = (orderId, index, field, value) => {
+    setEditingOrderServices((prev) => {
+      const fallbackOrder = orders.find((order) => order.id === orderId);
+      const baseRows = prev[orderId]?.length
+        ? prev[orderId]
+        : (fallbackOrder?.extraServices || []).map((service) => ({
+            serviceId: service.serviceId || '',
+            name: service.name || '',
+            description: service.description || '',
+            price: Number(service.price || 0),
+            billingType: service.billingType === 'per_day' ? 'per_day' : 'fixed',
+          }));
+      const rows = [...baseRows];
+      const currentRow = { ...(rows[index] || {}) };
+
+      if (field === 'serviceId') {
+        const selectedService = sortedExtraServices.find((service) => service.id === value);
+        rows[index] = {
+          ...currentRow,
+          serviceId: value,
+          name: selectedService?.name || currentRow.name || '',
+          description: selectedService?.description || currentRow.description || '',
+          price: Number(selectedService?.price ?? currentRow.price ?? 0),
+          billingType: selectedService?.billingType === 'per_day' ? 'per_day' : (currentRow.billingType || 'fixed'),
+        };
+      } else {
+        rows[index] = {
+          ...currentRow,
+          [field]: field === 'price' ? Number(value || 0) : value,
+        };
+      }
+
+      return {
+        ...prev,
+        [orderId]: rows,
+      };
+    });
+  };
+
+  const addOrderServiceRow = (orderId) => {
+    const fallbackService = sortedExtraServices[0];
+    setEditingOrderServices((prev) => ({
+      ...prev,
+      [orderId]: [
+        ...(prev[orderId] || []),
+        {
+          serviceId: fallbackService?.id || '',
+          name: fallbackService?.name || '',
+          description: fallbackService?.description || '',
+          price: Number(fallbackService?.price || 0),
+          billingType: fallbackService?.billingType === 'per_day' ? 'per_day' : 'fixed',
+        },
+      ],
+    }));
+  };
+
+  const removeOrderServiceRow = (orderId, index) => {
+    setEditingOrderServices((prev) => ({
+      ...prev,
+      [orderId]: (prev[orderId] || []).filter((_, rowIndex) => rowIndex !== index),
+    }));
+  };
+
+  const handleSaveOrderItems = async (order) => {
+    const draftItems = editingOrderItems[order.id] ?? (order.items || []);
+    const normalizedItems = draftItems
+      .filter((item) => item.productId || item.productName)
+      .map((item) => ({
+        productId: item.productId || '',
+        productName: item.productName || 'Товар',
+        sku: item.sku || '',
+        quantity: Math.max(1, Number(item.quantity || 1)),
+        price: Math.max(0, Number(item.price || 0)),
+        category: item.category || 'Інше',
+        packedQuantity: Math.max(0, Number(item.packedQuantity || 0)),
+        returnedQuantity: Math.max(0, Number(item.returnedQuantity || 0)),
+        brokenQuantity: Math.max(0, Number(item.brokenQuantity || 0)),
+      }));
+
+    if (normalizedItems.length === 0) {
+      alert('Замовлення повинно містити хоча б одну позицію');
+      return;
+    }
+
+    const rentalDays = order.rentalDays || calculateRentalDays(order.eventDate, order.eventEndDate);
+    const itemsSubtotal = calculateItemsSubtotal(normalizedItems, rentalDays);
+    const draftServices = editingOrderServices[order.id] ?? (order.extraServices || []);
+    const normalizedServices = draftServices
+      .filter((service) => service.serviceId || service.name)
+      .map((service) => {
+        const price = Math.max(0, Number(service.price || 0));
+        const billingType = service.billingType === 'per_day' ? 'per_day' : 'fixed';
+        return {
+          serviceId: service.serviceId || '',
+          name: service.name || 'Послуга',
+          description: service.description || '',
+          price,
+          billingType,
+          total: billingType === 'per_day' ? price * rentalDays : price,
+        };
+      });
+    const servicesTotal = normalizedServices.reduce((sum, service) => sum + Number(service.total || 0), 0);
+    const totalPrice = itemsSubtotal + servicesTotal;
+
+    try {
+      setSavingOrderEdits((prev) => ({ ...prev, [order.id]: true }));
+      await updateOrderItems(order.id, {
+        items: normalizedItems,
+        extraServices: normalizedServices,
+        itemsSubtotal,
+        servicesTotal,
+        totalPrice,
+      });
+      cancelEditingOrderItems(order.id);
+      await loadData();
+    } catch (error) {
+      console.error('Error saving order items:', error);
+      alert('Не вдалося оновити склад замовлення');
+    } finally {
+      setSavingOrderEdits((prev) => ({ ...prev, [order.id]: false }));
     }
   };
 
@@ -637,6 +1028,67 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
     return true;
   });
 
+  const getWarehouseDraftItems = (order) => {
+    return (editingOrderItems[order.id] ?? (order.items || [])).map((item) => ({
+      productId: item.productId || '',
+      productName: item.productName || '',
+      sku: item.sku || '',
+      quantity: Number(item.quantity || 1),
+      price: Number(item.price || 0),
+      category: item.category || 'Інше',
+      packedQuantity: Number(item.packedQuantity || 0),
+      returnedQuantity: Number(item.returnedQuantity || 0),
+      brokenQuantity: Number(item.brokenQuantity || 0),
+    }));
+  };
+
+  const warehouseDateObject = useMemo(() => parseFlexibleDate(warehouseDate), [warehouseDate]);
+
+  const warehouseOrders = useMemo(() => {
+    if (!warehouseDateObject) return [];
+
+    return [...orders]
+      .filter((order) => {
+        if (order.status === 'cancelled') return false;
+        const compareDate = warehouseMode === 'returns'
+          ? parseFlexibleDate(order.eventEndDate || order.eventDate)
+          : parseFlexibleDate(order.eventDate);
+        return isSameCalendarDay(compareDate, warehouseDateObject);
+      })
+      .sort((a, b) => {
+        const left = parseFlexibleDate(warehouseMode === 'returns' ? a.eventEndDate || a.eventDate : a.eventDate);
+        const right = parseFlexibleDate(warehouseMode === 'returns' ? b.eventEndDate || b.eventDate : b.eventDate);
+        return (left?.getTime() || 0) - (right?.getTime() || 0);
+      });
+  }, [orders, warehouseMode, warehouseDateObject]);
+
+  const warehouseSummary = useMemo(() => {
+    const itemCount = warehouseOrders.reduce((sum, order) => sum + (order.items?.length || 0), 0);
+    const unitCount = warehouseOrders.reduce((sum, order) => {
+      return sum + (order.items || []).reduce((inner, item) => inner + Number(item.quantity || 0), 0);
+    }, 0);
+
+    return {
+      orders: warehouseOrders.length,
+      items: itemCount,
+      units: unitCount,
+    };
+  }, [warehouseOrders]);
+
+  const applyWarehouseBulkAction = (order, field) => {
+    const updatedItems = getWarehouseDraftItems(order).map((item) => ({
+      ...item,
+      [field]: field === 'returnedQuantity'
+        ? Math.max(0, Number(item.quantity || 0) - Number(item.brokenQuantity || 0))
+        : Math.max(0, Number(item.quantity || 0)),
+    }));
+
+    setEditingOrderItems((prev) => ({
+      ...prev,
+      [order.id]: updatedItems,
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 p-8">
       <div className="max-w-6xl mx-auto">
@@ -647,8 +1099,8 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-8 bg-white rounded-2xl p-4 shadow-sm">
-          {['inventory', 'gallery', 'orders', 'analytics', 'users', 'settings'].map((tab) => (
+        <div className="flex gap-4 mb-8 bg-white rounded-2xl p-4 shadow-sm flex-wrap">
+          {['inventory', 'gallery', 'orders', 'warehouse', 'analytics', 'users', 'settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setAdminTab(tab)}
@@ -661,6 +1113,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
               {tab === 'inventory' && '🍽️ Товари'}
               {tab === 'gallery' && '🖼️ Галерея'}
               {tab === 'orders' && '📦 Замовлення'}
+              {tab === 'warehouse' && '📋 Склад'}
               {tab === 'analytics' && '📊 Аналітика'}
               {tab === 'users' && '👥 Користувачі'}
               {tab === 'settings' && '⚙️ Налаштування'}
@@ -680,7 +1133,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
         {/* Inventory Tab */}
         {adminTab === 'inventory' && (
           <div className="bg-white rounded-2xl p-4 shadow-sm mb-8">
-            <div className="flex gap-4 mb-6">
+            <div className="flex flex-wrap gap-4 mb-6">
               <button
                 className={`px-6 py-2 rounded-xl font-semibold transition ${inventorySubTab === 'categories' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
                 onClick={() => setInventorySubTab('categories')}
@@ -692,6 +1145,12 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                 onClick={() => setInventorySubTab('products')}
               >
                 Управління товарами
+              </button>
+              <button
+                className={`px-6 py-2 rounded-xl font-semibold transition ${inventorySubTab === 'services' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                onClick={() => setInventorySubTab('services')}
+              >
+                Управління послугами
               </button>
             </div>
             {inventorySubTab === 'categories' && (
@@ -935,6 +1394,302 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                 </div>
               </div>
             )}
+            {inventorySubTab === 'services' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">Управління послугами</h2>
+                  <p className="text-sm text-slate-500 mt-1">Тут можна керувати додатковими послугами, які бачить клієнт у кошику.</p>
+                </div>
+
+                <form onSubmit={handleSaveExtraService} className="grid md:grid-cols-2 gap-3 bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <input
+                    type="text"
+                    value={serviceFormData.name}
+                    onChange={(e) => setServiceFormData((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="Назва послуги"
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={serviceFormData.price}
+                    onChange={(e) => setServiceFormData((prev) => ({ ...prev, price: e.target.value }))}
+                    placeholder="Вартість, ₴"
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  />
+                  <select
+                    value={serviceFormData.billingType}
+                    onChange={(e) => setServiceFormData((prev) => ({ ...prev, billingType: e.target.value }))}
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  >
+                    <option value="fixed">Фіксована вартість</option>
+                    <option value="per_day">За кожну добу оренди</option>
+                  </select>
+                  <label className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={serviceFormData.active}
+                      onChange={(e) => setServiceFormData((prev) => ({ ...prev, active: e.target.checked }))}
+                      className="w-4 h-4"
+                    />
+                    Показувати клієнтам
+                  </label>
+                  <textarea
+                    value={serviceFormData.description}
+                    onChange={(e) => setServiceFormData((prev) => ({ ...prev, description: e.target.value }))}
+                    placeholder="Короткий опис послуги (необов'язково)"
+                    rows="3"
+                    className="md:col-span-2 px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  />
+                  <div className="md:col-span-2 flex flex-wrap gap-3">
+                    <button
+                      type="submit"
+                      disabled={serviceSaving}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition disabled:opacity-60"
+                    >
+                      {serviceSaving ? 'Збереження...' : serviceEditingId ? 'Оновити послугу' : 'Додати послугу'}
+                    </button>
+                    {serviceEditingId && (
+                      <button
+                        type="button"
+                        onClick={resetServiceForm}
+                        className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition"
+                      >
+                        Скасувати редагування
+                      </button>
+                    )}
+                  </div>
+                </form>
+
+                <div className="space-y-3">
+                  {sortedExtraServices.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 p-5 text-sm text-slate-500">
+                      Ще не додано жодної додаткової послуги. Наприклад: доставка, мийка, монтаж.
+                    </div>
+                  ) : (
+                    sortedExtraServices.map((service) => (
+                      <div key={service.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-slate-200 rounded-2xl p-4">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-slate-900">{service.name}</p>
+                            <span className={`px-2 py-1 rounded-full text-[11px] font-bold ${service.active !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                              {service.active !== false ? 'Активна' : 'Прихована'}
+                            </span>
+                          </div>
+                          {service.description && (
+                            <p className="text-sm text-slate-500 mt-1">{service.description}</p>
+                          )}
+                          <p className="text-sm text-slate-700 mt-1">
+                            <span className="font-semibold">{Number(service.price || 0).toFixed(0)} ₴</span>
+                            {' • '}
+                            {service.billingType === 'per_day' ? 'за добу оренди' : 'фіксована вартість'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEditService(service)}
+                            className="px-3 py-2 bg-blue-100 text-blue-600 rounded-xl font-semibold hover:bg-blue-200 transition flex items-center gap-2 text-sm"
+                          >
+                            <Edit size={14} />
+                            Редагувати
+                          </button>
+                          <button
+                            onClick={() => handleDeleteService(service.id)}
+                            className="px-3 py-2 bg-red-100 text-red-600 rounded-xl font-semibold hover:bg-red-200 transition flex items-center gap-2 text-sm"
+                          >
+                            <Trash2 size={14} />
+                            Видалити
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Warehouse Tab */}
+        {adminTab === 'warehouse' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">Склад</h2>
+                  <p className="text-sm text-slate-500 mt-1">Кладовщик бачить, що потрібно підготувати або прийняти на повернення на вибрану дату.</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => setWarehouseMode('packing')}
+                    className={`px-4 py-2 rounded-xl font-semibold transition ${warehouseMode === 'packing' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                  >
+                    На складання
+                  </button>
+                  <button
+                    onClick={() => setWarehouseMode('returns')}
+                    className={`px-4 py-2 rounded-xl font-semibold transition ${warehouseMode === 'returns' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                  >
+                    Повернення
+                  </button>
+                  <input
+                    type="date"
+                    value={warehouseDate}
+                    onChange={(e) => setWarehouseDate(e.target.value)}
+                    className="px-4 py-2 bg-white border-2 border-slate-300 rounded-xl font-semibold text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                  />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4 mt-5">
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p className="text-sm text-slate-500">Замовлень на дату</p>
+                  <p className="text-3xl font-bold text-slate-900">{warehouseSummary.orders}</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p className="text-sm text-slate-500">Позицій</p>
+                  <p className="text-3xl font-bold text-slate-900">{warehouseSummary.items}</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p className="text-sm text-slate-500">Всього одиниць</p>
+                  <p className="text-3xl font-bold text-slate-900">{warehouseSummary.units}</p>
+                </div>
+              </div>
+            </div>
+
+            {warehouseOrders.length === 0 ? (
+              <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
+                <p className="text-slate-600 text-lg">На цю дату немає замовлень для складу</p>
+                <p className="text-sm text-slate-500 mt-2">Спробуй іншу дату або переключи режим між складанням та поверненнями.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {warehouseOrders.map((order) => {
+                  const draftItems = getWarehouseDraftItems(order);
+                  const fullyPacked = draftItems.every((item) => Number(item.packedQuantity || 0) >= Number(item.quantity || 0));
+                  const fullyReturned = draftItems.every((item) => Number(item.returnedQuantity || 0) + Number(item.brokenQuantity || 0) >= Number(item.quantity || 0));
+                  const cardLabel = warehouseMode === 'returns'
+                    ? (fullyReturned ? 'Повернення прийнято' : 'Чекає повернення')
+                    : (fullyPacked ? 'Зібрано' : 'На складання');
+                  const badgeClasses = warehouseMode === 'returns'
+                    ? (fullyReturned ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700')
+                    : (fullyPacked ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700');
+
+                  return (
+                    <div key={`warehouse-${order.id}`} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-lg">Замовлення #{order.id?.slice(0, 8)}</h3>
+                          <p className="text-slate-600 text-sm">{formatCustomerName(order)} • {formatDateRange(order.eventDate, order.eventEndDate)}</p>
+                          <p className="text-slate-500 text-xs">{order.customerPhone || order.customerEmail || '—'}</p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-wrap justify-end">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${badgeClasses}`}>{cardLabel}</span>
+                          <span className="text-xl font-bold text-slate-900">{order.totalPrice} ₴</span>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-slate-200">
+                              <th className="text-left py-2 px-2 font-semibold text-slate-700">Назва</th>
+                              <th className="text-center py-2 px-2 font-semibold text-slate-700 w-24">Замовлено</th>
+                              <th className="text-center py-2 px-2 font-semibold text-slate-700 w-24">Зібрано</th>
+                              <th className="text-center py-2 px-2 font-semibold text-slate-700 w-24">Повернено</th>
+                              <th className="text-center py-2 px-2 font-semibold text-slate-700 w-24">Бій</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {draftItems.map((item, idx) => (
+                              <tr key={`${order.id}-warehouse-${idx}`} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                                <td className="py-2 px-2">
+                                  <div className="font-medium text-slate-900">{item.productName}</div>
+                                  <div className="text-xs text-slate-500">{item.sku || 'Без артикулу'}</div>
+                                </td>
+                                <td className="py-2 px-2 text-center font-semibold text-slate-700">{item.quantity}</td>
+                                <td className="py-2 px-2 text-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={item.quantity}
+                                    value={item.packedQuantity}
+                                    onChange={(e) => updateEditingOrderItem(order.id, idx, 'packedQuantity', e.target.value)}
+                                    className="w-20 px-2 py-1.5 border border-slate-300 rounded-lg text-center bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                  />
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={item.quantity}
+                                    value={item.returnedQuantity}
+                                    onChange={(e) => updateEditingOrderItem(order.id, idx, 'returnedQuantity', e.target.value)}
+                                    className="w-20 px-2 py-1.5 border border-slate-300 rounded-lg text-center bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                  />
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={item.quantity}
+                                    value={item.brokenQuantity}
+                                    onChange={(e) => updateEditingOrderItem(order.id, idx, 'brokenQuantity', e.target.value)}
+                                    className="w-20 px-2 py-1.5 border border-slate-300 rounded-lg text-center bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {warehouseMode === 'packing' ? (
+                          <button
+                            type="button"
+                            onClick={() => applyWarehouseBulkAction(order, 'packedQuantity')}
+                            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition text-sm"
+                          >
+                            Позначити все зібраним
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => applyWarehouseBulkAction(order, 'returnedQuantity')}
+                            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition text-sm"
+                          >
+                            Позначити все поверненим
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleSaveOrderItems(order)}
+                          disabled={savingOrderEdits[order.id]}
+                          className="px-4 py-2 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition text-sm disabled:opacity-60"
+                        >
+                          {savingOrderEdits[order.id] ? 'Збереження...' : 'Зберегти складські зміни'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdminTab('orders');
+                            setLocalExpandedOrderId(order.id);
+                          }}
+                          className="px-4 py-2 bg-blue-100 text-blue-700 rounded-xl font-semibold hover:bg-blue-200 transition text-sm"
+                        >
+                          Відкрити в замовленнях
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -1000,7 +1755,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                 </div>
               ) : (
                 filteredOrders.map((order) => (
-                <div key={order.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                <div key={order.id} className={`bg-white rounded-2xl overflow-hidden shadow-sm border-2 ${localExpandedOrderId === order.id ? 'border-slate-200' : 'border-blue-200 hover:border-blue-300'}`}>
                   {/* Compacted Order Header */}
                   <button
                     onClick={() => setLocalExpandedOrderId(localExpandedOrderId === order.id ? null : order.id)}
@@ -1066,6 +1821,20 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                       <option value="delivered">Доставлено</option>
                       <option value="cancelled">Скасовано</option>
                     </select>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (editingOrderItems[order.id]) {
+                          cancelEditingOrderItems(order.id);
+                        } else {
+                          startEditingOrderItems(order);
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-xl font-semibold transition-colors flex items-center gap-2 text-sm ${editingOrderItems[order.id] ? 'bg-slate-200 text-slate-800 hover:bg-slate-300' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                    >
+                      <Edit size={16} />
+                      {editingOrderItems[order.id] ? 'Скасувати зміни' : 'Редагувати замовлення'}
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1146,6 +1915,203 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                           </table>
                         </div>
                       </div>
+
+                      {editingOrderItems[order.id] && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                            <div>
+                              <h4 className="font-semibold text-slate-900 text-sm">Редагування складу замовлення</h4>
+                              <p className="text-xs text-slate-500">Можна змінити кількість, замінити товар або додати нову позицію.</p>
+                            </div>
+                            <div className="text-sm font-semibold text-slate-700">
+                              Нова сума: {(
+                                calculateItemsSubtotal(
+                                  editingOrderItems[order.id],
+                                  order.rentalDays || calculateRentalDays(order.eventDate, order.eventEndDate)
+                                ) + (editingOrderServices[order.id] || []).reduce((sum, service) => {
+                                  const rentalDays = order.rentalDays || calculateRentalDays(order.eventDate, order.eventEndDate);
+                                  const price = Number(service.price || 0);
+                                  return sum + (service.billingType === 'per_day' ? price * rentalDays : price);
+                                }, 0)
+                              ).toFixed(0)} ₴
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            {editingOrderItems[order.id].map((item, idx) => (
+                              <div key={`${order.id}-edit-${idx}`} className="grid md:grid-cols-[2fr_100px_120px_auto] gap-2 items-center bg-white border border-slate-200 rounded-xl p-3">
+                                <select
+                                  value={item.productId || ''}
+                                  onChange={(e) => updateEditingOrderItem(order.id, idx, 'productId', e.target.value)}
+                                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                >
+                                  <option value="">Оберіть товар</option>
+                                  {products.map((productOption) => (
+                                    <option key={productOption.id} value={productOption.id}>
+                                      {productOption.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity}
+                                  onChange={(e) => updateEditingOrderItem(order.id, idx, 'quantity', e.target.value)}
+                                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                  placeholder="К-сть"
+                                />
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  value={item.price}
+                                  onChange={(e) => updateEditingOrderItem(order.id, idx, 'price', e.target.value)}
+                                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                  placeholder="Ціна"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeOrderItemRow(order.id, idx)}
+                                  className="px-3 py-2 bg-red-100 text-red-600 rounded-lg font-semibold hover:bg-red-200 transition text-sm"
+                                >
+                                  Видалити
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="pt-2 border-t border-blue-200 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <h5 className="font-semibold text-slate-900 text-sm">Редагування додаткових послуг</h5>
+                                <p className="text-xs text-slate-500">Можна додати, прибрати або змінити вартість послуги.</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => addOrderServiceRow(order.id)}
+                                className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition text-sm"
+                              >
+                                + Додати послугу
+                              </button>
+                            </div>
+
+                            {(editingOrderServices[order.id] || []).length === 0 ? (
+                              <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-500">
+                                У цьому замовленні ще немає додаткових послуг.
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                {editingOrderServices[order.id].map((service, idx) => (
+                                  <div key={`${order.id}-service-${idx}`} className="grid md:grid-cols-[2fr_1fr_120px_auto] gap-2 items-center bg-white border border-slate-200 rounded-xl p-3">
+                                    <select
+                                      value={service.serviceId || ''}
+                                      onChange={(e) => updateEditingOrderService(order.id, idx, 'serviceId', e.target.value)}
+                                      className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    >
+                                      <option value="">Оберіть послугу</option>
+                                      {sortedExtraServices.map((serviceOption) => (
+                                        <option key={serviceOption.id} value={serviceOption.id}>
+                                          {serviceOption.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <select
+                                      value={service.billingType || 'fixed'}
+                                      onChange={(e) => updateEditingOrderService(order.id, idx, 'billingType', e.target.value)}
+                                      className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    >
+                                      <option value="fixed">Фіксована</option>
+                                      <option value="per_day">За добу</option>
+                                    </select>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      value={service.price}
+                                      onChange={(e) => updateEditingOrderService(order.id, idx, 'price', e.target.value)}
+                                      className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                      placeholder="Ціна"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeOrderServiceRow(order.id, idx)}
+                                      className="px-3 py-2 bg-red-100 text-red-600 rounded-lg font-semibold hover:bg-red-200 transition text-sm"
+                                    >
+                                      Видалити
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => addOrderItemRow(order.id)}
+                              className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition text-sm"
+                            >
+                              + Додати позицію
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveOrderItems(order)}
+                              disabled={savingOrderEdits[order.id]}
+                              className="px-4 py-2 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition text-sm disabled:opacity-60"
+                            >
+                              {savingOrderEdits[order.id] ? 'Збереження...' : 'Зберегти зміни'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => cancelEditingOrderItems(order.id)}
+                              className="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-300 transition text-sm"
+                            >
+                              Скасувати
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {!editingOrderItems[order.id] && order.extraServices?.length > 0 && (
+                        <div className="bg-slate-50 rounded-xl p-4">
+                          <h4 className="font-semibold text-slate-900 mb-3 text-sm">Додаткові послуги:</h4>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b border-slate-200">
+                                  <th className="text-left py-2 px-2 font-semibold text-slate-700">Послуга</th>
+                                  <th className="text-left py-2 px-2 font-semibold text-slate-700">Тип</th>
+                                  <th className="text-right py-2 px-2 font-semibold text-slate-700 w-24">Ціна</th>
+                                  <th className="text-right py-2 px-2 font-semibold text-slate-700 w-24">Сума</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {order.extraServices.map((service, idx) => {
+                                  const rentalDays = order.rentalDays || calculateRentalDays(order.eventDate, order.eventEndDate);
+                                  const total = Number(service.total ?? service.price ?? 0);
+                                  return (
+                                    <tr key={`${service.serviceId || service.name}-${idx}`} className="border-b border-slate-100 hover:bg-slate-100 transition">
+                                      <td className="py-2 px-2 text-slate-900 font-medium">
+                                        {service.name}
+                                        {service.description && (
+                                          <div className="text-xs text-slate-500 mt-0.5">{service.description}</div>
+                                        )}
+                                      </td>
+                                      <td className="py-2 px-2 text-slate-600">
+                                        {service.billingType === 'per_day'
+                                          ? `${Number(service.price || 0).toFixed(0)} ₴ × ${rentalDays} дн.`
+                                          : 'Фіксована ціна'}
+                                      </td>
+                                      <td className="py-2 px-2 text-right text-slate-600">{Number(service.price || 0).toFixed(0)} ₴</td>
+                                      <td className="py-2 px-2 text-right font-semibold text-slate-900">{total.toFixed(0)} ₴</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Manager Notes */}
                       <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
@@ -1790,93 +2756,96 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
         {/* Settings Tab */}
         {adminTab === 'settings' && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
-            <h2 className="text-xl font-bold text-slate-900 mb-6">Налаштування сповіщень</h2>
-            
-            {/* Sound Toggle */}
-            <div className="flex items-center justify-between border border-slate-100 rounded-xl p-4 mb-4">
-              <div>
-                <p className="font-semibold text-slate-900">Звук нових замовлень</p>
-                <p className="text-sm text-slate-500">Дзвінок поки вкладка відкрита</p>
+          <div className="bg-white rounded-2xl p-6 shadow-sm mb-8 space-y-8">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 mb-6">Налаштування</h2>
+
+              {/* Sound Toggle */}
+              <div className="flex items-center justify-between border border-slate-100 rounded-xl p-4 mb-4">
+                <div>
+                  <p className="font-semibold text-slate-900">Звук нових замовлень</p>
+                  <p className="text-sm text-slate-500">Дзвінок поки вкладка відкрита</p>
+                </div>
+                <button
+                  onClick={toggleSound}
+                  className={`w-14 h-8 rounded-full p-1 flex items-center transition ${soundEnabled ? 'bg-slate-900' : 'bg-slate-300'}`}
+                  aria-label="Toggle sound"
+                >
+                  <span className={`bg-white w-6 h-6 rounded-full shadow transform transition ${soundEnabled ? 'translate-x-6' : ''}`}></span>
+                </button>
               </div>
+
+              {/* Sound Type Selection (Collapsible) */}
               <button
-                onClick={toggleSound}
-                className={`w-14 h-8 rounded-full p-1 flex items-center transition ${soundEnabled ? 'bg-slate-900' : 'bg-slate-300'}`}
-                aria-label="Toggle sound"
+                onClick={() => setExpandSoundType(!expandSoundType)}
+                className="w-full flex items-center justify-between border border-slate-100 rounded-xl p-4 mb-4 hover:bg-slate-50 transition"
               >
-                <span className={`bg-white w-6 h-6 rounded-full shadow transform transition ${soundEnabled ? 'translate-x-6' : ''}`}></span>
+                <div className="text-left">
+                  <p className="font-semibold text-slate-900">Тип звуку</p>
+                  <p className="text-sm text-slate-500">
+                    {soundType === 'bell' && '🔔 Дзвінок (м\'який)'}
+                    {soundType === 'alarm' && '🚨 Сигнал (гучний)'}
+                    {soundType === 'chime' && '🎵 Мелодія (двотональна)'}
+                  </p>
+                </div>
+                <ChevronDown 
+                  size={20} 
+                  className={`text-slate-600 transition-transform ${expandSoundType ? 'rotate-180' : ''}`}
+                />
               </button>
+
+              {expandSoundType && (
+                <div className="border border-slate-100 rounded-xl p-4 mb-4 bg-slate-50 space-y-2">
+                  {[
+                    { value: 'bell', label: '🔔 Дзвінок (м\'який)', desc: 'Приємний дзвін' },
+                    { value: 'alarm', label: '🚨 Сигнал (гучний)', desc: 'Гучний тривожний звук' },
+                    { value: 'chime', label: '🎵 Мелодія (двотональна)', desc: 'Музичні ноти' },
+                  ].map((option) => (
+                    <label key={option.value} className="flex items-center gap-3 p-3 rounded-lg hover:bg-white transition cursor-pointer">
+                      <input
+                        type="radio"
+                        name="soundType"
+                        value={option.value}
+                        checked={soundType === option.value}
+                        onChange={(e) => updateSoundType(e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900">{option.label}</p>
+                        <p className="text-xs text-slate-500">{option.desc}</p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          playSound(option.value);
+                        }}
+                        className="px-3 py-1 bg-slate-900 text-white rounded text-xs font-semibold hover:bg-slate-800 transition"
+                      >
+                        Прослухай
+                      </button>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {/* Push Notifications */}
+              <div className="flex items-center justify-between border border-slate-100 rounded-xl p-4 mb-4">
+                <div>
+                  <p className="font-semibold text-slate-900">Push-сповіщення браузера</p>
+                  <p className="text-sm text-slate-500">Отримувати коли вкладка закрита</p>
+                </div>
+                <button
+                  onClick={togglePushNotifications}
+                  className={`w-14 h-8 rounded-full p-1 flex items-center transition ${pushEnabled ? 'bg-slate-900' : 'bg-slate-300'}`}
+                  aria-label="Toggle push notifications"
+                >
+                  <span className={`bg-white w-6 h-6 rounded-full shadow transform transition ${pushEnabled ? 'translate-x-6' : ''}`}></span>
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500">💡 In-app сповіщення показуються внизу справа панелі. Push-сповіщення приходять на пристрій, навіть коли браузер закритий (потребує дозвіл).</p>
             </div>
 
-            {/* Sound Type Selection (Collapsible) */}
-            <button
-              onClick={() => setExpandSoundType(!expandSoundType)}
-              className="w-full flex items-center justify-between border border-slate-100 rounded-xl p-4 mb-4 hover:bg-slate-50 transition"
-            >
-              <div className="text-left">
-                <p className="font-semibold text-slate-900">Тип звуку</p>
-                <p className="text-sm text-slate-500">
-                  {soundType === 'bell' && '🔔 Дзвінок (м\'який)'}
-                  {soundType === 'alarm' && '🚨 Сигнал (гучний)'}
-                  {soundType === 'chime' && '🎵 Мелодія (двотональна)'}
-                </p>
-              </div>
-              <ChevronDown 
-                size={20} 
-                className={`text-slate-600 transition-transform ${expandSoundType ? 'rotate-180' : ''}`}
-              />
-            </button>
-
-            {expandSoundType && (
-              <div className="border border-slate-100 rounded-xl p-4 mb-4 bg-slate-50 space-y-2">
-                {[
-                  { value: 'bell', label: '🔔 Дзвінок (м\'який)', desc: 'Приємний дзвін' },
-                  { value: 'alarm', label: '🚨 Сигнал (гучний)', desc: 'Гучний тривожний звук' },
-                  { value: 'chime', label: '🎵 Мелодія (двотональна)', desc: 'Музичні ноти' },
-                ].map((option) => (
-                  <label key={option.value} className="flex items-center gap-3 p-3 rounded-lg hover:bg-white transition cursor-pointer">
-                    <input
-                      type="radio"
-                      name="soundType"
-                      value={option.value}
-                      checked={soundType === option.value}
-                      onChange={(e) => updateSoundType(e.target.value)}
-                      className="w-4 h-4"
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900">{option.label}</p>
-                      <p className="text-xs text-slate-500">{option.desc}</p>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        playSound(option.value);
-                      }}
-                      className="px-3 py-1 bg-slate-900 text-white rounded text-xs font-semibold hover:bg-slate-800 transition"
-                    >
-                      Прослухай
-                    </button>
-                  </label>
-                ))}
-              </div>
-            )}
-
-            {/* Push Notifications */}
-            <div className="flex items-center justify-between border border-slate-100 rounded-xl p-4 mb-4">
-              <div>
-                <p className="font-semibold text-slate-900">Push-сповіщення браузера</p>
-                <p className="text-sm text-slate-500">Отримувати коли вкладка закрита</p>
-              </div>
-              <button
-                onClick={togglePushNotifications}
-                className={`w-14 h-8 rounded-full p-1 flex items-center transition ${pushEnabled ? 'bg-slate-900' : 'bg-slate-300'}`}
-                aria-label="Toggle push notifications"
-              >
-                <span className={`bg-white w-6 h-6 rounded-full shadow transform transition ${pushEnabled ? 'translate-x-6' : ''}`}></span>
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500">💡 In-app сповіщення показуються внизу справа панелі. Push-сповіщення приходять на пристрій, навіть коли браузер закритий (потребує дозвіл).</p>
           </div>
         )}
 

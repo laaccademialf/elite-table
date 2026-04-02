@@ -16,6 +16,8 @@ export const CheckoutView = () => {
     cart,
     globalDates,
     getMaxAvailableForRange,
+    selectedExtraServices,
+    cartTotals,
   } = useAppContext();
 
   const [autoRegError, setAutoRegError] = useState("");
@@ -148,6 +150,8 @@ export const CheckoutView = () => {
       .filter(Boolean);
   }, [cart, availability, globalDates.start]);
 
+  const rentalDays = cartTotals.rentalDays || 1;
+
   if (view !== "checkout") return null;
 
   return (
@@ -269,6 +273,36 @@ export const CheckoutView = () => {
               />
             </>
           )}
+
+          <div className="rounded-[32px] bg-slate-900 text-white p-6 space-y-3 shadow-lg">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#D7B46A]">Підсумок</p>
+                <h3 className="text-xl font-black uppercase">Ваше замовлення</h3>
+              </div>
+              <p className="text-sm font-semibold text-slate-300">{rentalDays} {rentalDays === 1 ? 'доба' : 'доби'}</p>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between text-slate-300">
+                <span>Товари</span>
+                <span className="font-bold text-white">{cartTotals.itemsSubtotal.toFixed(0)} ₴</span>
+              </div>
+
+              {selectedExtraServices.map((service) => (
+                <div key={service.id} className="flex items-center justify-between text-slate-300 gap-3">
+                  <span>{service.name}</span>
+                  <span className="font-bold text-white">{Number(service.total || 0).toFixed(0)} ₴</span>
+                </div>
+              ))}
+
+              <div className="pt-3 mt-3 border-t border-slate-700 flex items-center justify-between">
+                <span className="text-base font-black uppercase">До сплати</span>
+                <span className="text-2xl font-black text-[#E7C983]">{cartTotals.grandTotal.toFixed(0)} ₴</span>
+              </div>
+            </div>
+          </div>
+
           {autoRegError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {autoRegError}

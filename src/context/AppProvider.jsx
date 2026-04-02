@@ -1,7 +1,6 @@
 import { collection, onSnapshot, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { useState, useEffect, useContext } from "react";
-import { useRef } from "react";
+import { useState, useEffect, useContext, useMemo, useRef } from "react";
 import { AppContext } from "./AppContextDefinition";
 import {
   getCurrentUser,
@@ -85,6 +84,8 @@ export function AppProvider({ children }) {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [cart, setCart] = useState([]);
+  const [extraServices, setExtraServices] = useState([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState([]);
 
   // UI
   const [view, setView] = useState("home");
@@ -128,8 +129,10 @@ export function AppProvider({ children }) {
   // Persistence keys
   const CART_STORAGE_KEY = 'elite_table_cart_v1';
   const DATES_STORAGE_KEY = 'elite_table_dates_v1';
+  const EXTRA_SERVICES_STORAGE_KEY = 'elite_table_extra_services_cache_v1';
+  const SELECTED_SERVICES_STORAGE_KEY = 'elite_table_selected_services_v1';
 
-  // Load persisted cart and dates on mount
+  // Load persisted cart, dates, and selected services on mount
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
@@ -143,8 +146,18 @@ export function AppProvider({ children }) {
         const parsedDates = JSON.parse(cachedDates);
         if (parsedDates && typeof parsedDates === 'object') setGlobalDates(parsedDates);
       }
+      const cachedServices = localStorage.getItem(EXTRA_SERVICES_STORAGE_KEY);
+      if (cachedServices) {
+        const parsedServices = JSON.parse(cachedServices);
+        if (Array.isArray(parsedServices)) setExtraServices(parsedServices);
+      }
+      const cachedSelectedServices = localStorage.getItem(SELECTED_SERVICES_STORAGE_KEY);
+      if (cachedSelectedServices) {
+        const parsedSelectedServices = JSON.parse(cachedSelectedServices);
+        if (Array.isArray(parsedSelectedServices)) setSelectedServiceIds(parsedSelectedServices);
+      }
     } catch (e) {
-      console.warn('[AppProvider] Failed to load persisted cart/dates', e);
+      console.warn('[AppProvider] Failed to load persisted cart/dates/services', e);
     }
   }, []);
 
@@ -167,6 +180,53 @@ export function AppProvider({ children }) {
       console.warn('[AppProvider] Failed to persist dates', e);
     }
   }, [globalDates]);
+
+  // Live extra services sync
+  useEffect(() => {
+    try {
+      const unsubscribe = onSnapshot(
+        collection(db, 'extra_services'),
+        (snapshot) => {
+          const fetchedServices = snapshot.docs
+            .map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }))
+            .sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
+
+          setExtraServices(fetchedServices);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(EXTRA_SERVICES_STORAGE_KEY, JSON.stringify(fetchedServices));
+          }
+        },
+        (error) => {
+          console.error('[AppProvider] Error loading extra services:', error);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('[AppProvider] Error setting up extra services listener:', error);
+    }
+  }, []);
+
+  // Persist selected extra services on change
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      localStorage.setItem(SELECTED_SERVICES_STORAGE_KEY, JSON.stringify(selectedServiceIds));
+    } catch (e) {
+      console.warn('[AppProvider] Failed to persist selected services', e);
+    }
+  }, [selectedServiceIds]);
+
+  // Keep only active services selected
+  useEffect(() => {
+    setSelectedServiceIds((prev) => {
+      const next = prev.filter((id) => extraServices.some((service) => service.id === id && service.active !== false));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [extraServices]);
 
   // AI Features
   const [isGenerating, setIsGenerating] = useState(false);
@@ -471,6 +531,61 @@ export function AppProvider({ children }) {
   }, [currentUser]);
 
 
+  const getDaysInRange = (start, end) => {
+    if (!start) return 0;
+    const startDate = new Date(start.year, start.month, start.day);
+    const endDate = end ? new Date(end.year, end.month, end.day) : startDate;
+    return Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
+  };
+
+  const rentalDays = useMemo(
+    () => getDaysInRange(globalDates.start, globalDates.end),
+    [globalDates.start, globalDates.end]
+  );
+
+  const selectedExtraServices = useMemo(() => {
+    return extraServices
+      .filter((service) => service.active !== false && selectedServiceIds.includes(service.id))
+      .map((service) => {
+        const price = Number(service.price || 0);
+        const total = service.billingType === 'per_day' ? price * rentalDays : price;
+        return {
+          ...service,
+          total,
+        };
+      });
+  }, [extraServices, selectedServiceIds, rentalDays]);
+
+  const cartTotals = useMemo(() => {
+    const itemsSubtotal = cart.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0) * rentalDays,
+      0
+    );
+    const extraServicesTotal = selectedExtraServices.reduce(
+      (sum, service) => sum + Number(service.total || 0),
+      0
+    );
+
+    return {
+      rentalDays,
+      itemsSubtotal,
+      extraServicesTotal,
+      grandTotal: itemsSubtotal + extraServicesTotal,
+    };
+  }, [cart, rentalDays, selectedExtraServices]);
+
+  const toggleExtraService = (serviceId) => {
+    setSelectedServiceIds((prev) =>
+      prev.includes(serviceId)
+        ? prev.filter((id) => id !== serviceId)
+        : [...prev, serviceId]
+    );
+  };
+
+  const clearSelectedServices = () => {
+    setSelectedServiceIds([]);
+  };
+
   // Cart functions
   const addToCart = (product, quantity) => {
     if (!globalDates.start) {
@@ -506,17 +621,27 @@ export function AppProvider({ children }) {
     // Якщо користувач не залогінений, дозволяємо оформлення як гість
     // (userId не передаємо, тільки контактні дані)
 
-    function getDaysInRange(start, end) {
-      if (!start) return 0;
-      const startDate = new Date(start.year, start.month, start.day);
-      const endDate = end ? new Date(end.year, end.month, end.day) : startDate;
-      return Math.max(1, Math.round((endDate - startDate) / (1000*60*60*24)) + 1);
-    }
-    const days = getDaysInRange(globalDates.start, globalDates.end);
-    const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity * days, 0);
+    const days = cartTotals.rentalDays;
+    const itemsSubtotal = cartTotals.itemsSubtotal;
+    const normalizedExtraServices = selectedExtraServices.map((service) => ({
+      serviceId: service.id,
+      name: service.name,
+      description: service.description || '',
+      price: Number(service.price || 0),
+      billingType: service.billingType || 'fixed',
+      total: Number(service.total || 0),
+    }));
+    const servicesTotal = normalizedExtraServices.reduce((sum, service) => sum + Number(service.total || 0), 0);
+    const totalPrice = itemsSubtotal + servicesTotal;
 
     try {
       setBookingStatus("loading");
+
+      if (cart.length === 0) {
+        alert('Ваш кошик порожній.');
+        setBookingStatus('idle');
+        return;
+      }
 
       // Перевіряємо доступність кожної позиції перед створенням замовлення
       if (!globalDates.start) {
@@ -542,12 +667,16 @@ export function AppProvider({ children }) {
       const orderPayload = {
         items: cart.map((item) => ({
           productId: item.id,
-          productName: item.name,
+          productName: item.name || item.title,
           sku: item.sku || '',
           quantity: item.quantity,
           price: item.price,
           category: item.category || 'Інше',
         })),
+        itemsSubtotal,
+        extraServices: normalizedExtraServices,
+        servicesTotal,
+        rentalDays: days,
         totalPrice,
         eventDate: globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : '',
         eventEndDate: globalDates.end ? `${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : '',
@@ -562,10 +691,11 @@ export function AppProvider({ children }) {
         orderPayload.userId = autoRegUserId || currentUser.uid;
       }
 
-      const orderId = await createOrder(orderPayload);
+      await createOrder(orderPayload);
 
       setBookingStatus("success");
       setCart([]);
+      clearSelectedServices();
       setCustomerInfo({ name: "", phone: "", address: "", email: "", notes: "" });
       setGlobalDates({ start: null, end: null });
       // Clear persisted cart and dates
@@ -573,6 +703,7 @@ export function AppProvider({ children }) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem(CART_STORAGE_KEY);
           localStorage.removeItem(DATES_STORAGE_KEY);
+          localStorage.removeItem(SELECTED_SERVICES_STORAGE_KEY);
         }
       } catch {}
 
@@ -597,6 +728,7 @@ export function AppProvider({ children }) {
       await logoutUser();
       setCurrentUser(null);
       setCart([]);
+      clearSelectedServices();
       setOrders([]);
       setView("home");
       // Clear persisted cart and dates on logout
@@ -604,6 +736,7 @@ export function AppProvider({ children }) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem(CART_STORAGE_KEY);
           localStorage.removeItem(DATES_STORAGE_KEY);
+          localStorage.removeItem(SELECTED_SERVICES_STORAGE_KEY);
         }
       } catch {}
     } catch (error) {
@@ -662,6 +795,10 @@ export function AppProvider({ children }) {
     products,
     orders,
     cart,
+    extraServices,
+    selectedServiceIds,
+    selectedExtraServices,
+    cartTotals,
     selectedItem,
     selectedCategory,
     categories,
@@ -712,6 +849,8 @@ export function AppProvider({ children }) {
     addToCart,
     removeFromCart,
     setCartQuantity,
+    toggleExtraService,
+    clearSelectedServices,
     handleOrderSubmit,
     getAvailabilityForDate,
     getMaxAvailableForRange,

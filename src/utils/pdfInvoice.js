@@ -60,6 +60,20 @@ const getCustomerName = (order) => {
 const buildInvoiceMarkup = (order) => {
   const rentalDays = calculateRentalDays(order.eventDate, order.eventEndDate);
   const items = order.items || [];
+  const extraServices = order.extraServices || [];
+  const itemsSubtotal = Number(
+    order.itemsSubtotal ||
+      items.reduce((sum, item) => {
+        const quantity = Number(item.quantity || 0);
+        const price = Number(item.price || 0);
+        return sum + quantity * price * rentalDays;
+      }, 0)
+  );
+  const servicesTotal = Number(
+    order.servicesTotal ||
+      extraServices.reduce((sum, service) => sum + Number(service.total ?? service.price ?? 0), 0)
+  );
+  const grandTotal = Number(order.totalPrice || itemsSubtotal + servicesTotal);
   const issueDate = order.createdAt?.toDate?.()
     ? order.createdAt.toDate().toLocaleDateString('uk-UA')
     : new Date().toLocaleDateString('uk-UA');
@@ -87,6 +101,42 @@ const buildInvoiceMarkup = (order) => {
         <td colspan="6" style="border:1px solid #cbd5e1; padding:10px; text-align:center; color:#64748b;">Немає позицій</td>
       </tr>
     `;
+
+  const extraServicesMarkup = extraServices.length
+    ? `
+      <div style="background:#112248; color:#fff; font-weight:700; text-align:center; padding:8px 16px; font-size:16px; margin-top:10px;">Додаткові послуги</div>
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="background:#e8eefb; color:#243b6b;">
+            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Послуга</th>
+            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Тип</th>
+            <th style="border:1px solid #cbd5e1; padding:8px; text-align:right; width:120px;">Вартість, грн</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${extraServices
+            .map((service) => {
+              const total = Number(service.total ?? service.price ?? 0);
+              const label = service.billingType === 'per_day'
+                ? `${Number(service.price || 0).toFixed(0)} грн × ${rentalDays} дн.`
+                : 'Фіксована ціна';
+              return `
+                <tr>
+                  <td style="border:1px solid #cbd5e1; padding:8px;">${escapeHtml(service.name || 'Послуга')}</td>
+                  <td style="border:1px solid #cbd5e1; padding:8px;">${escapeHtml(label)}</td>
+                  <td style="border:1px solid #cbd5e1; padding:8px; text-align:right; font-weight:700;">${total.toFixed(0)}</td>
+                </tr>
+              `;
+            })
+            .join('')}
+          <tr>
+            <td colspan="2" style="border:1px solid #cbd5e1; padding:10px 12px; font-weight:700; background:#f8fafc;">Всього за послуги, грн</td>
+            <td style="border:1px solid #cbd5e1; padding:10px 12px; text-align:right; font-weight:700; background:#f8fafc;">${escapeHtml(formatCurrency(servicesTotal))}</td>
+          </tr>
+        </tbody>
+      </table>
+    `
+    : '';
 
   return `
     <div style="width:1040px; background:#ffffff; color:#1e293b; font-family:Arial, Helvetica, sans-serif; border:1px solid #dbe2f0;">
@@ -141,18 +191,30 @@ const buildInvoiceMarkup = (order) => {
         <tbody>
           ${rowsMarkup}
           <tr>
-            <td colspan="5" style="border:1px solid #cbd5e1; padding:10px 12px; font-weight:700; background:#f8fafc;">Всього, грн</td>
-            <td style="border:1px solid #cbd5e1; padding:10px 12px; text-align:right; font-weight:700; background:#f8fafc;">${escapeHtml(formatCurrency(order.totalPrice))}</td>
+            <td colspan="5" style="border:1px solid #cbd5e1; padding:10px 12px; font-weight:700; background:#f8fafc;">Товари, грн</td>
+            <td style="border:1px solid #cbd5e1; padding:10px 12px; text-align:right; font-weight:700; background:#f8fafc;">${escapeHtml(formatCurrency(itemsSubtotal))}</td>
+          </tr>
+          ${servicesTotal > 0 ? `
+            <tr>
+              <td colspan="5" style="border:1px solid #cbd5e1; padding:10px 12px; font-weight:700; background:#f8fafc;">Додаткові послуги, грн</td>
+              <td style="border:1px solid #cbd5e1; padding:10px 12px; text-align:right; font-weight:700; background:#f8fafc;">${escapeHtml(formatCurrency(servicesTotal))}</td>
+            </tr>
+          ` : ''}
+          <tr>
+            <td colspan="5" style="border:1px solid #cbd5e1; padding:10px 12px; font-weight:700; background:#eef2ff;">Всього, грн</td>
+            <td style="border:1px solid #cbd5e1; padding:10px 12px; text-align:right; font-weight:700; background:#eef2ff;">${escapeHtml(formatCurrency(grandTotal))}</td>
           </tr>
         </tbody>
       </table>
+
+      ${extraServicesMarkup}
 
       <div style="background:#112248; color:#fff; font-weight:700; text-align:center; padding:8px 16px; font-size:16px; margin-top:10px;">Деталі оплати</div>
       <table style="width:100%; border-collapse:collapse; font-size:13px;">
         <tbody>
           <tr>
             <td style="border:1px solid #cbd5e1; padding:12px; font-weight:700; background:#f8fafc;">ВСЬОГО ДО СПЛАТИ, грн</td>
-            <td style="border:1px solid #cbd5e1; padding:12px; text-align:right; font-weight:700; font-size:18px; background:#f8fafc;">${escapeHtml(formatCurrency(order.totalPrice))}</td>
+            <td style="border:1px solid #cbd5e1; padding:12px; text-align:right; font-weight:700; font-size:18px; background:#f8fafc;">${escapeHtml(formatCurrency(grandTotal))}</td>
           </tr>
         </tbody>
       </table>

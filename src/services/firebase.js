@@ -305,6 +305,82 @@ export const createProductsBulk = async (products) => {
   }
 };
 
+// ==================== EXTRA SERVICES (ДОДАТКОВІ ПОСЛУГИ) ====================
+
+export const getExtraServices = async ({ activeOnly = false } = {}) => {
+  try {
+    const snapshot = await getDocs(collection(db, 'extra_services'));
+    const services = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    const filtered = activeOnly
+      ? services.filter((service) => service.active !== false)
+      : services;
+
+    return filtered.sort((a, b) => {
+      const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+      const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return String(a.name || '').localeCompare(String(b.name || ''), 'uk');
+    });
+  } catch (error) {
+    console.error('Error fetching extra services:', error);
+    throw error;
+  }
+};
+
+export const addExtraService = async (serviceData) => {
+  try {
+    const existingServices = await getExtraServices();
+    const maxOrder = existingServices.reduce(
+      (max, service) => Math.max(max, Number(service.order || 0)),
+      0
+    );
+
+    const docRef = await addDoc(collection(db, 'extra_services'), {
+      name: serviceData.name,
+      description: serviceData.description || '',
+      price: Number(serviceData.price || 0),
+      billingType: serviceData.billingType === 'per_day' ? 'per_day' : 'fixed',
+      active: serviceData.active !== false,
+      order: serviceData.order ?? maxOrder + 1,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding extra service:', error);
+    throw error;
+  }
+};
+
+export const updateExtraService = async (serviceId, updates) => {
+  try {
+    const docRef = doc(db, 'extra_services', serviceId);
+    await updateDoc(docRef, {
+      ...updates,
+      price: Number(updates.price || 0),
+      billingType: updates.billingType === 'per_day' ? 'per_day' : 'fixed',
+      updatedAt: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error('Error updating extra service:', error);
+    throw error;
+  }
+};
+
+export const deleteExtraService = async (serviceId) => {
+  try {
+    await deleteDoc(doc(db, 'extra_services', serviceId));
+  } catch (error) {
+    console.error('Error deleting extra service:', error);
+    throw error;
+  }
+};
+
 // ==================== ORDERS (ЗАМОВЛЕННЯ) ====================
 
 export const deleteOrder = async (orderId) => {
@@ -330,10 +406,14 @@ export const createOrder = async (orderData) => {
     const docRef = await addDoc(collection(db, 'orders'), {
       userId: resolvedUserId,
       items: orderData.items, // Array of { productId, quantity, price }
-      totalPrice: orderData.totalPrice,
+      itemsSubtotal: Number(orderData.itemsSubtotal ?? orderData.totalPrice ?? 0),
+      extraServices: orderData.extraServices || [],
+      servicesTotal: Number(orderData.servicesTotal || 0),
+      rentalDays: Number(orderData.rentalDays || 1),
+      totalPrice: Number(orderData.totalPrice || 0),
       status: 'pending', // 'pending', 'in_progress', 'confirmed', 'delivered', 'cancelled'
       eventDate: orderData.eventDate, // Date of event
-        eventEndDate: orderData.eventEndDate, // End date of event
+      eventEndDate: orderData.eventEndDate, // End date of event
       customerName: orderData.customerName,
       customerEmail: orderData.customerEmail,
       customerPhone: orderData.customerPhone,
@@ -648,6 +728,88 @@ export const updateOrderStatus = async (orderId, status) => {
     }
   } catch (error) {
     console.error('Error updating order:', error);
+    throw error;
+  }
+};
+
+export const updateOrderItems = async (orderId, updates = {}) => {
+  try {
+    const docRef = doc(db, 'orders', orderId);
+    const prevSnap = await getDoc(docRef);
+
+    if (!prevSnap.exists()) {
+      throw new Error('Order not found');
+    }
+
+    const prev = prevSnap.data();
+    const nextOrderData = {
+      ...prev,
+      ...updates,
+      items: updates.items || prev.items || [],
+      extraServices: updates.extraServices ?? prev.extraServices ?? [],
+      warehouseStatus: updates.warehouseStatus ?? prev.warehouseStatus ?? 'pending',
+      warehouseNotes: updates.warehouseNotes ?? prev.warehouseNotes ?? '',
+      itemsSubtotal: Number(updates.itemsSubtotal ?? prev.itemsSubtotal ?? 0),
+      servicesTotal: Number(updates.servicesTotal ?? prev.servicesTotal ?? 0),
+      totalPrice: Number(updates.totalPrice ?? prev.totalPrice ?? 0),
+    };
+
+    if (isBookingStatus(prev.status)) {
+      await updateAvailabilityForOrder(prev, -1);
+    }
+
+    const prevBrokenByProduct = {};
+    const nextBrokenByProduct = {};
+
+    (prev.items || []).forEach((item) => {
+      if (!item.productId) return;
+      prevBrokenByProduct[item.productId] = (prevBrokenByProduct[item.productId] || 0) + Number(item.brokenQuantity || 0);
+    });
+
+    (nextOrderData.items || []).forEach((item) => {
+      if (!item.productId) return;
+      nextBrokenByProduct[item.productId] = (nextBrokenByProduct[item.productId] || 0) + Number(item.brokenQuantity || 0);
+    });
+
+    await updateDoc(docRef, {
+      items: nextOrderData.items,
+      extraServices: nextOrderData.extraServices,
+      warehouseStatus: nextOrderData.warehouseStatus,
+      warehouseNotes: nextOrderData.warehouseNotes,
+      itemsSubtotal: nextOrderData.itemsSubtotal,
+      servicesTotal: nextOrderData.servicesTotal,
+      totalPrice: nextOrderData.totalPrice,
+      warehouseUpdatedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+
+    const affectedProductIds = new Set([
+      ...Object.keys(prevBrokenByProduct),
+      ...Object.keys(nextBrokenByProduct),
+    ]);
+
+    for (const productId of affectedProductIds) {
+      const prevBroken = Number(prevBrokenByProduct[productId] || 0);
+      const nextBroken = Number(nextBrokenByProduct[productId] || 0);
+      const deltaBroken = nextBroken - prevBroken;
+
+      if (deltaBroken !== 0) {
+        try {
+          await updateDoc(doc(db, 'products', productId), {
+            quantity: increment(-deltaBroken),
+            updatedAt: Timestamp.now(),
+          });
+        } catch (productError) {
+          console.warn('[updateOrderItems] Failed to adjust product quantity for breakage:', productId, productError);
+        }
+      }
+    }
+
+    if (isBookingStatus(prev.status)) {
+      await updateAvailabilityForOrder(nextOrderData, +1);
+    }
+  } catch (error) {
+    console.error('Error updating order items:', error);
     throw error;
   }
 };

@@ -237,6 +237,25 @@ export function OrdersView() {
                     </div>
                   </div>
 
+                  {order.extraServices?.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-bold text-slate-900 mb-3">Додаткові послуги</h4>
+                      <div className="bg-white rounded-xl p-4 space-y-2">
+                        {order.extraServices.map((service, idx) => (
+                          <div key={`${service.serviceId || service.name}-${idx}`} className="flex items-center justify-between gap-4 border-b last:border-b-0 border-slate-100 pb-2 last:pb-0">
+                            <div>
+                              <p className="text-slate-900 font-medium">{service.name}</p>
+                              {service.description && (
+                                <p className="text-sm text-slate-500">{service.description}</p>
+                              )}
+                            </div>
+                            <span className="font-semibold text-slate-900">{Number(service.total ?? service.price ?? 0).toFixed(0)} ₴</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {order.notes && (
                     <div className="mt-6">
                       <h4 className="font-bold text-slate-900 mb-2">Примітки</h4>

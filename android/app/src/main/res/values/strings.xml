@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LaFamiglia Rentco</string>
+    <string name="title_activity_main">LaFamiglia Rentco</string>
+    <string name="package_name">com.lafamiglia.rentco</string>
+    <string name="custom_url_scheme">com.lafamiglia.rentco</string>
+</resources>
