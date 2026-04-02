@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 const MONTHS = [
   'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',
@@ -17,6 +17,17 @@ export default function DateRangePicker({ value, onChange }) {
   const [viewMonth, setViewMonth] = useState((value?.start && value.start.month) || (new Date()).getMonth());
   const [viewYear, setViewYear] = useState((value?.start && value.start.year) || (new Date()).getFullYear());
   const ref = useRef();
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) {
+        setShow(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const handleSelect = (day, month, year) => {
     let next = { ...value };
@@ -66,6 +77,11 @@ export default function DateRangePicker({ value, onChange }) {
            (value?.end && d === value.end.day && m === value.end.month && y === value.end.year);
   };
 
+  const isToday = (d, m, y) => {
+    const today = new Date();
+    return d === today.getDate() && m === today.getMonth() && y === today.getFullYear();
+  };
+
   return (
     <div className="relative" ref={ref}>
       <div className="flex gap-2 items-center flex-nowrap whitespace-nowrap">
@@ -85,7 +101,7 @@ export default function DateRangePicker({ value, onChange }) {
         </button>
       </div>
       {show && (
-        <div className="absolute z-50 mt-2 left-0 bg-[#0b1731] rounded-2xl border border-slate-700 shadow-2xl p-4 w-80 animate-in fade-in text-white">
+        <div className="absolute z-[80] mt-2 left-0 bg-[#0b1731] rounded-2xl border border-slate-700 shadow-2xl p-4 w-80 animate-in fade-in text-white">
           <div className="flex justify-between items-center mb-2">
             <button onClick={() => {
               if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
@@ -113,10 +129,15 @@ export default function DateRangePicker({ value, onChange }) {
                 key={d}
                 onClick={() => handleSelect(d, viewMonth, viewYear)}
                 className={`h-8 w-8 flex items-center justify-center rounded-md text-xs font-bold transition-all duration-150
-                  ${isSelected(d, viewMonth, viewYear) ? 'bg-cyan-400 text-slate-950 shadow' :
-                    isInRange(d, viewMonth, viewYear) ? 'bg-cyan-500/20 text-cyan-100' :
-                    'bg-slate-900 text-slate-200 hover:bg-slate-800 border border-slate-700'}
+                  ${isSelected(d, viewMonth, viewYear)
+                    ? 'bg-cyan-400 text-slate-950 shadow ring-2 ring-cyan-200'
+                    : isInRange(d, viewMonth, viewYear)
+                      ? 'bg-cyan-500/20 text-cyan-100 border border-cyan-400/30 hover:bg-cyan-500/30'
+                      : isToday(d, viewMonth, viewYear)
+                        ? 'bg-slate-800 text-white border-2 border-[#D7B46A] hover:bg-slate-700 hover:scale-105'
+                        : 'bg-slate-900 text-slate-200 hover:bg-slate-800 hover:scale-105 hover:border-cyan-300 hover:text-white border border-slate-700'}
                 `}
+                title={isToday(d, viewMonth, viewYear) ? 'Сьогодні' : undefined}
               >{d}</button>
             ))}
             {nextMonthDays.map((d, i) => (

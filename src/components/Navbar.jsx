@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Wine, Calendar as CalendarIcon, ShoppingBag, LogOut, Package, Settings, X, LogIn, Images } from "lucide-react";
+import { House, Calendar as CalendarIcon, ShoppingBag, LogOut, Package, Settings, X, LogIn, Images, Info, FileText } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
 import LoginModal from "./LoginModal";
 
 export const Navbar = ({
+  view,
   isAdminMode,
   setIsAdminMode,
   setView,
@@ -13,6 +14,7 @@ export const Navbar = ({
 }) => {
   const { currentUser, handleLogout, pendingBadge } = useAppContext();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const navLinkClasses = (isActive) => `flex items-center gap-2 px-2 md:px-3 py-2 rounded-xl border transition-all duration-200 ${isActive ? "bg-slate-800 text-white border-slate-700" : "text-slate-300 hover:text-white hover:bg-slate-800 border-transparent hover:border-slate-700"}`;
 
   return (
     <>
@@ -25,26 +27,65 @@ export const Navbar = ({
               setIsAdminMode(false);
             }}
           >
-            <div className="flex items-center gap-3">
-              <div className="bg-cyan-500/15 border border-cyan-400/30 p-2 rounded-xl shadow-md">
-                <Wine className="text-cyan-200" size={20} />
-              </div>
-              <span className="text-sm md:text-base font-bold tracking-[0.18em] uppercase text-white hidden sm:inline">
-                LaFamiglia Rentco
+            <div className="flex flex-col items-center justify-center leading-none select-none text-center">
+              <span
+                className="text-[12px] md:text-[14px] text-white font-semibold tracking-[-0.03em]"
+                style={{ fontFamily: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif' }}
+              >
+                laFamiglia
+              </span>
+              <span className="text-[18px] md:text-[22px] font-black tracking-[0.16em] uppercase text-white leading-none">
+                RENTCO
               </span>
             </div>
           </div>
 
           <button
             onClick={() => {
+              setView("home");
+              setIsAdminMode(false);
+            }}
+            className={navLinkClasses(view === "home")}
+            title="На головну"
+          >
+            <House size={18} />
+            <span className="hidden md:inline text-xs font-semibold">На головну</span>
+          </button>
+
+          <button
+            onClick={() => {
               setView("gallery");
               setIsAdminMode(false);
             }}
-            className="flex items-center gap-2 px-2 md:px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl border border-transparent hover:border-slate-700 transition-all duration-200"
+            className={navLinkClasses(view === "gallery")}
             title="Галерея"
           >
             <Images size={18} />
             <span className="hidden md:inline text-xs font-semibold">Галерея</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setView("about");
+              setIsAdminMode(false);
+            }}
+            className={navLinkClasses(view === "about")}
+            title="Про нас"
+          >
+            <Info size={18} />
+            <span className="hidden md:inline text-xs font-semibold">Про нас</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setView("terms");
+              setIsAdminMode(false);
+            }}
+            className={navLinkClasses(view === "terms")}
+            title="Оренда та умови"
+          >
+            <FileText size={18} />
+            <span className="hidden lg:inline text-xs font-semibold">Оренда та умови</span>
           </button>
         </div>
 

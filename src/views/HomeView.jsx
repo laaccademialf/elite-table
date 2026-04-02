@@ -18,6 +18,7 @@ export const HomeView = () => {
   } = useAppContext();
 
   const [selectedParentId, setSelectedParentId] = useState(null);
+  const [isCategoryBarSolid, setIsCategoryBarSolid] = useState(false);
   const topCategoriesRef = useRef(null);
   const subcategoriesRef = useRef(null);
   const dragStateRef = useRef({
@@ -61,6 +62,16 @@ export const HomeView = () => {
   useEffect(() => {
     window.addEventListener('mouseup', stopDragging);
     return () => window.removeEventListener('mouseup', stopDragging);
+  }, []);
+
+  useEffect(() => {
+    const handleScrollState = () => {
+      setIsCategoryBarSolid(window.scrollY > 120);
+    };
+
+    handleScrollState();
+    window.addEventListener('scroll', handleScrollState, { passive: true });
+    return () => window.removeEventListener('scroll', handleScrollState);
   }, []);
 
   const handleDragStart = (ref) => (event) => {
@@ -161,10 +172,10 @@ export const HomeView = () => {
   }, [filteredProducts, globalDates.start, globalDates.end, getMaxAvailableForRange]);
 
   return (
-    <main className="max-w-7xl mx-auto px-6 pt-0 pb-8 animate-in fade-in duration-700 text-slate-900">
+    <main className="max-w-[1680px] mx-auto px-6 pt-0 pb-8 animate-in fade-in duration-700 text-slate-900">
       {/* Hero Section */}
-      <div className="w-screen relative left-1/2 -translate-x-1/2 mb-4 bg-gradient-to-r from-[#081226] via-[#112248] to-[#081226] px-6 pt-2 pb-4 md:pt-3 md:pb-4 border-b border-slate-700 transition-all duration-300 shadow-lg">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center md:items-center justify-between gap-3 min-h-[72px]">
+      <div className="w-screen relative z-30 left-1/2 -translate-x-1/2 mb-4 bg-gradient-to-r from-[#081226] via-[#112248] to-[#081226] px-6 pt-2 pb-4 md:pt-3 md:pb-4 border-b border-slate-700 transition-all duration-300 shadow-lg">
+        <div className="max-w-[1680px] mx-auto flex flex-col md:flex-row items-center md:items-center justify-between gap-3 min-h-[72px]">
           {/* Header and DatePicker */}
           <div className="flex-1 flex flex-col items-center md:items-start gap-1 px-1 self-start md:self-center">
             <h2 className="text-xl md:text-2xl font-extrabold text-white uppercase tracking-tight drop-shadow-sm leading-none">ВАША ОСОБЛИВА ПОДІЯ</h2>
@@ -197,8 +208,13 @@ export const HomeView = () => {
       </div>
 
       {/* Category Filter */}
-      <div className="sticky top-16 z-40 bg-transparent py-4 -mx-6 px-6 mb-8 overflow-hidden">
-        <div className="max-w-7xl mx-auto space-y-3">
+      <div className="sticky top-16 z-20 mb-6 transition-all duration-500 ease-out">
+        <div className={`w-screen relative left-1/2 -translate-x-1/2 pt-0 pb-3 overflow-visible transition-all duration-500 ease-out ${
+          isCategoryBarSolid
+            ? 'bg-[#081226]/95 backdrop-blur-md border-b border-slate-800 shadow-xl'
+            : 'bg-transparent'
+        }`}>
+          <div className="max-w-[1680px] mx-auto px-6 pt-3 space-y-3">
           <style>{`
             .category-scroll::-webkit-scrollbar {
               display: none;
@@ -206,104 +222,104 @@ export const HomeView = () => {
           `}</style>
           <div
             ref={topCategoriesRef}
-            className="flex items-stretch gap-3 overflow-x-auto pb-2 scroll-smooth category-scroll cursor-grab active:cursor-grabbing select-none"
+            className="overflow-x-auto scroll-smooth category-scroll cursor-grab active:cursor-grabbing select-none pt-2"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             onMouseDown={handleDragStart(topCategoriesRef)}
             onMouseMove={handleDragMove(topCategoriesRef)}
             onMouseLeave={stopDragging}
           >
-            <button
-              className={`group w-[96px] md:w-[112px] h-[102px] md:h-[110px] rounded-2xl border-2 px-2 py-2 flex-shrink-0 flex flex-col items-center justify-center gap-2 transition ${
-                !selectedParentId && !selectedCategory
-                  ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-200 bg-white text-slate-900 hover:border-slate-400'
-              }`}
-              onClick={runIfNotDragging(() => {
-                setSelectedParentId(null);
-                setSelectedCategory(null);
+            <div className="flex w-max min-w-full items-stretch justify-center gap-3 px-3 pb-2">
+              <button
+                className="group w-[96px] md:w-[112px] h-[102px] md:h-[110px] rounded-2xl border-2 px-2 py-2 flex-shrink-0 flex flex-col items-center justify-center border-slate-200 bg-white text-slate-900 transition-all duration-200 ease-out hover:scale-[1.04] hover:shadow-lg hover:ring-2 hover:ring-[#081226]"
+                onClick={runIfNotDragging(() => {
+                  setSelectedParentId(null);
+                  setSelectedCategory(null);
+                })}
+                aria-label="Всі категорії"
+              >
+                <span className="text-[10px] md:text-[11px] font-bold uppercase">Всі</span>
+              </button>
+
+              {topCategories.length > 0 && topCategories.map((category) => {
+                const hasChildren = categories.some((item) => item.parentId === category.id);
+                const isActive = selectedParentId === category.id || selectedCategory === category.name;
+                const icon = category.icon;
+                const isImg = typeof icon === 'string' && (icon.startsWith('http') || icon.startsWith('data:') || /\.(png|jpe?g|webp|gif|svg)$/i.test(icon));
+
+                return (
+                  <button
+                    key={category.id}
+                    className={`group w-[104px] md:w-[120px] h-[102px] md:h-[110px] rounded-2xl border-2 overflow-hidden flex-shrink-0 bg-white transition-all duration-200 ease-out ${
+                      isActive ? 'border-slate-900 shadow-md' : 'border-slate-200 hover:scale-[1.04] hover:shadow-lg hover:ring-2 hover:ring-[#081226]'
+                    }`}
+                    onClick={runIfNotDragging(() => {
+                      setSelectedParentId(category.id);
+                      if (hasChildren) {
+                        setSelectedCategory(null);
+                      } else {
+                        setSelectedCategory(category.name);
+                      }
+                    })}
+                    aria-label={category.name}
+                  >
+                    <div className="h-14 md:h-16 bg-slate-50 flex items-center justify-center overflow-hidden">
+                      {isImg ? (
+                        <div className="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-500" style={{ backgroundImage: `url(${icon})` }} />
+                      ) : (
+                        <span className="text-2xl">{icon || '🏷️'}</span>
+                      )}
+                    </div>
+                    <div className={`h-[40px] md:h-[42px] px-2 py-1 text-[10px] md:text-[11px] font-bold uppercase leading-tight flex items-center justify-center ${isActive ? 'text-slate-900' : 'text-slate-700'}`}>
+                      <span className="clamp-2 text-center">{category.name}</span>
+                    </div>
+                  </button>
+                );
               })}
-              aria-label="Всі категорії"
-            >
-              <span className="text-lg">📋</span>
-              <span className="text-[10px] md:text-[11px] font-bold uppercase">Всі</span>
-            </button>
 
-            {topCategories.length > 0 && topCategories.map((category) => {
-              const hasChildren = categories.some((item) => item.parentId === category.id);
-              const isActive = selectedParentId === category.id || selectedCategory === category.name;
-              const icon = category.icon;
-              const isImg = typeof icon === 'string' && (icon.startsWith('http') || icon.startsWith('data:') || /\.(png|jpe?g|webp|gif|svg)$/i.test(icon));
-
-              return (
-                <button
-                  key={category.id}
-                  className={`group w-[104px] md:w-[120px] h-[102px] md:h-[110px] rounded-2xl border-2 overflow-hidden flex-shrink-0 bg-white transition ${
-                    isActive ? 'border-slate-900 shadow-md' : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                  onClick={runIfNotDragging(() => {
-                    setSelectedParentId(category.id);
-                    if (hasChildren) {
-                      setSelectedCategory(null);
-                    } else {
-                      setSelectedCategory(category.name);
-                    }
-                  })}
-                  aria-label={category.name}
-                >
-                  <div className="h-14 md:h-16 bg-slate-50 flex items-center justify-center overflow-hidden">
-                    {isImg ? (
-                      <div className="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-500" style={{ backgroundImage: `url(${icon})` }} />
-                    ) : (
-                      <span className="text-2xl">{icon || '🏷️'}</span>
-                    )}
-                  </div>
-                  <div className={`h-[40px] md:h-[42px] px-2 py-1 text-[10px] md:text-[11px] font-bold uppercase leading-tight flex items-center justify-center ${isActive ? 'text-slate-900' : 'text-slate-700'}`}>
-                    <span className="clamp-2 text-center">{category.name}</span>
-                  </div>
-                </button>
-              );
-            })}
-
-            {topCategories.length === 0 && (
-              <span className="text-slate-500 text-sm ml-4">Категорій немає</span>
-            )}
+              {topCategories.length === 0 && (
+                <span className="text-slate-500 text-sm ml-4">Категорій немає</span>
+              )}
+            </div>
           </div>
 
           {activeSubcategories.length > 0 && (
             <div
               ref={subcategoriesRef}
-              className="flex items-center gap-2 overflow-x-auto pb-1 category-scroll cursor-grab active:cursor-grabbing select-none"
+              className="overflow-x-auto category-scroll cursor-grab active:cursor-grabbing select-none pt-1"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               onMouseDown={handleDragStart(subcategoriesRef)}
               onMouseMove={handleDragMove(subcategoriesRef)}
               onMouseLeave={stopDragging}
             >
-              {activeSubcategories.map((subcategory) => {
-                const isActive = selectedCategory === subcategory.name;
-                return (
-                  <button
-                    key={subcategory.id}
-                    onClick={runIfNotDragging(() => {
-                      setSelectedParentId(subcategory.parentId || null);
-                      setSelectedCategory(subcategory.name);
-                    })}
-                    className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                      isActive
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900'
-                    }`}
-                  >
-                    {subcategory.name}
-                  </button>
-                );
-              })}
+              <div className="flex w-max min-w-full items-center justify-center gap-2 px-3 pb-1">
+                {activeSubcategories.map((subcategory) => {
+                  const isActive = selectedCategory === subcategory.name;
+                  return (
+                    <button
+                      key={subcategory.id}
+                      onClick={runIfNotDragging(() => {
+                        setSelectedParentId(subcategory.parentId || null);
+                        setSelectedCategory(subcategory.name);
+                      })}
+                      className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 ease-out ${
+                        isActive
+                          ? 'border-slate-900 bg-slate-900 text-white'
+                          : 'border-slate-200 bg-white text-slate-700 hover:scale-105 hover:shadow-md hover:ring-2 hover:ring-[#081226] hover:text-slate-900'
+                      }`}
+                    >
+                      {subcategory.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
+          </div>
         </div>
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 xl:gap-5 mb-12">
         {filteredProducts.map(product => {
           // Знаходимо категорію продукту
           const category = categories.find(cat => cat.id === product.categoryId);

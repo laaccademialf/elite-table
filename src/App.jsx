@@ -11,6 +11,8 @@ import { CheckoutView } from "./views/CheckoutView";
 import { PostItemView } from "./views/PostItemView";
 import { OrdersView } from "./views/OrdersView";
 import { GalleryView } from "./views/GalleryView";
+import { AboutView } from "./views/AboutView";
+import { RentalTermsView } from "./views/RentalTermsView";
 import { Bell } from "lucide-react";
 
 const AppContent = () => {
@@ -37,6 +39,7 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-cyan-400 selection:text-slate-950">
       <Navbar
+        view={view}
         isAdminMode={isAdminMode}
         setIsAdminMode={setIsAdminMode}
         setView={setView}
@@ -51,6 +54,8 @@ const AppContent = () => {
         <>
           {view === "home" && <HomeView />}
           {view === "gallery" && <GalleryView />}
+          {view === "about" && <AboutView />}
+          {view === "terms" && <RentalTermsView />}
           {view === "cart" && <CartView />}
           {view === "item" && <ItemDetailView />}
           {view === "post" && <PostItemView />}

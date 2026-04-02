@@ -62,30 +62,33 @@ export const ItemDetailView = () => {
   const totalPrice = priceNum * orderQuantity * days;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-12 animate-in slide-in-from-right-12 duration-500 text-slate-50">
-      <button onClick={() => setView('home')} className="mb-6 md:mb-10 flex items-center gap-2 text-cyan-300 font-black uppercase text-[10px] hover:text-white">
+    <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-10 animate-in slide-in-from-right-12 duration-500 text-slate-900">
+      <button
+        onClick={() => setView('home')}
+        className="mb-6 md:mb-8 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-[#081226] font-black uppercase text-[10px] hover:bg-slate-100 hover:text-[#081226] transition-all duration-200 shadow-sm"
+      >
         <ChevronLeft size={16}/> Назад
       </button>
       
       {/* Mobile: компактний вертикальний layout */}
       <div className="md:hidden space-y-4">
         {/* Зображення компактне */}
-        <div className="relative w-full h-56 rounded-2xl overflow-hidden bg-slate-950 shadow-xl border-[3px] border-cyan-500/70">
+        <div className="relative w-full h-56 rounded-2xl overflow-hidden bg-white shadow-xl border border-slate-300">
           <SafeImage src={selectedItem.image} className="w-full h-full object-cover" />
-          <div className="absolute top-3 left-3 bg-cyan-500 text-slate-950 px-3 py-1 rounded-full text-[9px] font-black uppercase">
+          <div className="absolute top-3 left-3 bg-[#081226] text-[#F4E8C6] px-3 py-1 rounded-full text-[9px] font-black uppercase">
             {selectedItem.category}
           </div>
         </div>
         
         {/* Назва і ціна */}
         <div>
-          <h1 className="text-2xl font-black italic uppercase text-white leading-tight mb-3">{selectedItem.name || selectedItem.name || selectedItem.title}</h1>
+          <h1 className="text-2xl font-black uppercase text-[#081226] leading-tight mb-3">{selectedItem.name || selectedItem.name || selectedItem.title}</h1>
           {selectedItem.sku && (
-            <p className="text-xs font-mono text-slate-400 mb-2">Артикул: {selectedItem.sku}</p>
+            <p className="text-xs font-mono text-slate-500 mb-2">Артикул: {selectedItem.sku}</p>
           )}
           <div className="flex items-baseline gap-3 mb-4">
-            <span className="text-4xl font-black text-cyan-300">{priceNum} ₴</span>
-            <span className="text-sm text-slate-300 font-bold">/од/доба</span>
+            <span className="text-4xl font-black text-[#081226]">{priceNum} ₴</span>
+            <span className="text-sm text-slate-500 font-bold">/од/доба</span>
           </div>
         </div>
         
@@ -94,7 +97,7 @@ export const ItemDetailView = () => {
           <p className={`text-[10px] font-black uppercase mb-3 ${
             maxAvailable === 0 ? 'text-red-400' : 
             (maxAvailable !== null && maxAvailable <= 5) ? 'text-orange-400' : 
-            'text-[#C5A059]'
+            'text-slate-200'
           }`}>
             {isLoadingAvailability 
               ? 'Перевірка...' 
@@ -105,7 +108,7 @@ export const ItemDetailView = () => {
             <div className="flex items-center bg-slate-900 p-2 rounded-2xl gap-3 border border-slate-700">
               <button 
                 onClick={() => setOrderQuantity(Math.max(1, orderQuantity - 1))} 
-                className="bg-[#C5A059] w-9 h-9 rounded-full font-black text-white"
+                className="bg-white w-9 h-9 rounded-full font-black text-[#081226] hover:bg-slate-100 transition-colors"
               >
                 −
               </button>
@@ -122,7 +125,7 @@ export const ItemDetailView = () => {
               />
               <button 
                 onClick={() => setOrderQuantity(Math.min((maxAvailable ?? 999), orderQuantity + 1))} 
-                className="bg-[#C5A059] w-9 h-9 rounded-full font-black text-white"
+                className="bg-white w-9 h-9 rounded-full font-black text-[#081226] hover:bg-slate-100 transition-colors"
               >
                 +
               </button>
@@ -131,7 +134,7 @@ export const ItemDetailView = () => {
             <button 
               onClick={() => { addToCart(selectedItem, orderQuantity); setView('cart'); }} 
               disabled={isLoadingAvailability || maxAvailable === 0}
-              className="flex-1 py-4 bg-[#C5A059] text-white font-black rounded-full uppercase text-xs disabled:opacity-50"
+              className="flex-1 py-4 bg-[#E7C983] text-[#081226] font-black rounded-full uppercase text-xs hover:bg-[#f0ddb3] transition disabled:opacity-50 shadow-sm"
             >
               {maxAvailable === 0 ? '❌ Немає' : `➕ ${totalPrice} ₴`}
             </button>
@@ -147,8 +150,8 @@ export const ItemDetailView = () => {
         
         {/* Опис (коротко, внизу) */}
         {selectedItem.description && (
-          <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
-            <p className="text-xs italic text-slate-300 line-clamp-3">{selectedItem.description}</p>
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <p className="text-xs text-slate-600 line-clamp-3">{selectedItem.description}</p>
           </div>
         )}
       </div>
@@ -157,7 +160,7 @@ export const ItemDetailView = () => {
       <div className="hidden md:block">
         <div className="grid md:grid-cols-2 gap-8">
           {/* Зліва: фото */}
-          <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 shadow-xl border-[3px] border-cyan-500/70">
+          <div className="relative aspect-square rounded-2xl overflow-hidden bg-white shadow-xl border border-slate-300">
             <SafeImage src={selectedItem.image} className="w-full h-full object-cover" />
           </div>
           
@@ -165,22 +168,22 @@ export const ItemDetailView = () => {
           <div className="flex flex-col justify-between gap-4">
             {/* Верхня частина: категорія, назва, артикул */}
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase text-cyan-300">{selectedItem.category}</p>
-              <h1 className="text-xl md:text-2xl font-black italic uppercase text-white leading-tight">{selectedItem.name || selectedItem.title}</h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{selectedItem.category}</p>
+              <h1 className="text-xl md:text-2xl font-black uppercase text-[#081226] leading-tight">{selectedItem.name || selectedItem.title}</h1>
               {selectedItem.sku && (
-                <p className="text-xs font-mono text-slate-400">Артикул: {selectedItem.sku}</p>
+                <p className="text-xs font-mono text-slate-500">Артикул: {selectedItem.sku}</p>
               )}
             </div>
             
             {/* Опис - розширюється до низу */}
-            <div className="bg-slate-900/80 p-5 rounded-3xl border border-slate-800 flex flex-col flex-grow">
-              <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Опис</p>
-              <p className="text-sm italic text-slate-200">{selectedItem.description}</p>
+            <div className="bg-[#4a5266] p-5 rounded-3xl border border-slate-500/40 flex flex-col flex-grow shadow-sm">
+              <p className="text-[10px] font-black uppercase text-slate-300 mb-2">Опис</p>
+              <p className="text-sm text-white/90">{selectedItem.description}</p>
             </div>
             
             {/* Нижня частина: ціна */}
-            <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
-              <p className="text-[10px] font-black uppercase text-cyan-300 mb-1">Ціна за добу</p>
+            <div className="bg-[#4a5266] p-4 rounded-2xl border border-slate-500/40 shadow-sm">
+              <p className="text-[10px] font-black uppercase text-[#D7B46A] mb-1">Ціна за добу</p>
               <p className="font-black text-white text-2xl">{priceNum} ₴</p>
             </div>
           </div>
@@ -191,7 +194,7 @@ export const ItemDetailView = () => {
             <p className={`text-[10px] font-black uppercase mb-2 ${
               maxAvailable === 0 ? 'text-red-400' : 
               (maxAvailable !== null && maxAvailable <= 5) ? 'text-orange-400' : 
-              'text-[#C5A059]'
+              'text-slate-200'
             }`}>
               {isLoadingAvailability 
                 ? 'Перевірка доступності...' 
@@ -215,7 +218,7 @@ export const ItemDetailView = () => {
             <div className="flex items-center justify-center bg-slate-900 p-4 rounded-3xl gap-4 w-full md:w-auto border border-slate-700">
               <button 
                 onClick={() => setOrderQuantity(Math.max(1, orderQuantity - 1))} 
-                className="bg-[#C5A059] w-10 h-10 rounded-full font-black text-white text-lg hover:bg-[#B59049] transition"
+                className="bg-white w-10 h-10 rounded-full font-black text-[#081226] text-lg hover:bg-slate-100 transition"
               >
                 −
               </button>
@@ -232,7 +235,7 @@ export const ItemDetailView = () => {
               />
               <button 
                 onClick={() => setOrderQuantity(Math.min((maxAvailable ?? 999), orderQuantity + 1))} 
-                className="bg-[#C5A059] w-10 h-10 rounded-full font-black text-white text-lg hover:bg-[#B59049] transition"
+                className="bg-white w-10 h-10 rounded-full font-black text-[#081226] text-lg hover:bg-slate-100 transition"
               >
                 +
               </button>
@@ -241,7 +244,7 @@ export const ItemDetailView = () => {
             <button 
               onClick={() => { addToCart(selectedItem, orderQuantity); setView('cart'); }} 
               disabled={isLoadingAvailability || maxAvailable === 0}
-              className="flex-1 w-full py-5 bg-cyan-500 text-slate-950 font-black rounded-full uppercase tracking-wider text-sm hover:bg-cyan-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 w-full py-5 bg-[#E7C983] text-[#081226] font-black rounded-full uppercase tracking-wider text-sm hover:bg-[#f0ddb3] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {isLoadingAvailability
                 ? 'Перевірка доступності...'

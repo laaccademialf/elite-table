@@ -77,46 +77,50 @@ export const CartView = () => {
   // Видалено функції AI (генерація/озвучення концепції)
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12 animate-in slide-in-from-bottom-8 duration-500 text-slate-50">
-      {/* Sticky header з кнопками, заголовком та інфо */}
-      <div className="sticky top-20 z-20 bg-slate-950/95 backdrop-blur pt-6 pb-6 space-y-6 -mx-6 px-6 border-b border-slate-800">
-        <div className="flex items-center justify-between">
-          <button 
-            onClick={() => setView('home')}
-            className="flex items-center gap-2 px-6 py-3 border-2 border-cyan-400 text-cyan-300 font-black uppercase text-sm hover:bg-cyan-500 hover:text-slate-950 transition-colors rounded-2xl"
-          >
-            ← Каталог
-          </button>
-          <h2 className="text-4xl font-black italic uppercase flex items-center gap-4"><ShoppingBag size={32} /> Кошик</h2>
-          <button 
-            onClick={() => setView('checkout')}
-            disabled={globalDates.start ? insufficiencies.length > 0 : false}
-            className="flex items-center gap-2 px-6 py-3 bg-cyan-500 text-slate-950 font-black uppercase text-sm hover:bg-cyan-400 transition-colors rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Оформити →
-          </button>
-        </div>
+    <div className="pb-10 animate-in slide-in-from-bottom-8 duration-500 text-slate-50">
+      {/* Продовження navbar */}
+      <section className="w-screen relative left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#081226] via-[#112248] to-[#081226] border-b border-slate-700 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-4 md:py-5 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <button 
+              onClick={() => setView('home')}
+              className="inline-flex items-center gap-2 px-5 py-3 border border-slate-500 text-white font-black uppercase text-sm hover:bg-white/10 transition-colors rounded-2xl"
+            >
+              ← Каталог
+            </button>
+            <h2 className="text-3xl md:text-4xl font-black uppercase flex items-center gap-3 md:gap-4"><ShoppingBag size={30} /> Кошик</h2>
+            <button 
+              onClick={() => setView('checkout')}
+              disabled={globalDates.start ? insufficiencies.length > 0 : false}
+              className="inline-flex items-center gap-2 px-5 py-3 border border-slate-500 text-white font-black uppercase text-sm hover:bg-white/10 transition-colors rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Оформити →
+            </button>
+          </div>
 
-        {cart.length > 0 && (
-          <>
-            <div className="bg-slate-900/80 p-4 rounded-[24px] border border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CalendarIcon size={20} className="text-cyan-300" />
-                <div>
-                  <p className="text-[9px] font-black uppercase text-cyan-300">Період оренди</p>
-                  <p className="text-sm font-black">{globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : ''} {globalDates.end ? `- ${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : ''}</p>
+          {cart.length > 0 && (
+            <div className="bg-slate-950/35 p-4 rounded-[22px] border border-slate-700 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <CalendarIcon size={20} className="text-[#D7B46A] shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#D7B46A]">Період оренди</p>
+                  <p className="text-sm font-black text-white truncate">{globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : ''} {globalDates.end ? `- ${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : ''}</p>
                 </div>
               </div>
-              <p className="text-sm font-black">{days} {days === 1 ? 'доба' : 'доби'}</p>
-            </div>
 
-            <div className="bg-[#081226] text-white p-6 rounded-[32px] shadow-xl border border-slate-800">
-              <div className="flex justify-between text-2xl font-black"><span>Разом</span><span className="text-cyan-300">{total} ₴</span></div>
+              <div className="flex items-center justify-between md:justify-end gap-5 md:gap-8">
+                <p className="text-sm font-black text-white whitespace-nowrap">{days} {days === 1 ? 'доба' : 'доби'}</p>
+                <div className="text-right">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#D7B46A]">Всього</p>
+                  <p className="text-2xl font-black text-[#E7C983] whitespace-nowrap">{total} ₴</p>
+                </div>
+              </div>
             </div>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      </section>
       
+      <div className="max-w-5xl mx-auto px-6 pt-8">
       {cart.length === 0 ? (
         <div className="text-center py-20 bg-slate-900/70 rounded-[48px] border border-dashed border-slate-700"><p className="text-slate-400 uppercase text-xs font-black">Кошик порожній</p></div>
       ) : (
@@ -124,14 +128,14 @@ export const CartView = () => {
           {/* AI блок видалено за побажанням дизайну */}
 
           {cart.map(item => (
-            <div key={item.id} className="p-6 bg-slate-900/80 border border-slate-800 rounded-[32px] flex items-center gap-6 shadow-sm">
+            <div key={item.id} className="p-6 bg-[#4a5266] border border-slate-600 rounded-[32px] flex items-center gap-6 shadow-sm">
               <SafeImage src={item.image} className="w-24 h-24 md:w-28 md:h-28 rounded-2xl object-cover" />
               <div className="flex-1">
                 <h4 className="font-black uppercase text-xl md:text-2xl tracking-tight">{item.title}</h4>
                 {item.sku && (
                   <p className="text-xs font-mono text-slate-400 mt-1">Артикул: {item.sku}</p>
                 )}
-                <p className="text-xs md:text-sm font-bold text-cyan-300 uppercase mt-1">{item.price} ₴ /од/доба × {item.quantity} од.</p>
+                <p className="text-xs md:text-sm font-bold text-[#E7C983] uppercase mt-1">{item.price} ₴ /од/доба × {item.quantity} од.</p>
                 {globalDates.start && (
                   <div className="mt-2 text-xs">
                     {isLoadingAvail || availability[item.id] === undefined ? (
@@ -149,10 +153,10 @@ export const CartView = () => {
               </div>
               <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
                 {/* Quantity control */}
-                <div className="flex items-center border border-slate-700 rounded-full overflow-hidden shrink-0 bg-slate-950/60">
+                <div className="flex items-center border border-slate-700 rounded-full overflow-hidden shrink-0 bg-slate-950/70 text-white">
                   <button
                     aria-label="Зменшити"
-                    className="px-2 md:px-3 py-1 md:py-2 hover:bg-gray-50 text-sm md:text-base"
+                    className="px-2 md:px-3 py-1 md:py-2 hover:bg-slate-800 text-sm md:text-base text-white transition-colors"
                     onClick={() => setCartQuantity(item.id, Math.max(1, (item.quantity || 1) - 1))}
                   >
                     <Minus size={14} />
@@ -166,7 +170,7 @@ export const CartView = () => {
                   />
                   <button
                     aria-label="Збільшити"
-                    className="px-2 md:px-3 py-1 md:py-2 hover:bg-gray-50 text-sm md:text-base"
+                    className="px-2 md:px-3 py-1 md:py-2 hover:bg-slate-800 text-sm md:text-base text-white transition-colors disabled:opacity-50"
                     onClick={() => {
                       const max = availability[item.id];
                       const next = (item.quantity || 1) + 1;
@@ -194,6 +198,7 @@ export const CartView = () => {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 };
