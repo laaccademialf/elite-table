@@ -95,7 +95,7 @@ export const Navbar = ({
 
           {globalDates.start && (
             <div className="hidden md:flex items-center gap-2 bg-slate-900/80 text-slate-200 px-4 py-2 rounded-xl border border-slate-700 shadow transition-all duration-300 ml-2">
-              <CalendarIcon size={14} className="text-cyan-300" />
+              <CalendarIcon size={14} className="text-white" />
               <span className="text-xs font-semibold uppercase tracking-wide">
                 {globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : ''}
                 {globalDates.end ? ` - ${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : ''}
@@ -148,7 +148,7 @@ export const Navbar = ({
               onClick={() => setIsAdminMode(!isAdminMode)}
               className={`relative p-2 rounded-xl transition-all duration-200 border ${
                 isAdminMode
-                  ? "bg-cyan-500 text-slate-950 border-cyan-300 shadow-lg scale-105"
+                  ? "bg-white text-[#131C4E] border-white shadow-lg scale-105"
                   : "text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white hover:scale-105"
               }`}
               title="Панель менеджера"
@@ -169,7 +169,7 @@ export const Navbar = ({
           >
             <ShoppingBag size={18} />
             {cart.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-cyan-500 text-slate-950 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg">
+              <span className="absolute -top-1 -right-1 bg-white text-[#131C4E] text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg">
                 {cart.length}
               </span>
             )}
@@ -195,7 +195,7 @@ export const Navbar = ({
           ) : (
             <button
               onClick={() => setShowLoginModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-slate-950 rounded-xl hover:bg-cyan-400 hover:scale-105 transition-all duration-200 font-semibold text-sm shadow"
+              className="flex items-center gap-2 px-4 py-2 bg-white text-[#131C4E] rounded-xl hover:bg-slate-100 hover:scale-105 transition-all duration-200 font-semibold text-sm shadow"
             >
               <LogIn size={16} />
               <span className="hidden sm:inline">Вхід</span>

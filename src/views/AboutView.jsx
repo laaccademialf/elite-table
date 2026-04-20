@@ -26,10 +26,6 @@ export const AboutView = () => {
     <main className="max-w-7xl mx-auto px-6 pt-0 pb-10 md:pb-12 animate-in fade-in duration-700">
       <section className="w-screen relative left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#131C4E] via-[#1a2766] to-[#131C4E] text-white px-6 pt-3 pb-5 md:pt-4 md:pb-6 mb-8 border-b border-slate-700 shadow-lg">
         <div className="max-w-7xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 text-xs font-bold uppercase tracking-[0.2em] mb-3">
-            <Users size={14} />
-            About us
-          </div>
           <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-3">Про нас</h1>
           <p className="text-slate-300 max-w-3xl text-sm md:text-base leading-relaxed">
             LaFamiglia Rentco — це оренда декору, текстилю, посуду та інвентарю для подій,
@@ -49,7 +45,7 @@ export const AboutView = () => {
           <div className="space-y-3">
             {reasons.map((reason) => (
               <div key={reason} className="flex items-start gap-3 rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3">
-                <CheckCircle2 className="text-cyan-600 mt-0.5 shrink-0" size={18} />
+                <CheckCircle2 className="text-[#131C4E] mt-0.5 shrink-0" size={18} />
                 <p className="text-sm text-slate-700">{reason}</p>
               </div>
             ))}
@@ -57,7 +53,7 @@ export const AboutView = () => {
         </div>
 
         <div className="rounded-[30px] bg-[#131C4E] text-white p-6 md:p-8 shadow-xl border border-slate-800">
-          <p className="text-cyan-200 text-xs font-bold uppercase tracking-[0.25em] mb-3">LaFamiglia Rentco</p>
+          <p className="text-white text-xs font-bold uppercase tracking-[0.25em] mb-3">LaFamiglia Rentco</p>
           <h3 className="text-2xl md:text-3xl font-black uppercase leading-tight mb-4">Естетика, сервіс і надійність в одному місці</h3>
           <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-5">
             Комплектуємо камерні вечері, великі весілля, корпоративні події, фотозйомки та приватні свята.
@@ -91,7 +87,7 @@ export const AboutView = () => {
         <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
           {categories.map(({ title, text, icon: Icon }) => (
             <div key={title} className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-11 h-11 rounded-2xl bg-[#131C4E] text-cyan-200 flex items-center justify-center mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-[#131C4E] text-white flex items-center justify-center mb-4">
                 <Icon size={20} />
               </div>
               <h3 className="text-lg font-black uppercase text-[#131C4E] mb-2">{title}</h3>
@@ -103,7 +99,7 @@ export const AboutView = () => {
 
       <section className="rounded-[30px] bg-gradient-to-r from-[#131C4E] via-[#1a2766] to-[#131C4E] text-white p-6 md:p-8 border border-slate-800 shadow-xl">
         <div className="max-w-4xl">
-          <p className="text-cyan-200 text-xs font-bold uppercase tracking-[0.25em] mb-3">Інше в оренду</p>
+          <p className="text-white text-xs font-bold uppercase tracking-[0.25em] mb-3">Інше в оренду</p>
           <h2 className="text-2xl md:text-3xl font-black uppercase mb-3">Збираємо подію комплексно</h2>
           <p className="text-slate-300 leading-relaxed mb-4">
             Якщо вам потрібне більше, ніж просто окрема позиція з каталогу, ми допоможемо скомпонувати повний набір:
@@ -111,7 +107,7 @@ export const AboutView = () => {
           </p>
           <div className="flex flex-wrap gap-2">
             {['Весілля', 'Кейтеринг', 'Корпоративи', 'Фотозони', 'Приватні вечері', 'Зйомки'].map((item) => (
-              <span key={item} className="px-3 py-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 text-cyan-100 text-sm font-medium">
+              <span key={item} className="px-3 py-2 rounded-full border border-white/20 bg-white/10 text-white text-sm font-medium">
                 {item}
               </span>
             ))}

@@ -27,10 +27,6 @@ export const GalleryView = () => {
     <main className="max-w-[1680px] mx-auto px-6 pt-0 pb-8 md:pb-10 animate-in fade-in duration-700">
       <section className="w-screen relative left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#131C4E] via-[#1a2766] to-[#131C4E] text-white px-6 pt-3 pb-5 md:pt-4 md:pb-6 mb-8 border-b border-slate-700 shadow-lg">
         <div className="max-w-[1680px] mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 text-xs font-bold uppercase tracking-[0.2em] mb-3">
-            <Sparkles size={14} />
-            Gallery
-          </div>
           <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-3">LaFamiglia Moments</h1>
           <p className="text-slate-300 max-w-2xl text-sm md:text-base leading-relaxed">
             Натхнення для вашої події: красиві сервірування, декор і атмосфера, які допоможуть уявити майбутнє свято ще до бронювання.

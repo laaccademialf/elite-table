@@ -51,10 +51,6 @@ export const RentalTermsView = () => {
     <main className="max-w-7xl mx-auto px-6 pt-0 pb-10 md:pb-12 animate-in fade-in duration-700">
       <section className="w-screen relative left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#131C4E] via-[#1a2766] to-[#131C4E] text-white px-6 pt-3 pb-5 md:pt-4 md:pb-6 mb-8 border-b border-slate-700 shadow-lg">
         <div className="max-w-7xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 text-xs font-bold uppercase tracking-[0.2em] mb-3">
-            <PackageCheck size={14} />
-            Rental terms
-          </div>
           <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-3">Оренда та умови</h1>
           <p className="text-slate-300 max-w-4xl text-sm md:text-base leading-relaxed">
             Ми дбаємо про те, щоб ідеальне сервірування вашої події супроводжувалося таким самим бездоганним сервісом.
@@ -65,7 +61,7 @@ export const RentalTermsView = () => {
 
       <section className="mb-6 rounded-[30px] border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
         <div className="max-w-2xl mb-6">
-          <p className="text-cyan-700 text-xs font-bold uppercase tracking-[0.25em] mb-2">Крок за кроком</p>
+          <p className="text-[#131C4E] text-xs font-bold uppercase tracking-[0.25em] mb-2">Крок за кроком</p>
           <h2 className="text-2xl md:text-3xl font-black uppercase text-[#131C4E] mb-3">Як зробити замовлення?</h2>
           <p className="text-slate-600 leading-relaxed">
             Процес замовлення максимально простий і зручний: від вибору дати до отримання всього необхідного інвентарю у потрібний момент.
@@ -85,7 +81,7 @@ export const RentalTermsView = () => {
 
       <section className="mb-6">
         <div className="max-w-4xl mb-5">
-          <p className="text-cyan-700 text-xs font-bold uppercase tracking-[0.25em] mb-2">Важливо знати</p>
+          <p className="text-[#131C4E] text-xs font-bold uppercase tracking-[0.25em] mb-2">Важливо знати</p>
           <h2 className="text-2xl md:text-3xl font-black uppercase text-[#131C4E] mb-3">Умови оренди</h2>
           <p className="text-slate-600 leading-relaxed">
             Ми дбаємо про те, щоб ідеальне сервірування вашої події супроводжувалося таким самим бездоганним сервісом. Для вашого комфорту та прозорості співпраці діють наступні правила:
@@ -95,7 +91,7 @@ export const RentalTermsView = () => {
         <div className="grid md:grid-cols-2 gap-4">
           {conditions.map(({ title, text, icon: Icon }) => (
             <div key={title} className="rounded-[26px] border border-slate-200 bg-white p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-11 h-11 rounded-2xl bg-[#131C4E] text-cyan-200 flex items-center justify-center mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-[#131C4E] text-white flex items-center justify-center mb-4">
                 <Icon size={20} />
               </div>
               <h3 className="text-lg font-black uppercase text-[#131C4E] mb-2">{title}</h3>
@@ -106,7 +102,7 @@ export const RentalTermsView = () => {
       </section>
 
       <section className="rounded-[30px] bg-gradient-to-r from-[#131C4E] via-[#1a2766] to-[#131C4E] text-white p-6 md:p-8 border border-slate-800 shadow-xl">
-        <p className="text-cyan-200 text-xs font-bold uppercase tracking-[0.25em] mb-3">Потрібна допомога?</p>
+        <p className="text-white text-xs font-bold uppercase tracking-[0.25em] mb-3">Потрібна допомога?</p>
         <h2 className="text-2xl md:text-3xl font-black uppercase mb-3">Зв'яжіться з менеджером</h2>
         <p className="text-slate-300 max-w-3xl leading-relaxed mb-4">
           Якщо потрібна консультація щодо наявності, доставки, застави чи догляду за позиціями — напишіть або зателефонуйте,
