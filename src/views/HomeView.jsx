@@ -23,10 +23,12 @@ export const HomeView = () => {
 
   const [selectedParentId, setSelectedParentId] = useState(null);
   const [isCategoryBarSolid, setIsCategoryBarSolid] = useState(false);
+  const [isCategoryBarHidden, setIsCategoryBarHidden] = useState(false);
   const [cardQuantities, setCardQuantities] = useState({});
   const [recentlyAddedId, setRecentlyAddedId] = useState(null);
   const topCategoriesRef = useRef(null);
   const subcategoriesRef = useRef(null);
+  const lastScrollY = useRef(0);
   const dragStateRef = useRef({
     isDragging: false,
     startX: 0,
@@ -72,7 +74,20 @@ export const HomeView = () => {
 
   useEffect(() => {
     const handleScrollState = () => {
-      setIsCategoryBarSolid(window.scrollY > 120);
+      const currentY = window.scrollY;
+      setIsCategoryBarSolid(currentY > 120);
+      
+      // Hide on scroll down, show on scroll up (only after scrolling past hero)
+      if (currentY > 200) {
+        if (currentY > lastScrollY.current + 10) {
+          setIsCategoryBarHidden(true);
+        } else if (currentY < lastScrollY.current - 10) {
+          setIsCategoryBarHidden(false);
+        }
+      } else {
+        setIsCategoryBarHidden(false);
+      }
+      lastScrollY.current = currentY;
     };
 
     handleScrollState();
@@ -242,13 +257,15 @@ export const HomeView = () => {
       </div>
 
       {/* Category Filter */}
-      <div className="sticky top-16 z-20 mb-6 transition-all duration-500 ease-out -mt-px">
+      <div className={`sticky top-16 z-20 mb-6 transition-all duration-300 ease-out -mt-px ${
+        isCategoryBarHidden ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+      }`}>
         <div className={`w-full pt-0 pb-3 overflow-visible transition-all duration-500 ease-out border-b-[3px] border-slate-800/80 ${
           isCategoryBarSolid
             ? 'bg-[#131C4E]/95 backdrop-blur-md shadow-xl'
             : 'bg-transparent'
         }`}>
-          <div className="w-full px-6 pt-3 space-y-3">
+          <div className="w-full px-4 md:px-6 pt-3 space-y-3">
           <style>{`
             .category-scroll::-webkit-scrollbar {
               display: none;
@@ -264,7 +281,7 @@ export const HomeView = () => {
           >
             <div className="flex w-max min-w-full items-stretch justify-center gap-3 px-3 pb-2">
               <button
-                className="group w-[96px] md:w-[112px] h-[102px] md:h-[110px] rounded-2xl border-2 px-2 py-2 flex-shrink-0 flex flex-col items-center justify-center border-[rgba(148,163,184,0.45)] bg-white text-slate-900 transition-all duration-200 ease-out hover:scale-[1.04] hover:shadow-lg hover:border-[#131C4E]"
+                className="group w-[72px] md:w-[112px] h-[78px] md:h-[110px] rounded-2xl border-2 px-2 py-2 flex-shrink-0 flex flex-col items-center justify-center border-[rgba(148,163,184,0.45)] bg-white text-slate-900 transition-all duration-200 ease-out hover:scale-[1.04] hover:shadow-lg hover:border-[#131C4E]"
                 onClick={runIfNotDragging(() => {
                   setSelectedParentId(null);
                   setSelectedCategory(null);
@@ -283,7 +300,7 @@ export const HomeView = () => {
                 return (
                   <button
                     key={category.id}
-                    className={`group w-[104px] md:w-[120px] h-[102px] md:h-[110px] rounded-2xl border-2 overflow-hidden flex-shrink-0 bg-white transition-all duration-200 ease-out ${
+                    className={`group w-[80px] md:w-[120px] h-[78px] md:h-[110px] rounded-2xl border-2 overflow-hidden flex-shrink-0 bg-white transition-all duration-200 ease-out ${
                       isActive ? 'border-[#131C4E] shadow-md' : 'border-[rgba(148,163,184,0.45)] hover:scale-[1.04] hover:shadow-lg hover:border-[#131C4E]'
                     }`}
                     onClick={runIfNotDragging(() => {
@@ -296,14 +313,14 @@ export const HomeView = () => {
                     })}
                     aria-label={category.name}
                   >
-                    <div className="h-14 md:h-16 bg-slate-50 flex items-center justify-center overflow-hidden">
+                    <div className="h-10 md:h-16 bg-slate-50 flex items-center justify-center overflow-hidden">
                       {isImg ? (
                         <div className="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-500" style={{ backgroundImage: `url(${icon})` }} />
                       ) : (
                         <span className="text-2xl">{icon || '🏷️'}</span>
                       )}
                     </div>
-                    <div className={`h-[40px] md:h-[42px] px-2 py-1 text-[10px] md:text-[11px] font-bold uppercase leading-tight flex items-center justify-center transition-colors duration-200 bg-white ${
+                    <div className={`h-[32px] md:h-[42px] px-1 md:px-2 py-1 text-[8px] md:text-[11px] font-bold uppercase leading-tight flex items-center justify-center transition-colors duration-200 bg-white ${
                       isActive
                         ? 'text-slate-900'
                         : 'text-slate-700'
