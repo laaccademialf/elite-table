@@ -264,7 +264,7 @@ export const HomeView = () => {
           >
             <div className="flex w-max min-w-full items-stretch justify-center gap-3 px-3 pb-2">
               <button
-                className="group w-[96px] md:w-[112px] h-[102px] md:h-[110px] rounded-2xl border-2 px-2 py-2 flex-shrink-0 flex flex-col items-center justify-center border-[rgba(148,163,184,0.45)] bg-white text-slate-900 transition-all duration-200 ease-out hover:scale-[1.04] hover:shadow-lg hover:border-[#081226]"
+                className="group w-[96px] md:w-[112px] h-[102px] md:h-[110px] rounded-2xl border-2 px-2 py-2 flex-shrink-0 flex flex-col items-center justify-center border-[rgba(148,163,184,0.45)] bg-white text-slate-900 transition-all duration-200 ease-out hover:scale-[1.04] hover:shadow-lg hover:border-[#131C4E]"
                 onClick={runIfNotDragging(() => {
                   setSelectedParentId(null);
                   setSelectedCategory(null);
@@ -284,7 +284,7 @@ export const HomeView = () => {
                   <button
                     key={category.id}
                     className={`group w-[104px] md:w-[120px] h-[102px] md:h-[110px] rounded-2xl border-2 overflow-hidden flex-shrink-0 bg-white transition-all duration-200 ease-out ${
-                      isActive ? 'border-[#081226] shadow-md' : 'border-[rgba(148,163,184,0.45)] hover:scale-[1.04] hover:shadow-lg hover:border-[#081226]'
+                      isActive ? 'border-[#131C4E] shadow-md' : 'border-[rgba(148,163,184,0.45)] hover:scale-[1.04] hover:shadow-lg hover:border-[#131C4E]'
                     }`}
                     onClick={runIfNotDragging(() => {
                       setSelectedParentId(category.id);
@@ -341,8 +341,8 @@ export const HomeView = () => {
                       })}
                       className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-200 ease-out ${
                         isActive
-                          ? 'border-[#081226] bg-[#081226] text-white'
-                          : 'border-[rgba(148,163,184,0.45)] bg-white text-slate-700 hover:scale-105 hover:shadow-md hover:border-[#081226] hover:text-slate-900'
+                          ? 'border-[#131C4E] bg-[#131C4E] text-white'
+                          : 'border-[rgba(148,163,184,0.45)] bg-white text-slate-700 hover:scale-105 hover:shadow-md hover:border-[#131C4E] hover:text-slate-900'
                       }`}
                     >
                       {subcategory.name}
@@ -545,7 +545,7 @@ export const HomeView = () => {
               setSelectedParentId(null);
               setSelectedCategory(null);
             }}
-            className="px-6 py-3 bg-[#081226] text-white rounded-xl font-bold border border-slate-700 hover:bg-[#112248] transition-colors"
+            className="px-6 py-3 bg-[#131C4E] text-white rounded-xl font-bold border border-slate-700 hover:bg-[#1a2766] transition-colors"
           >
             Переглянути всі товари
           </button>

@@ -32,8 +32,8 @@ export default function LoginView({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-[#081226] to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-[#081226] text-white rounded-3xl shadow-xl p-8 border border-slate-700">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-[#131C4E] to-slate-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-[#131C4E] text-white rounded-3xl shadow-xl p-8 border border-slate-700">
         <div className="mb-8 text-center">
           <p className="text-[11px] uppercase tracking-[0.3em] text-cyan-300 mb-2">LaFamiglia Rentco</p>
           <h1 className="text-4xl font-bold text-white mb-2">LaFamiglia Rentco</h1>

@@ -24,7 +24,7 @@ const reasons = [
 export const AboutView = () => {
   return (
     <main className="max-w-7xl mx-auto px-6 pt-0 pb-10 md:pb-12 animate-in fade-in duration-700">
-      <section className="w-screen relative left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#081226] via-[#112248] to-[#081226] text-white px-6 pt-3 pb-5 md:pt-4 md:pb-6 mb-8 border-b border-slate-700 shadow-lg">
+      <section className="w-screen relative left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#131C4E] via-[#1a2766] to-[#131C4E] text-white px-6 pt-3 pb-5 md:pt-4 md:pb-6 mb-8 border-b border-slate-700 shadow-lg">
         <div className="max-w-7xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-200 text-xs font-bold uppercase tracking-[0.2em] mb-3">
             <Users size={14} />
@@ -40,7 +40,7 @@ export const AboutView = () => {
 
       <section className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 mb-6">
         <div className="rounded-[30px] border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
-          <h2 className="text-2xl md:text-3xl font-black uppercase text-[#081226] mb-4">Наші переваги</h2>
+          <h2 className="text-2xl md:text-3xl font-black uppercase text-[#131C4E] mb-4">Наші переваги</h2>
           <p className="text-slate-600 leading-relaxed mb-5">
             Ми створюємо оренду без зайвого стресу: від першого запиту до видачі, доставки та повернення.
             Наша команда допомагає зібрати цілісну картину події так, щоб усе виглядало дорого, гармонійно й вчасно.
@@ -56,7 +56,7 @@ export const AboutView = () => {
           </div>
         </div>
 
-        <div className="rounded-[30px] bg-[#081226] text-white p-6 md:p-8 shadow-xl border border-slate-800">
+        <div className="rounded-[30px] bg-[#131C4E] text-white p-6 md:p-8 shadow-xl border border-slate-800">
           <p className="text-cyan-200 text-xs font-bold uppercase tracking-[0.25em] mb-3">LaFamiglia Rentco</p>
           <h3 className="text-2xl md:text-3xl font-black uppercase leading-tight mb-4">Естетика, сервіс і надійність в одному місці</h3>
           <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-5">
@@ -80,7 +80,7 @@ export const AboutView = () => {
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-[26px] border border-slate-200 bg-slate-50 p-5 md:p-6 shadow-sm">
-              <div className="text-3xl md:text-4xl font-black text-[#081226]">{stat.value}</div>
+              <div className="text-3xl md:text-4xl font-black text-[#131C4E]">{stat.value}</div>
               <p className="mt-2 text-sm text-slate-600 leading-snug">{stat.label}</p>
             </div>
           ))}
@@ -91,17 +91,17 @@ export const AboutView = () => {
         <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
           {categories.map(({ title, text, icon: Icon }) => (
             <div key={title} className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-11 h-11 rounded-2xl bg-[#081226] text-cyan-200 flex items-center justify-center mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-[#131C4E] text-cyan-200 flex items-center justify-center mb-4">
                 <Icon size={20} />
               </div>
-              <h3 className="text-lg font-black uppercase text-[#081226] mb-2">{title}</h3>
+              <h3 className="text-lg font-black uppercase text-[#131C4E] mb-2">{title}</h3>
               <p className="text-sm text-slate-600 leading-relaxed">{text}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="rounded-[30px] bg-gradient-to-r from-[#081226] via-[#0d1c3c] to-[#081226] text-white p-6 md:p-8 border border-slate-800 shadow-xl">
+      <section className="rounded-[30px] bg-gradient-to-r from-[#131C4E] via-[#1a2766] to-[#131C4E] text-white p-6 md:p-8 border border-slate-800 shadow-xl">
         <div className="max-w-4xl">
           <p className="text-cyan-200 text-xs font-bold uppercase tracking-[0.25em] mb-3">Інше в оренду</p>
           <h2 className="text-2xl md:text-3xl font-black uppercase mb-3">Збираємо подію комплексно</h2>
