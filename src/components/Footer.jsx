@@ -7,15 +7,7 @@ export const Footer = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-6">
           <div className="inline-flex flex-col items-center justify-center text-center leading-none mb-2 select-none">
-            <span
-              className="text-[20px] md:text-[26px] text-white font-semibold tracking-[-0.03em]"
-              style={{ fontFamily: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif' }}
-            >
-              laFamiglia
-            </span>
-            <span className="text-[34px] md:text-[48px] font-black tracking-[0.18em] uppercase text-white leading-none">
-              RENTCO
-            </span>
+            <img src="/RENTCO_logo.png" alt="LaFamiglia Rentco" className="h-16 md:h-20 w-auto object-contain brightness-0 invert" />
           </div>
           <p className="text-slate-300 text-xs md:text-sm">Преміальна оренда посуду, меблів та декору для особливих подій</p>
         </div>

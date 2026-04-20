@@ -142,7 +142,7 @@ const buildInvoiceMarkup = (order) => {
     <div style="width:1040px; background:#ffffff; color:#1e293b; font-family:Arial, Helvetica, sans-serif; border:1px solid #dbe2f0;">
       <div style="height:10px; background:#112248;"></div>
       <div style="padding:18px 24px 12px; border-bottom:1px solid #dbe2f0; text-align:center;">
-        <img src="${window.location.origin}/photo_2026-04-02_13-36-26.jpg" alt="LaFamiglia Rentco" style="height:58px; width:auto; object-fit:contain;" />
+        <img src="${window.location.origin}/RENTCO_logo.png" alt="LaFamiglia Rentco" style="height:58px; width:auto; object-fit:contain;" />
         <div style="margin-top:8px; font-size:12px; color:#475569;">Накладна до замовлення №${escapeHtml(String(order.id || '').slice(0, 8))}</div>
       </div>
 

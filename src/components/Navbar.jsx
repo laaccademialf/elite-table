@@ -28,17 +28,7 @@ export const Navbar = ({
               setIsAdminMode(false);
             }}
           >
-            <div className="flex flex-col items-center justify-center leading-none select-none text-center">
-              <span
-                className="text-[12px] md:text-[14px] text-white font-semibold tracking-[-0.03em]"
-                style={{ fontFamily: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif' }}
-              >
-                laFamiglia
-              </span>
-              <span className="text-[18px] md:text-[22px] font-black tracking-[0.16em] uppercase text-white leading-none">
-                RENTCO
-              </span>
-            </div>
+            <img src="/RENTCO_logo.png" alt="LaFamiglia Rentco" className="h-8 md:h-10 w-auto object-contain" />
           </div>
         </div>
 

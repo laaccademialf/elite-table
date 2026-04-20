@@ -356,8 +356,8 @@ export function AppProvider({ children }) {
     
     if (Notification.permission === 'granted') {
       new Notification(title, {
-        icon: '/logo.svg',
-        badge: '/logo.svg',
+        icon: '/RENTCO_logo.png',
+        badge: '/RENTCO_logo.png',
         tag: 'pending-order',
         ...options,
       });
