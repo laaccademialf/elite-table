@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
 import { registerUserWithPhone, loginUser, registerUser } from "../services/firebase";
+import { startLiqPayCheckout } from "../services/liqpay";
 
 export const CheckoutView = () => {
   const {
@@ -11,6 +12,7 @@ export const CheckoutView = () => {
     customerInfo,
     setCustomerInfo,
     handleOrderSubmit,
+    completeCheckoutSuccess,
     currentUser,
     refreshUser,
     cart,
@@ -21,11 +23,61 @@ export const CheckoutView = () => {
   } = useAppContext();
 
   const [autoRegError, setAutoRegError] = useState("");
+  const [paymentError, setPaymentError] = useState("");
   const [password, setPassword] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("manager_confirmation");
+  const [isRedirectingToPayment, setIsRedirectingToPayment] = useState(false);
+
+  const finalizeOrderFlow = async (submitEvent, resolvedUserId = null, redirectToOrders = false) => {
+    const result = await handleOrderSubmit(submitEvent, resolvedUserId, {
+      paymentMethod,
+      deferSuccessHandling: true,
+    });
+
+    if (!result?.orderId) {
+      return false;
+    }
+
+    if (paymentMethod === 'liqpay') {
+      try {
+        setIsRedirectingToPayment(true);
+        setPaymentError('');
+
+        await startLiqPayCheckout({
+          orderId: result.orderId,
+          amount: result.orderPayload.totalPrice,
+          description: `Оплата замовлення LaFamiglia Rentco #${result.orderId.slice(0, 8)}`,
+          customerName: result.orderPayload.customerName,
+          customerPhone: result.orderPayload.customerPhone,
+          customerEmail: result.orderPayload.customerEmail,
+          notes: result.orderPayload.notes,
+        });
+
+        await completeCheckoutSuccess(result.userId, redirectToOrders ? 'orders' : 'home');
+        return true;
+      } catch (error) {
+        console.error('LiqPay checkout error:', error);
+        setPaymentError(error.message || 'Не вдалося відкрити сторінку оплати LiqPay.');
+        setIsRedirectingToPayment(false);
+        return false;
+      }
+    }
+
+    await completeCheckoutSuccess(result.userId, redirectToOrders ? 'orders' : 'home');
+    setTimeout(() => {
+      alert("Дякуємо за замовлення! З вами зв'яжеться менеджер для уточнення деталей.");
+      if (redirectToOrders) {
+        setView('orders');
+      }
+    }, 100);
+
+    return true;
+  };
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
-    setAutoRegError("");
+    setAutoRegError('');
+    setPaymentError('');
 
     // Якщо користувач не залогінений і ввів email+пароль — пробуємо створити акаунт, якщо вже існує — логін
     if (!currentUser && customerInfo.email && password) {
@@ -36,35 +88,26 @@ export const CheckoutView = () => {
           {
             name: customerInfo.name,
             phone: customerInfo.phone,
-            role: "customer",
+            role: 'customer',
           }
         );
         if (typeof refreshUser === 'function') await refreshUser();
-        await handleOrderSubmit(e);
-        // Після оформлення — якщо залогінений, одразу на замовлення
-        setTimeout(() => {
-          alert("Дякуємо за замовлення! З вами зв'яжеться менеджер для уточнення деталей.");
-          setView("orders");
-        }, 100);
+        await finalizeOrderFlow(e, null, true);
         return;
       } catch (error) {
         // Якщо акаунт вже існує — пробуємо логін
-        if (error.code === "auth/email-already-in-use") {
+        if (error.code === 'auth/email-already-in-use') {
           try {
             await loginUser(customerInfo.email, password);
             if (typeof refreshUser === 'function') await refreshUser();
-            await handleOrderSubmit(e);
-            setTimeout(() => {
-              alert("Дякуємо за замовлення! З вами зв'яжеться менеджер для уточнення деталей.");
-              setView("orders");
-            }, 100);
+            await finalizeOrderFlow(e, null, true);
             return;
           } catch (loginErr) {
-            setAutoRegError(loginErr.message || "Помилка входу. Спробуйте ще раз або скористайтесь автозаповненням телефону.");
+            setAutoRegError(loginErr.message || 'Помилка входу. Спробуйте ще раз або скористайтесь автозаповненням телефону.');
             return;
           }
         } else {
-          setAutoRegError(error.message || "Помилка реєстрації. Спробуйте ще раз.");
+          setAutoRegError(error.message || 'Помилка реєстрації. Спробуйте ще раз.');
           return;
         }
       }
@@ -74,7 +117,7 @@ export const CheckoutView = () => {
     if (!currentUser) {
       try {
         const result = await registerUserWithPhone(customerInfo.phone, customerInfo.name);
-        console.log("Auto-registered user:", result);
+        console.log('Auto-registered user:', result);
         // Оновлюємо customerInfo для коректного замовлення
         setCustomerInfo((prev) => ({
           ...prev,
@@ -87,20 +130,13 @@ export const CheckoutView = () => {
           await new Promise(resolve => setTimeout(resolve, 500));
           await refreshUser();
         }
-        // Чекаємо оновлення стану перед оформленням, передаємо userId з авто-реєстрації
-        setTimeout(async () => {
-          await handleOrderSubmit(e, result.uid);
-        }, 100);
+        await finalizeOrderFlow(e, result.uid, false);
       } catch (error) {
-        setAutoRegError(error.message || "Помилка реєстрації. Спробуйте ще раз.");
+        setAutoRegError(error.message || 'Помилка реєстрації. Спробуйте ще раз.');
         return;
       }
     } else {
-      await handleOrderSubmit(e);
-      setTimeout(() => {
-        alert("Дякуємо за замовлення! З вами зв'яжеться менеджер для уточнення деталей.");
-        setView("orders");
-      }, 100);
+      await finalizeOrderFlow(e, null, true);
     }
   };
 
@@ -274,6 +310,37 @@ export const CheckoutView = () => {
             </>
           )}
 
+          <div className="space-y-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-500">Спосіб оформлення</p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <label className={`rounded-2xl border-2 p-4 cursor-pointer transition ${paymentMethod === 'manager_confirmation' ? 'border-slate-900 bg-slate-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="manager_confirmation"
+                  checked={paymentMethod === 'manager_confirmation'}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="sr-only"
+                />
+                <p className="font-bold text-slate-900">Заявка без онлайн-оплати</p>
+                <p className="text-sm text-slate-500 mt-1">Менеджер підтвердить деталі, а оплату узгодите окремо.</p>
+              </label>
+
+              <label className={`rounded-2xl border-2 p-4 cursor-pointer transition ${paymentMethod === 'liqpay' ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="liqpay"
+                  checked={paymentMethod === 'liqpay'}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="sr-only"
+                />
+                <p className="font-bold text-slate-900">Оплатити зараз через LiqPay</p>
+                <p className="text-sm text-slate-500 mt-1">Безпечна онлайн-оплата карткою Visa / Mastercard одразу після оформлення.</p>
+              </label>
+            </div>
+          </div>
+
           <div className="rounded-[32px] bg-slate-900 text-white p-6 space-y-3 shadow-lg">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -308,12 +375,27 @@ export const CheckoutView = () => {
               {autoRegError}
             </div>
           )}
+
+          {paymentError && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded">
+              {paymentError}
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={bookingStatus === "loading" || (globalDates.start && insufficiencies.length > 0)}
+            disabled={bookingStatus === "loading" || isRedirectingToPayment || (globalDates.start && insufficiencies.length > 0)}
             className="w-full py-6 bg-gray-900 text-white font-black rounded-full uppercase tracking-[0.3em] text-[10px] shadow-2xl hover:bg-[#C5A059] transition-all disabled:opacity-50"
           >
-            {bookingStatus === "loading" ? "⏳ Обробляємо..." : (globalDates.start && insufficiencies.length > 0 ? "Недостатньо товарів" : "🛒 Оформити замовлення")}
+            {bookingStatus === "loading"
+              ? "⏳ Обробляємо..."
+              : isRedirectingToPayment
+                ? "💳 Переходимо до LiqPay..."
+                : (globalDates.start && insufficiencies.length > 0
+                    ? "Недостатньо товарів"
+                    : paymentMethod === 'liqpay'
+                      ? "💳 Оплатити через LiqPay"
+                      : "🛒 Оформити замовлення")}
           </button>
         </form>
       </div>

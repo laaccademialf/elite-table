@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Instagram, Facebook, Phone, Minus, Plus, ShoppingCart, Check } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Check } from "lucide-react";
 import { useAppContext } from "../context/useAppContext";
 import { SafeImage } from "../components/SafeImage";
 import DateRangePicker from "../components/DateRangePicker";
@@ -200,49 +200,55 @@ export const HomeView = () => {
   }, [filteredProducts, globalDates.start, globalDates.end, getMaxAvailableForRange]);
 
   return (
-    <main className="max-w-[1680px] mx-auto px-6 pt-0 pb-8 animate-in fade-in duration-700 text-slate-900">
+    <main className="w-full pt-0 pb-8 animate-in fade-in duration-700 text-slate-900">
       {/* Hero Section */}
-      <div className="w-screen relative z-30 left-1/2 -translate-x-1/2 mb-0 bg-gradient-to-r from-[#081226] via-[#112248] to-[#081226] px-6 pt-2 pb-4 md:pt-3 md:pb-4 border-b border-slate-700 transition-all duration-300 shadow-lg">
-        <div className="max-w-[1680px] mx-auto flex flex-col md:flex-row items-center md:items-center justify-between gap-3 min-h-[72px]">
-          {/* Header and DatePicker */}
-          <div className="flex-1 flex flex-col items-center md:items-start gap-1 px-1 self-start md:self-center">
-            <h2 className="text-xl md:text-2xl font-extrabold text-white uppercase tracking-tight drop-shadow-sm leading-none">ВАША ОСОБЛИВА ПОДІЯ</h2>
-            <p className="text-slate-300 text-xs md:text-sm">Оберіть дату, щоб почати магію сервірування</p>
-            <div className="w-full md:w-auto flex justify-center md:justify-start">
-              <DateRangePicker value={globalDates} onChange={setGlobalDates} />
-            </div>
-          </div>
+      <div className="relative z-30 mb-0 bg-white border-b border-slate-200 min-h-[180px]">
+        {/* Watermark — decorative, left side */}
+        <img
+          src="/La%20FAMIGLIA.jpg"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute left-4 bottom-4 select-none z-0 h-[60%] w-auto max-w-[40%] object-contain object-left-bottom"
+          style={{ opacity: 0.5 }}
+          draggable="false"
+        />
 
-          {/* Phone + Socials */}
-          <div className="flex flex-col items-center md:items-end gap-2 md:pr-2">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Phone size={18} className="text-cyan-300" />
-              <a href="tel:+380443338948" className="hover:text-cyan-300 transition">+38 (044) 333-8948</a>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="px-2 py-1 text-[11px] md:text-xs font-semibold text-slate-100 bg-slate-900/70 rounded-full border border-slate-700">LaFamiglia в соцмережах</span>
-              <a href="https://www.instagram.com/rentco.com.ua/" target="_blank" rel="noopener noreferrer" className="text-[#E4405F] hover:text-cyan-300 transition" aria-label="Instagram">
-                <Instagram size={22} />
-              </a>
-              <a href="https://www.pinterest.com/rentcokiev/" target="_blank" rel="noopener noreferrer" className="text-[#E60023] hover:text-cyan-300 transition font-bold text-sm" aria-label="Pinterest">
-                P
-              </a>
-              <a href="https://www.facebook.com/RENTCOKiev/" target="_blank" rel="noopener noreferrer" className="text-[#1877F2] hover:text-cyan-300 transition" aria-label="Facebook">
-                <Facebook size={22} />
-              </a>
-            </div>
+        {/* Right — sketch illustration, decorative */}
+        <div className="hidden md:block absolute right-0 top-0 bottom-0 w-[400px] lg:w-[520px] z-0 overflow-hidden pointer-events-none">
+          <img
+            src="/7a18ac806e32de0744a57d15932bd1200b83093d.jpg"
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-cover object-left-bottom"
+            draggable="false"
+          />
+        </div>
+
+        {/* Center — text + date picker, truly centered on full width */}
+        <div className="relative z-10 flex flex-col items-center justify-center gap-2 py-8 md:py-10 px-8">
+          <h2
+            className="text-3xl md:text-[44px] font-bold text-[#131C4E] uppercase leading-tight text-center"
+            style={{ fontFamily: "'Open Sans', sans-serif", letterSpacing: '-0.01em' }}
+          >
+            ВСЕ ДЛЯ ВАШОЇ ПОДІЇ
+          </h2>
+          <p className="text-slate-500 text-sm md:text-[15px] text-center" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+            Оберіть <strong className="text-[#131C4E]">дату</strong>, щоб почати магію сервірування
+          </p>
+          <div className="mt-3">
+            <DateRangePicker value={globalDates} onChange={setGlobalDates} />
           </div>
         </div>
       </div>
 
       {/* Category Filter */}
       <div className="sticky top-16 z-20 mb-6 transition-all duration-500 ease-out -mt-px">
-        <div className={`w-screen relative left-1/2 -translate-x-1/2 pt-0 pb-3 overflow-visible transition-all duration-500 ease-out border-b-[3px] border-slate-800/80 ${
+        <div className={`w-full pt-0 pb-3 overflow-visible transition-all duration-500 ease-out border-b-[3px] border-slate-800/80 ${
           isCategoryBarSolid
-            ? 'bg-[#081226]/95 backdrop-blur-md shadow-xl'
+            ? 'bg-[#131C4E]/95 backdrop-blur-md shadow-xl'
             : 'bg-transparent'
         }`}>
-          <div className="max-w-[1680px] mx-auto px-6 pt-3 space-y-3">
+          <div className="w-full px-6 pt-3 space-y-3">
           <style>{`
             .category-scroll::-webkit-scrollbar {
               display: none;
@@ -351,6 +357,7 @@ export const HomeView = () => {
       </div>
 
       {/* Products Grid */}
+      <div className="w-full px-6">
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 xl:gap-5 mb-12">
         {filteredProducts.map(product => {
           // Знаходимо категорію продукту
@@ -368,6 +375,13 @@ export const HomeView = () => {
           );
           const displayQty = isInCart ? inCartQty : selectedQty;
           const isUnavailable = maxAvailable <= 0;
+          const availabilityLabel = globalDates.start
+            ? ((availabilityMap[product.id] ?? null) === null
+                ? '...'
+                : (availabilityMap[product.id] > 0
+                    ? `${availabilityMap[product.id]} доступно`
+                    : 'Недоступно'))
+            : (product.quantity > 0 ? `${product.quantity} в наявності` : 'Немає');
 
           return (
             <div 
@@ -377,59 +391,61 @@ export const HomeView = () => {
                 setView('item');
                 window.scrollTo(0, 0);
               }}
-              className="group cursor-pointer rounded-3xl border-[2px] border-[#0b1731] bg-[#0b1731] p-[4px] shadow-lg shadow-slate-950/20 flex flex-col h-full"
+              className="group cursor-pointer rounded-2xl border bg-white flex flex-col h-full transition-all duration-200 hover:shadow-lg"
+              style={{ borderColor: 'rgba(19,28,78,0.15)', borderWidth: '0.5px' }}
             >
-              {/* Image Tile with beige border (square) */}
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 mb-1 shadow-sm group-hover:shadow-xl transition-all border-[2px] border-[#0b1731]">
-                {/* Availability Banner (attached, with rounded top-left) */}
-                <div className="absolute -top-[3px] -left-[3px] z-10">
-                  <div className="px-3 py-1 text-[10px] font-extrabold uppercase rounded-tl-2xl rounded-br-xl bg-[#0b1731] text-white tracking-wide">
-                    {globalDates.start
-                      ? ((availabilityMap[product.id] ?? null) === null
-                          ? '...'
-                          : (availabilityMap[product.id] > 0
-                              ? `${availabilityMap[product.id]} ДОСТУПНО`
-                              : 'НЕДОСТУПНО'))
-                      : (product.quantity > 0 ? `${product.quantity} В НАЯВНОСТІ` : 'НЕМАЄ')}
+              {/* Image */}
+              <div className="relative aspect-square rounded-t-2xl overflow-hidden bg-slate-50">
+                <div className="absolute left-2 top-2 z-10">
+                  <div className={`px-2.5 py-0.5 text-[10px] font-semibold rounded-full ${
+                    isUnavailable
+                      ? 'bg-red-50 text-red-600 border border-red-200'
+                      : 'bg-white/90 text-[#131C4E] border border-[rgba(19,28,78,0.2)]'
+                  }`} style={{ borderWidth: '0.5px' }}>
+                    {availabilityLabel}
                   </div>
                 </div>
-
-                {/* Product Image pushed to background */}
                 {product.image ? (
                   <SafeImage
                     src={product.image}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-0"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-slate-900 text-slate-500 text-4xl">
+                  <div className="w-full h-full flex items-center justify-center text-slate-300 text-4xl">
                     📦
                   </div>
                 )}
               </div>
-              <div className="flex flex-col flex-1">
-                {/* Категорія emoji/іконка */}
-                {category && category.icon && (
-                  <div className="flex justify-center mb-1">
-                    <span className="text-3xl">{category.icon}</span>
-                  </div>
+
+              {/* Info */}
+              <div className="flex flex-col flex-1 px-3 pt-2.5 pb-3">
+                {product.sku && (
+                  <p className="text-[11px] text-slate-400 mb-1" style={{ fontFamily: "'Open Sans', sans-serif" }}>{product.sku}</p>
                 )}
-                {/* Product Info */}
-                <h3 className="text-sm md:text-base font-bold text-white uppercase line-clamp-2 min-h-[48px]">
+                {!product.sku && product.description && (
+                  <p className="text-[11px] text-slate-400 mb-1 line-clamp-1">{product.description}</p>
+                )}
+                <h3
+                  className="text-sm font-bold text-[#131C4E] uppercase line-clamp-2 leading-snug min-h-[38px]"
+                  style={{ fontFamily: "'Open Sans', sans-serif" }}
+                >
                   {product.name}
                 </h3>
-                {product.sku && (
-                  <p className="text-xs font-mono text-slate-400 mb-1">Артикул: {product.sku}</p>
-                )}
-                <p className="text-slate-200 text-xs line-clamp-2 min-h-[32px] mb-2">{product.description}</p>
-                <p className="text-lg font-bold text-white mt-auto pt-1 ml-auto text-right">
-                  {product.price} ₴ <span className="text-xs text-slate-300 font-normal">/од/доба</span>
-                </p>
+
+                <div className="mt-2 mb-3 flex items-baseline gap-1.5">
+                  <span className="text-[15px] font-bold text-[#131C4E]" style={{ fontFamily: "'Open Sans', sans-serif" }}>{product.price} грн</span>
+                  <span className="text-[11px] text-slate-400" style={{ fontFamily: "'Open Sans', sans-serif" }}>одиниця</span>
+                </div>
 
                 <div
-                  className="mt-3 flex items-center justify-between gap-2"
+                  className="mt-auto flex items-center justify-between gap-2"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="flex items-center rounded-full bg-white border border-slate-200 overflow-hidden shadow-sm">
+                  {/* Qty control */}
+                  <div
+                    className="flex items-center rounded-full bg-[#F9F9FF] overflow-hidden"
+                    style={{ border: '0.5px solid rgba(19,28,78,0.25)' }}
+                  >
                     <button
                       type="button"
                       aria-label="Зменшити кількість"
@@ -447,7 +463,7 @@ export const HomeView = () => {
                         }
                         updateCardQuantity(product.id, displayQty - 1, maxAvailable);
                       }}
-                      className="h-8 w-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 active:scale-95 transition-all"
+                      className="h-8 w-8 flex items-center justify-center text-[#131C4E] hover:bg-[#eef0fb] transition-colors text-base font-light"
                     >
                       <Minus size={13} />
                     </button>
@@ -465,7 +481,7 @@ export const HomeView = () => {
                         }
                         updateCardQuantity(product.id, e.target.value, maxAvailable);
                       }}
-                      className="w-8 bg-white text-center text-xs font-bold text-slate-900 outline-none border-0"
+                      className="w-8 bg-transparent text-center text-sm font-semibold text-[#131C4E] outline-none border-0"
                     />
                     <button
                       type="button"
@@ -479,21 +495,19 @@ export const HomeView = () => {
                         updateCardQuantity(product.id, displayQty + 1, maxAvailable);
                       }}
                       disabled={isUnavailable || displayQty >= maxAvailable}
-                      className="h-8 w-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 active:scale-95 transition-all disabled:opacity-40"
+                      className="h-8 w-8 flex items-center justify-center text-[#131C4E] hover:bg-[#eef0fb] transition-colors disabled:opacity-40"
                     >
                       <Plus size={13} />
                     </button>
                   </div>
 
+                  {/* Cart button */}
                   <button
                     type="button"
                     title={isUnavailable ? 'Товар недоступний' : isInCart ? 'Перейти в кошик' : 'Додати в кошик'}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isInCart) {
-                        setView('cart');
-                        return;
-                      }
+                      if (isInCart) { setView('cart'); return; }
                       addToCart(product, selectedQty);
                       setRecentlyAddedId(product.id);
                       window.setTimeout(() => {
@@ -501,17 +515,16 @@ export const HomeView = () => {
                       }, 260);
                     }}
                     disabled={isUnavailable}
-                    className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border text-xs font-black transition-all duration-150 active:scale-90 active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed ${
-                      isUnavailable
-                        ? 'border-slate-500 bg-slate-600 text-slate-300'
-                        : isInCart
-                          ? 'border-[#E7C983] bg-[#E7C983] text-[#0b1731] shadow-sm'
-                          : 'border-white/20 bg-white text-[#0b1731] hover:bg-[#E7C983]'
-                    } ${recentlyAddedId === product.id ? 'scale-110 shadow-lg' : ''}`}
+                    className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
+                      isInCart
+                        ? 'bg-[#131C4E] text-white'
+                        : 'bg-[#F9F9FF] text-[#131C4E] hover:bg-[#131C4E] hover:text-white'
+                    } ${recentlyAddedId === product.id ? 'scale-110' : ''}`}
+                    style={{ border: '0.5px solid rgba(19,28,78,0.3)' }}
                   >
-                    {isInCart ? <Check size={16} /> : <ShoppingCart size={16} />}
+                    {isInCart ? <Check size={15} /> : <ShoppingCart size={15} />}
                     {isInCart && (
-                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#0b1731] text-white text-[10px] leading-4 text-center font-bold">
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-white text-[#131C4E] text-[9px] leading-4 text-center font-bold" style={{ border: '0.5px solid rgba(19,28,78,0.3)' }}>
                         {inCartQty}
                       </span>
                     )}
@@ -538,6 +551,7 @@ export const HomeView = () => {
           </button>
         </div>
       )}
+      </div>
     </main>
   );
 };

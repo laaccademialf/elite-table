@@ -19,6 +19,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.23",
     "firebase": "^12.7.0",
+    "firebase-admin": "^13.7.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.562.0",

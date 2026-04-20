@@ -111,6 +111,16 @@ export const getCurrentUser = () => {
   });
 };
 
+export const getAuthIdToken = async (forceRefresh = false) => {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error('Потрібно увійти як адміністратор.');
+  }
+
+  return user.getIdToken(forceRefresh);
+};
+
 // Auto-register user with phone number (used in checkout)
 export const registerUserWithPhone = async (phoneNumber, name = '') => {
   try {
@@ -412,6 +422,9 @@ export const createOrder = async (orderData) => {
       rentalDays: Number(orderData.rentalDays || 1),
       totalPrice: Number(orderData.totalPrice || 0),
       status: 'pending', // 'pending', 'in_progress', 'confirmed', 'delivered', 'cancelled'
+      paymentMethod: orderData.paymentMethod || 'manager_confirmation',
+      paymentStatus: orderData.paymentStatus || 'awaiting_manager',
+      liqpayStatus: orderData.liqpayStatus || '',
       eventDate: orderData.eventDate, // Date of event
       eventEndDate: orderData.eventEndDate, // End date of event
       customerName: orderData.customerName,

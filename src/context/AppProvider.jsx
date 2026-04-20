@@ -615,8 +615,37 @@ export function AppProvider({ children }) {
     setCart((prev) => prev.map((c) => (c.id === id ? { ...c, quantity: q } : c)));
   };
 
-  const handleOrderSubmit = async (e, autoRegUserId = null) => {
-    e.preventDefault();
+  const completeCheckoutSuccess = async (userIdForFetch = null, nextView = null) => {
+    setBookingStatus('success');
+    setCart([]);
+    clearSelectedServices();
+    setCustomerInfo({ name: '', phone: '', address: '', email: '', notes: '' });
+    setGlobalDates({ start: null, end: null });
+
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(CART_STORAGE_KEY);
+        localStorage.removeItem(DATES_STORAGE_KEY);
+        localStorage.removeItem(SELECTED_SERVICES_STORAGE_KEY);
+      }
+    } catch {}
+
+    if (userIdForFetch && typeof refreshUser === 'function') {
+      await refreshUser();
+      const updatedOrders = await getOrders({ userId: userIdForFetch });
+      setOrders(updatedOrders);
+    }
+
+    if (nextView) {
+      setView(nextView);
+    }
+  };
+
+  const handleOrderSubmit = async (e, autoRegUserId = null, options = {}) => {
+    e?.preventDefault?.();
+
+    const paymentMethod = options.paymentMethod === 'liqpay' ? 'liqpay' : 'manager_confirmation';
+    const deferSuccessHandling = options.deferSuccessHandling === true;
 
     // Якщо користувач не залогінений, дозволяємо оформлення як гість
     // (userId не передаємо, тільки контактні дані)
@@ -635,34 +664,34 @@ export function AppProvider({ children }) {
     const totalPrice = itemsSubtotal + servicesTotal;
 
     try {
-      setBookingStatus("loading");
+      setBookingStatus('loading');
 
       if (cart.length === 0) {
         alert('Ваш кошик порожній.');
         setBookingStatus('idle');
-        return;
+        return null;
       }
 
       // Перевіряємо доступність кожної позиції перед створенням замовлення
       if (!globalDates.start) {
         alert('Будь ласка, оберіть дату події.');
         setBookingStatus('idle');
-        return;
+        return null;
       }
       for (const item of cart) {
         const available = await getMaxAvailableForRange(item.id, globalDates.start, globalDates.end);
         if (item.quantity > available) {
           setBookingStatus('error');
           alert(`Недостатньо товару: ${item.title || item.name}. В кошику ${item.quantity}, доступно ${available} на обрані дати.`);
-          return;
+          return null;
         }
       }
 
       // Якщо користувач залогінений, підставляємо дані з профілю якщо поля порожні
-      const email = customerInfo.email || currentUser?.email || "";
-      const emailName = email ? email.split('@')[0] : "";
+      const email = customerInfo.email || currentUser?.email || '';
+      const emailName = email ? email.split('@')[0] : '';
       const name = customerInfo.name || currentUser?.name || currentUser?.displayName || emailName;
-      const phone = customerInfo.phone || currentUser?.phone || "";
+      const phone = customerInfo.phone || currentUser?.phone || '';
 
       const orderPayload = {
         items: cart.map((item) => ({
@@ -678,8 +707,10 @@ export function AppProvider({ children }) {
         servicesTotal,
         rentalDays: days,
         totalPrice,
-        eventDate: globalDates.start ? `${globalDates.start.day}.${globalDates.start.month+1}.${globalDates.start.year}` : '',
-        eventEndDate: globalDates.end ? `${globalDates.end.day}.${globalDates.end.month+1}.${globalDates.end.year}` : '',
+        paymentMethod,
+        paymentStatus: paymentMethod === 'liqpay' ? 'pending' : 'awaiting_manager',
+        eventDate: globalDates.start ? `${globalDates.start.day}.${globalDates.start.month + 1}.${globalDates.start.year}` : '',
+        eventEndDate: globalDates.end ? `${globalDates.end.day}.${globalDates.end.month + 1}.${globalDates.end.year}` : '',
         customerName: name,
         customerEmail: email,
         customerPhone: phone,
@@ -691,35 +722,22 @@ export function AppProvider({ children }) {
         orderPayload.userId = autoRegUserId || currentUser.uid;
       }
 
-      await createOrder(orderPayload);
-
-      setBookingStatus("success");
-      setCart([]);
-      clearSelectedServices();
-      setCustomerInfo({ name: "", phone: "", address: "", email: "", notes: "" });
-      setGlobalDates({ start: null, end: null });
-      // Clear persisted cart and dates
-      try {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(CART_STORAGE_KEY);
-          localStorage.removeItem(DATES_STORAGE_KEY);
-          localStorage.removeItem(SELECTED_SERVICES_STORAGE_KEY);
-        }
-      } catch {}
-
-      // Якщо залогінений — оновлюємо currentUser і замовлення, одразу переводимо на orders
+      const orderId = await createOrder(orderPayload);
       const userIdForFetch = autoRegUserId || (currentUser && currentUser.uid);
-      if (userIdForFetch && typeof refreshUser === 'function') {
-        await refreshUser();
-        const updatedOrders = await getOrders({ userId: userIdForFetch });
-        setOrders(updatedOrders);
-        setView("orders");
-      } else {
-        setView("home");
+
+      if (!deferSuccessHandling) {
+        await completeCheckoutSuccess(userIdForFetch, userIdForFetch ? 'orders' : 'home');
       }
+
+      return {
+        orderId,
+        orderPayload,
+        userId: userIdForFetch,
+      };
     } catch (error) {
-      console.error("Error creating order:", error);
-      setBookingStatus("error");
+      console.error('Error creating order:', error);
+      setBookingStatus('error');
+      return null;
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/useAppContext';
 import { getOrders } from '../services/firebase';
+import { startLiqPayCheckout } from '../services/liqpay';
 import { ChevronDown } from 'lucide-react';
 
 // Helper to format date object or string to DD.MM.YYYY
@@ -58,6 +59,8 @@ export function OrdersView() {
   const { currentUser, orders, setView } = useAppContext();
   const [expandedId, setExpandedId] = useState(null);
   const [localOrders, setLocalOrders] = useState(orders || []);
+  const [payingOrderId, setPayingOrderId] = useState(null);
+  const [paymentError, setPaymentError] = useState('');
 
   // Перезавантажуємо замовлення при першому завантаженні сторінки або коли користувач змінився
   useEffect(() => {
@@ -134,6 +137,60 @@ export function OrdersView() {
     }
   };
 
+  const getPaymentStatusColor = (paymentMethod, paymentStatus) => {
+    if (paymentMethod === 'liqpay') {
+      switch (paymentStatus) {
+        case 'paid':
+          return 'bg-emerald-100 text-emerald-700';
+        case 'failed':
+          return 'bg-red-100 text-red-700';
+        case 'processing':
+          return 'bg-blue-100 text-blue-700';
+        default:
+          return 'bg-amber-100 text-amber-700';
+      }
+    }
+
+    return 'bg-slate-100 text-slate-700';
+  };
+
+  const getPaymentStatusLabel = (paymentMethod, paymentStatus) => {
+    if (paymentMethod === 'liqpay') {
+      switch (paymentStatus) {
+        case 'paid':
+          return 'Оплачено LiqPay';
+        case 'failed':
+          return 'Оплата не пройшла';
+        case 'processing':
+          return 'Оплата обробляється';
+        default:
+          return 'Очікує оплату LiqPay';
+      }
+    }
+
+    return 'Оплата після підтвердження';
+  };
+
+  const handleRetryPayment = async (order) => {
+    try {
+      setPayingOrderId(order.id);
+      setPaymentError('');
+      await startLiqPayCheckout({
+        orderId: order.id,
+        amount: order.totalPrice,
+        description: `Оплата замовлення LaFamiglia Rentco #${String(order.id).slice(0, 8)}`,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        customerEmail: order.customerEmail,
+        notes: order.notes,
+      });
+    } catch (error) {
+      console.error('Retry LiqPay payment error:', error);
+      setPaymentError(error.message || 'Не вдалося відкрити LiqPay для повторної оплати.');
+      setPayingOrderId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 p-8">
       <div className="max-w-4xl mx-auto">
@@ -150,7 +207,7 @@ export function OrdersView() {
                 className="w-full p-6 flex justify-between items-center hover:bg-slate-50 transition"
               >
                 <div className="flex-1 text-left">
-                  <div className="flex items-center gap-4 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <h3 className="font-bold text-slate-900 text-lg">
                       Замовлення #{order.id?.slice(0, 8)}
                     </h3>
@@ -160,6 +217,14 @@ export function OrdersView() {
                       )}`}
                     >
                       {getStatusLabel(order.status)}
+                    </span>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${getPaymentStatusColor(
+                        order.paymentMethod,
+                        order.paymentStatus
+                      )}`}
+                    >
+                      {getPaymentStatusLabel(order.paymentMethod, order.paymentStatus)}
                     </span>
                   </div>
                   <p className="text-slate-600 text-sm">
@@ -253,6 +318,28 @@ export function OrdersView() {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {order.paymentMethod === 'liqpay' && order.paymentStatus !== 'paid' && (
+                    <div className="mt-6 bg-white rounded-xl p-4 border border-emerald-200">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                          <h4 className="font-bold text-slate-900">Онлайн-оплата LiqPay</h4>
+                          <p className="text-sm text-slate-600">Якщо оплата не була завершена, її можна повторити тут.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRetryPayment(order)}
+                          disabled={payingOrderId === order.id}
+                          className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition disabled:opacity-60"
+                        >
+                          {payingOrderId === order.id ? 'Переходимо...' : '💳 Оплатити через LiqPay'}
+                        </button>
+                      </div>
+                      {paymentError && payingOrderId !== order.id && (
+                        <p className="mt-3 text-sm text-red-600">{paymentError}</p>
+                      )}
                     </div>
                   )}
 

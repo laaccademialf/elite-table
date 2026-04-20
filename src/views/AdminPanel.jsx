@@ -26,6 +26,7 @@ import { CustomCalendar } from '../components/CustomCalendar';
 import UsersView from './UserManagement';
 import { exportProductsToExcel, downloadExcelTemplate, importProductsFromExcel } from '../utils/excelUtils';
 import { downloadOrderInvoicePdf } from '../utils/pdfInvoice';
+import { getLiqPaySettings, saveLiqPaySettings } from '../services/liqpay';
 import { Timestamp } from 'firebase/firestore';
 
 // Helper to format date object or string to DD.MM.YYYY
@@ -154,6 +155,20 @@ export function AdminPanel() {
     billingType: 'fixed',
     active: true,
   });
+  const [paymentSettingsLoading, setPaymentSettingsLoading] = useState(false);
+  const [paymentSettingsSaving, setPaymentSettingsSaving] = useState(false);
+  const [paymentSettingsMessage, setPaymentSettingsMessage] = useState('');
+  const [paymentSettingsError, setPaymentSettingsError] = useState('');
+  const [paymentSettingsForm, setPaymentSettingsForm] = useState({
+    publicKey: '',
+    privateKey: '',
+    privateKeyPreview: '',
+    sandbox: true,
+    appBaseUrl: '',
+    hasPublicKey: false,
+    hasPrivateKey: false,
+    updatedAt: '',
+  });
 
   // Filters state
   const [productCategoryFilter, setProductCategoryFilter] = useState('all');
@@ -198,6 +213,12 @@ export function AdminPanel() {
   useEffect(() => {
     getCategories().then(setCategories);
   }, []);
+
+  useEffect(() => {
+    if (adminTab === 'settings' && currentUser?.role === 'manager') {
+      loadPaymentSettings();
+    }
+  }, [adminTab, currentUser?.role]);
 
   const categoryOptions = useMemo(() => {
     const rootCategories = categories.filter((cat) => !cat.parentId);
@@ -382,6 +403,69 @@ export function AdminPanel() {
       billingType: 'fixed',
       active: true,
     });
+  };
+
+  const loadPaymentSettings = async () => {
+    try {
+      setPaymentSettingsLoading(true);
+      setPaymentSettingsError('');
+      const settings = await getLiqPaySettings();
+      setPaymentSettingsForm({
+        publicKey: settings.publicKey || '',
+        privateKey: '',
+        privateKeyPreview: settings.privateKeyPreview || '',
+        sandbox: settings.sandbox === true,
+        appBaseUrl: settings.appBaseUrl || '',
+        hasPublicKey: settings.hasPublicKey === true,
+        hasPrivateKey: settings.hasPrivateKey === true,
+        updatedAt: settings.updatedAt || '',
+      });
+    } catch (error) {
+      console.error('Error loading LiqPay settings:', error);
+      setPaymentSettingsError(error.message || 'Не вдалося завантажити налаштування LiqPay.');
+    } finally {
+      setPaymentSettingsLoading(false);
+    }
+  };
+
+  const handleSavePaymentSettings = async (e) => {
+    e.preventDefault();
+
+    if (!paymentSettingsForm.publicKey.trim()) {
+      setPaymentSettingsError('Вкажіть public key LiqPay.');
+      return;
+    }
+
+    try {
+      setPaymentSettingsSaving(true);
+      setPaymentSettingsError('');
+      setPaymentSettingsMessage('');
+
+      const result = await saveLiqPaySettings({
+        publicKey: paymentSettingsForm.publicKey.trim(),
+        privateKey: paymentSettingsForm.privateKey.trim(),
+        sandbox: paymentSettingsForm.sandbox,
+        appBaseUrl: paymentSettingsForm.appBaseUrl.trim(),
+      });
+
+      setPaymentSettingsForm((prev) => ({
+        ...prev,
+        publicKey: result.publicKey || prev.publicKey,
+        privateKey: '',
+        privateKeyPreview: result.privateKeyPreview || prev.privateKeyPreview,
+        sandbox: result.sandbox === true,
+        appBaseUrl: result.appBaseUrl || '',
+        hasPublicKey: result.hasPublicKey === true,
+        hasPrivateKey: result.hasPrivateKey === true,
+        updatedAt: result.updatedAt || prev.updatedAt,
+      }));
+      setPaymentSettingsMessage('Налаштування LiqPay успішно збережено.');
+    } catch (error) {
+      console.error('Error saving LiqPay settings:', error);
+      setPaymentSettingsError(error.message || 'Не вдалося зберегти налаштування LiqPay.');
+    } finally {
+      setPaymentSettingsSaving(false);
+    }
   };
 
   const handleSaveExtraService = async (e) => {
@@ -931,6 +1015,40 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
       default:
         return status;
     }
+  };
+
+  const getPaymentStatusColor = (paymentMethod, paymentStatus) => {
+    if (paymentMethod === 'liqpay') {
+      switch (paymentStatus) {
+        case 'paid':
+          return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+        case 'failed':
+          return 'bg-red-100 text-red-700 border-red-200';
+        case 'processing':
+          return 'bg-blue-100 text-blue-700 border-blue-200';
+        default:
+          return 'bg-amber-100 text-amber-700 border-amber-200';
+      }
+    }
+
+    return 'bg-slate-100 text-slate-700 border-slate-200';
+  };
+
+  const getPaymentStatusLabel = (paymentMethod, paymentStatus) => {
+    if (paymentMethod === 'liqpay') {
+      switch (paymentStatus) {
+        case 'paid':
+          return 'Оплачено LiqPay';
+        case 'failed':
+          return 'Оплата не пройшла';
+        case 'processing':
+          return 'Оплата обробляється';
+        default:
+          return 'Очікує оплату LiqPay';
+      }
+    }
+
+    return 'Оплата після підтвердження';
   };
 
   // Helper to check if date is within range
@@ -1808,6 +1926,11 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                         <p className="text-slate-500 text-xs">
                           {order.customerPhone || order.customerEmail || '—'}
                         </p>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <span className={`px-2.5 py-1 rounded-full border text-[11px] font-semibold ${getPaymentStatusColor(order.paymentMethod, order.paymentStatus)}`}>
+                            {getPaymentStatusLabel(order.paymentMethod, order.paymentStatus)}
+                          </span>
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-slate-900">{order.totalPrice} ₴</p>
@@ -2880,6 +3003,94 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
               </div>
 
               <p className="text-xs text-slate-500">💡 In-app сповіщення показуються внизу справа панелі. Push-сповіщення приходять на пристрій, навіть коли браузер закритий (потребує дозвіл).</p>
+            </div>
+
+            <div className="border border-slate-200 rounded-2xl p-5 bg-slate-50">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">LiqPay ключі</h3>
+                  <p className="text-sm text-slate-500">Тут адміністратор може оновити `public_key`, `private_key`, sandbox-режим і базовий URL для callback.</p>
+                </div>
+                {paymentSettingsForm.updatedAt && (
+                  <span className="text-xs text-slate-500 bg-white border border-slate-200 rounded-full px-3 py-1">
+                    Оновлено: {new Date(paymentSettingsForm.updatedAt).toLocaleString('uk-UA')}
+                  </span>
+                )}
+              </div>
+
+              {paymentSettingsLoading ? (
+                <p className="text-sm text-slate-500">Завантаження налаштувань LiqPay...</p>
+              ) : (
+                <form onSubmit={handleSavePaymentSettings} className="grid md:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={paymentSettingsForm.publicKey}
+                    onChange={(e) => setPaymentSettingsForm((prev) => ({ ...prev, publicKey: e.target.value }))}
+                    placeholder="LiqPay public_key"
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  />
+                  <input
+                    type="url"
+                    value={paymentSettingsForm.appBaseUrl}
+                    onChange={(e) => setPaymentSettingsForm((prev) => ({ ...prev, appBaseUrl: e.target.value }))}
+                    placeholder="https://your-domain.example"
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  />
+                  <input
+                    type="password"
+                    value={paymentSettingsForm.privateKey}
+                    onChange={(e) => setPaymentSettingsForm((prev) => ({ ...prev, privateKey: e.target.value }))}
+                    placeholder={paymentSettingsForm.hasPrivateKey ? `Private key збережено: ${paymentSettingsForm.privateKeyPreview || '••••'}` : 'Встав новий LiqPay private_key'}
+                    className="md:col-span-2 px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  />
+                  <label className="md:col-span-2 flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={paymentSettingsForm.sandbox}
+                      onChange={(e) => setPaymentSettingsForm((prev) => ({ ...prev, sandbox: e.target.checked }))}
+                      className="w-4 h-4"
+                    />
+                    Увімкнути `LiqPay sandbox` для тестових оплат
+                  </label>
+
+                  <div className="md:col-span-2 flex flex-wrap gap-2 text-xs">
+                    <span className={`px-3 py-1 rounded-full ${paymentSettingsForm.hasPublicKey ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {paymentSettingsForm.hasPublicKey ? 'Public key збережено' : 'Public key ще не задано'}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full ${paymentSettingsForm.hasPrivateKey ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {paymentSettingsForm.hasPrivateKey ? 'Private key збережено на сервері' : 'Private key ще не задано'}
+                    </span>
+                  </div>
+
+                  {paymentSettingsError && (
+                    <p className="md:col-span-2 text-sm text-red-600">{paymentSettingsError}</p>
+                  )}
+                  {paymentSettingsMessage && (
+                    <p className="md:col-span-2 text-sm text-emerald-600">{paymentSettingsMessage}</p>
+                  )}
+
+                  <div className="md:col-span-2 flex flex-wrap gap-3">
+                    <button
+                      type="submit"
+                      disabled={paymentSettingsSaving}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition disabled:opacity-60"
+                    >
+                      {paymentSettingsSaving ? 'Збереження...' : 'Зберегти LiqPay ключі'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={loadPaymentSettings}
+                      className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition"
+                    >
+                      Оновити дані
+                    </button>
+                  </div>
+
+                  <p className="md:col-span-2 text-xs text-slate-500">
+                    Private key не показується повністю. Якщо залишиш це поле порожнім, збережений ключ не зміниться.
+                  </p>
+                </form>
+              )}
             </div>
 
           </div>

@@ -86,14 +86,14 @@ export default function DateRangePicker({ value, onChange }) {
     <div className="relative" ref={ref}>
       <div className="flex gap-2 items-center flex-nowrap whitespace-nowrap">
         <button
-          className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-950/70 text-white shadow-sm text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          className="px-4 py-2 rounded-full border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#131C4E]/30 transition-all duration-200 border-[rgba(19,28,78,0.3)] bg-[#F9F9FF] text-[#131C4E] hover:bg-[#131C4E] hover:text-white"
           onClick={() => { setShow(true); setActiveField('start'); }}
         >
           {format(value?.start) || 'Дата з'}
         </button>
-        <span className="text-slate-500 font-bold">—</span>
+        <span className="text-slate-400 font-bold">—</span>
         <button
-          className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-950/70 text-white shadow-sm text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-50"
+          className="px-4 py-2 rounded-full border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#131C4E]/30 transition-all duration-200 border-[rgba(19,28,78,0.3)] bg-[#F9F9FF] text-[#131C4E] hover:bg-[#131C4E] hover:text-white disabled:opacity-50"
           onClick={() => { setShow(true); setActiveField('end'); }}
           disabled={!value?.start}
         >
@@ -101,47 +101,47 @@ export default function DateRangePicker({ value, onChange }) {
         </button>
       </div>
       {show && (
-        <div className="absolute z-[80] mt-2 left-0 bg-[#0b1731] rounded-2xl border border-slate-700 shadow-2xl p-4 w-80 animate-in fade-in text-white">
+        <div className="absolute z-[80] mt-2 left-1/2 -translate-x-1/2 bg-white rounded-2xl border shadow-2xl p-4 w-80 animate-in fade-in text-[#131C4E]" style={{ borderColor: 'rgba(19,28,78,0.15)' }}>
           <div className="flex justify-between items-center mb-2">
             <button onClick={() => {
               if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
               else setViewMonth(viewMonth - 1);
-            }} className="p-1 rounded hover:bg-slate-800">
+            }} className="p-1 rounded hover:bg-slate-100 text-[#131C4E]">
               &lt;
             </button>
-            <span className="text-xs font-bold uppercase tracking-widest text-slate-300">{MONTHS[viewMonth]} {viewYear}</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-[#131C4E]">{MONTHS[viewMonth]} {viewYear}</span>
             <button onClick={() => {
               if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
               else setViewMonth(viewMonth + 1);
-            }} className="p-1 rounded hover:bg-slate-800">
+            }} className="p-1 rounded hover:bg-slate-100 text-[#131C4E]">
               &gt;
             </button>
           </div>
-          <div className="grid grid-cols-7 gap-1 mb-1 text-[11px] text-center text-slate-500 font-bold">
+          <div className="grid grid-cols-7 gap-1 mb-1 text-[11px] text-center text-slate-400 font-bold">
             <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Нд</div>
           </div>
           <div className="grid grid-cols-7 gap-1">
             {prevMonthDays.map((d, i) => (
-              <button key={"prev"+i} className="h-8 w-8 text-xs text-slate-600 bg-transparent cursor-not-allowed" disabled>{d}</button>
+              <button key={"prev"+i} className="h-8 w-8 text-xs text-slate-300 bg-transparent cursor-not-allowed" disabled>{d}</button>
             ))}
             {days.map((d) => (
               <button
                 key={d}
                 onClick={() => handleSelect(d, viewMonth, viewYear)}
-                className={`h-8 w-8 flex items-center justify-center rounded-md text-xs font-bold transition-all duration-150
+                className={`h-8 w-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all duration-150
                   ${isSelected(d, viewMonth, viewYear)
-                    ? 'bg-cyan-400 text-slate-950 shadow ring-2 ring-cyan-200'
+                    ? 'bg-[#131C4E] text-white shadow ring-2 ring-[#131C4E]/30'
                     : isInRange(d, viewMonth, viewYear)
-                      ? 'bg-cyan-500/20 text-cyan-100 border border-cyan-400/30 hover:bg-cyan-500/30'
+                      ? 'bg-[#131C4E]/10 text-[#131C4E] border border-[#131C4E]/20 hover:bg-[#131C4E]/20'
                       : isToday(d, viewMonth, viewYear)
-                        ? 'bg-slate-800 text-white border-2 border-[#D7B46A] hover:bg-slate-700 hover:scale-105'
-                        : 'bg-slate-900 text-slate-200 hover:bg-slate-800 hover:scale-105 hover:border-cyan-300 hover:text-white border border-slate-700'}
+                        ? 'bg-[#F9F9FF] text-[#131C4E] border-2 border-[#131C4E] hover:bg-[#131C4E]/10 hover:scale-105'
+                        : 'bg-white text-slate-700 hover:bg-[#F9F9FF] hover:scale-105 hover:text-[#131C4E] border border-slate-200'}
                 `}
                 title={isToday(d, viewMonth, viewYear) ? 'Сьогодні' : undefined}
               >{d}</button>
             ))}
             {nextMonthDays.map((d, i) => (
-              <button key={"next"+i} className="h-8 w-8 text-xs text-slate-600 bg-transparent cursor-not-allowed" disabled>{d}</button>
+              <button key={"next"+i} className="h-8 w-8 text-xs text-slate-300 bg-transparent cursor-not-allowed" disabled>{d}</button>
             ))}
           </div>
         </div>

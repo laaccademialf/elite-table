@@ -1,16 +1,47 @@
-# React + Vite
+# LaFamiglia Rentco
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Орендний застосунок для керування товарами, кошиком, замовленнями, складом та онлайн-оплатою через `LiqPay`.
 
-Currently, two official plugins are available:
+## Запуск локально
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+Для продакшн-збірки:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm run build
+```
 
-## Expanding the ESLint configuration
+## Онлайн-оплата через LiqPay
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Інтеграція реалізована за безпечним сценарієм:
+
+- клієнт оформлює замовлення у `Checkout`
+- обирає **`Оплатити зараз через LiqPay`**
+- серверний endpoint створює підписаний платіж
+- `LiqPay` callback оновлює статус оплати в `Firestore`
+
+### Потрібні змінні середовища
+
+Скопіюй `.env.example` і задай значення:
+
+- `APP_BASE_URL`
+- `LIQPAY_PUBLIC_KEY`
+- `LIQPAY_PRIVATE_KEY`
+- `LIQPAY_SANDBOX`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY`
+
+> Для локального тестування серверних маршрутів `api/` зручно запускати проєкт через `vercel dev`.
+
+## Ключові файли інтеграції
+
+- `src/views/CheckoutView.jsx` — вибір способу оплати
+- `src/services/liqpay.js` — запуск checkout redirect
+- `api/liqpay/create-payment.js` — безпечне створення платежу
+- `api/liqpay/callback.js` — оновлення статусу оплати після callback від `LiqPay`
+
