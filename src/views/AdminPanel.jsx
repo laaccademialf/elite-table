@@ -1891,7 +1891,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                         </button>
                         <button
                           type="button"
-                          onClick={() => downloadOrderInvoicePdf(order)}
+                          onClick={() => downloadOrderInvoicePdf({ ...order, items: draftItems.map(it => ({ ...it, compensationPrice: it.compensationPrice || products.find(p => p.id === it.productId)?.compensationPrice || 0 })) })}
                           className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition text-sm"
                         >
                           Накладна (PDF)
@@ -1899,7 +1899,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                         {draftItems.some(it => Number(it.brokenQuantity || 0) > 0) && (
                           <button
                             type="button"
-                            onClick={() => downloadCompensationPdf({ ...order, items: draftItems })}
+                            onClick={() => downloadCompensationPdf({ ...order, items: draftItems.map(it => ({ ...it, compensationPrice: it.compensationPrice || products.find(p => p.id === it.productId)?.compensationPrice || 0 })) })}
                             className="px-4 py-2 bg-red-100 text-red-700 rounded-xl font-semibold hover:bg-red-200 transition text-sm"
                           >
                             Акт компенсацій (PDF)
@@ -2072,6 +2072,23 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                     >
                       <Download size={16} />
                       PDF накладна
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const enriched = {
+                          ...order,
+                          items: (order.items || []).map(it => ({
+                            ...it,
+                            compensationPrice: it.compensationPrice || products.find(p => p.id === it.productId)?.compensationPrice || 0,
+                          })),
+                        };
+                        downloadCompensationPdf(enriched);
+                      }}
+                      className="px-4 py-2 bg-red-100 text-red-600 rounded-xl font-semibold hover:bg-red-200 transition-colors flex items-center gap-2 text-sm"
+                    >
+                      <Download size={16} />
+                      PDF компенсацій
                     </button>
                     <button
                       onClick={(e) => {
