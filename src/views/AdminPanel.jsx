@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppContext } from '../context/useAppContext';
 import {
   addProduct,
@@ -136,6 +136,8 @@ export function AdminPanel() {
   const { adminTab, setAdminTab, currentUser, pendingBadge, pendingNotifications, soundEnabled, toggleSound, removeNotification, soundType, updateSoundType, pushEnabled, togglePushNotifications, playSound, expandedOrderId, setExpandedOrderId: setContextExpandedOrderId, extraServices } = useAppContext();
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [zoomImg, setZoomImg] = useState(null); // { src, x, y }
+  const zoomTimer = useRef(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   // --- categories state ---
@@ -1764,19 +1766,23 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                                 <td className="py-2 px-2">
                                   <div className="flex items-center gap-3">
                                     {productImg ? (
-                                      <div className="relative shrink-0 group cursor-pointer">
+                                      <div
+                                        className="shrink-0 cursor-zoom-in"
+                                        onMouseEnter={(e) => {
+                                          const r = e.currentTarget.getBoundingClientRect();
+                                          setZoomImg({ src: productImg, x: r.right + 10, y: r.top });
+                                        }}
+                                        onMouseLeave={() => setZoomImg(null)}
+                                        onClick={(e) => {
+                                          const r = e.currentTarget.getBoundingClientRect();
+                                          setZoomImg(v => v ? null : { src: productImg, x: r.right + 10, y: r.top });
+                                        }}
+                                      >
                                         <img
                                           src={productImg}
                                           alt={item.productName}
-                                          className="w-10 h-10 rounded-lg object-cover border border-slate-200 transition-transform duration-200 group-hover:scale-110"
+                                          className="w-10 h-10 rounded-lg object-cover border border-slate-200"
                                         />
-                                        <div className="pointer-events-none absolute left-12 top-1/2 -translate-y-1/2 z-50 hidden group-hover:block">
-                                          <img
-                                            src={productImg}
-                                            alt={item.productName}
-                                            className="w-40 h-40 rounded-xl object-cover border-2 border-slate-300 shadow-2xl"
-                                          />
-                                        </div>
                                       </div>
                                     ) : (
                                       <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center text-slate-400 text-xs">?</div>
@@ -3126,6 +3132,16 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
           <UsersView />
         )}
       </div>
+
+      {/* Zoom overlay for warehouse product images */}
+      {zoomImg && (
+        <div
+          className="fixed z-[9999] pointer-events-none rounded-2xl overflow-hidden border-2 border-slate-300 shadow-2xl"
+          style={{ left: Math.min(zoomImg.x, window.innerWidth - 260), top: Math.max(8, Math.min(zoomImg.y, window.innerHeight - 260)), width: 240, height: 240 }}
+        >
+          <img src={zoomImg.src} alt="" className="w-full h-full object-cover" />
+        </div>
+      )}
     </div>
   );
 }
