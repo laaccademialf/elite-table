@@ -1757,11 +1757,35 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                             </tr>
                           </thead>
                           <tbody>
-                            {draftItems.map((item, idx) => (
+                            {draftItems.map((item, idx) => {
+                              const productImg = item.image || products.find(p => p.id === item.productId)?.image || '';
+                              return (
                               <tr key={`${order.id}-warehouse-${idx}`} className="border-b border-slate-100 hover:bg-slate-50 transition">
                                 <td className="py-2 px-2">
-                                  <div className="font-medium text-slate-900">{item.productName}</div>
-                                  <div className="text-xs text-slate-500">{item.sku || 'Без артикулу'}</div>
+                                  <div className="flex items-center gap-3">
+                                    {productImg ? (
+                                      <div className="relative shrink-0 group cursor-pointer">
+                                        <img
+                                          src={productImg}
+                                          alt={item.productName}
+                                          className="w-10 h-10 rounded-lg object-cover border border-slate-200 transition-transform duration-200 group-hover:scale-110"
+                                        />
+                                        <div className="pointer-events-none absolute left-12 top-1/2 -translate-y-1/2 z-50 hidden group-hover:block">
+                                          <img
+                                            src={productImg}
+                                            alt={item.productName}
+                                            className="w-40 h-40 rounded-xl object-cover border-2 border-slate-300 shadow-2xl"
+                                          />
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center text-slate-400 text-xs">?</div>
+                                    )}
+                                    <div>
+                                      <div className="font-medium text-slate-900">{item.productName}</div>
+                                      <div className="text-xs text-slate-500">{item.sku || 'Без артикулу'}</div>
+                                    </div>
+                                  </div>
                                 </td>
                                 <td className="py-2 px-2 text-center font-semibold text-slate-700">{item.quantity}</td>
                                 <td className="py-2 px-2 text-center">
@@ -1795,7 +1819,8 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                                   />
                                 </td>
                               </tr>
-                            ))}
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
