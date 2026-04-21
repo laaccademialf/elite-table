@@ -985,7 +985,14 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
   const handleDownloadInvoice = async (order) => {
     try {
-      await downloadOrderInvoicePdf(order);
+      const enriched = {
+        ...order,
+        items: (order.items || []).map(it => ({
+          ...it,
+          compensationPrice: it.compensationPrice || products.find(p => p.id === it.productId)?.compensationPrice || 0,
+        })),
+      };
+      await downloadOrderInvoicePdf(enriched);
     } catch (error) {
       console.error('Error generating invoice PDF:', error);
       alert('Не вдалося згенерувати PDF накладну');
@@ -2145,10 +2152,15 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                               {order.items?.map((item, idx) => {
                                 const rentalDays = calculateRentalDays(order.eventDate, order.eventEndDate);
                                 const itemTotal = item.price * item.quantity * rentalDays;
+                                const compPrice = item.compensationPrice || products.find(p => p.id === item.productId)?.compensationPrice || 0;
+                                const broken = Number(item.brokenQuantity || 0);
                                 return (
                                   <tr key={idx} className="border-b border-slate-100 hover:bg-slate-100 transition">
                                     <td className="py-2 px-2 text-slate-600 text-xs font-mono">{item.sku || '—'}</td>
-                                    <td className="py-2 px-2 text-slate-900">{item.productName}</td>
+                                    <td className="py-2 px-2 text-slate-900">
+                                      {item.productName}
+                                      {broken > 0 && <span className="ml-2 px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-xs font-semibold">бій: {broken} шт × {compPrice} ₴ = {broken * compPrice} ₴</span>}
+                                    </td>
                                     <td className="py-2 px-2 text-center text-slate-600">{item.quantity}</td>
                                     <td className="py-2 px-2 text-right text-slate-600">{item.price} ₴</td>
                                     <td className="py-2 px-2 text-center text-slate-600 font-semibold">{rentalDays}</td>
@@ -2159,6 +2171,38 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                             </tbody>
                           </table>
                         </div>
+                        {(() => {
+                          const brokenList = (order.items || []).filter(it => Number(it.brokenQuantity || 0) > 0);
+                          if (!brokenList.length) return null;
+                          const total = brokenList.reduce((sum, it) => {
+                            const cp = it.compensationPrice || products.find(p => p.id === it.productId)?.compensationPrice || 0;
+                            return sum + Number(it.brokenQuantity) * Number(cp);
+                          }, 0);
+                          return (
+                            <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
+                              <h5 className="font-semibold text-red-700 text-sm mb-2">Компенсація за бій / втрату</h5>
+                              <table className="w-full text-sm">
+                                <tbody>
+                                  {brokenList.map((it, i) => {
+                                    const cp = it.compensationPrice || products.find(p => p.id === it.productId)?.compensationPrice || 0;
+                                    return (
+                                      <tr key={i} className="border-b border-red-100">
+                                        <td className="py-1.5 text-slate-800">{it.productName}</td>
+                                        <td className="py-1.5 text-center text-slate-600 w-16">{it.brokenQuantity} шт</td>
+                                        <td className="py-1.5 text-right text-slate-600 w-24">{cp} ₴/шт</td>
+                                        <td className="py-1.5 text-right font-semibold text-red-700 w-24">{Number(it.brokenQuantity) * Number(cp)} ₴</td>
+                                      </tr>
+                                    );
+                                  })}
+                                  <tr>
+                                    <td colSpan={3} className="pt-2 font-bold text-red-700">Всього компенсація:</td>
+                                    <td className="pt-2 text-right font-bold text-red-700">{total} ₴</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {editingOrderItems[order.id] && (
