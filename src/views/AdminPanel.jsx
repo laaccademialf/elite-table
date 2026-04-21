@@ -138,6 +138,7 @@ export function AdminPanel() {
   const [orders, setOrders] = useState([]);
   const [zoomImg, setZoomImg] = useState(null); // { src, x, y }
   const zoomTimer = useRef(null);
+  const [expandedWarehouseId, setExpandedWarehouseId] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   // --- categories state ---
@@ -1734,8 +1735,11 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                     : (fullyPacked ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700');
 
                   return (
-                    <div key={`warehouse-${order.id}`} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+                    <div key={`warehouse-${order.id}`} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                      <div
+                        className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-5 cursor-pointer hover:bg-slate-50 transition select-none"
+                        onClick={() => setExpandedWarehouseId(expandedWarehouseId === order.id ? null : order.id)}
+                      >
                         <div>
                           <h3 className="font-bold text-slate-900 text-lg">Замовлення #{order.id?.slice(0, 8)}</h3>
                           <p className="text-slate-600 text-sm">{formatCustomerName(order)} • {formatDateRange(order.eventDate, order.eventEndDate)}</p>
@@ -1744,10 +1748,13 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                         <div className="flex items-center gap-3 flex-wrap justify-end">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${badgeClasses}`}>{cardLabel}</span>
                           <span className="text-xl font-bold text-slate-900">{order.totalPrice} ₴</span>
+                          <ChevronDown className={`transition-transform duration-200 text-slate-400 ${expandedWarehouseId === order.id ? 'rotate-180' : ''}`} size={20} />
                         </div>
                       </div>
 
-                      <div className="overflow-x-auto">
+                      {expandedWarehouseId === order.id && (
+                      <div className="px-5 pb-5">
+                        <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b border-slate-200">
@@ -1829,9 +1836,9 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                             })}
                           </tbody>
                         </table>
-                      </div>
+                        </div>
 
-                      <div className="flex flex-wrap gap-2 mt-4">
+                        <div className="flex flex-wrap gap-2 mt-4">
                         {warehouseMode === 'packing' ? (
                           <button
                             type="button"
@@ -1869,7 +1876,9 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                         >
                           Відкрити в замовленнях
                         </button>
+                        </div>
                       </div>
+                      )}
                     </div>
                   );
                 })}
