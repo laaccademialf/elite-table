@@ -280,6 +280,7 @@ export function AppProvider({ children }) {
             quantity: it.count,
             category: it.category,
             image: it.image,
+            compensationPrice: it.compensationPrice || 0,
             sku: it.sku || '',
           }));
           console.log('[AppProvider] Mapped products with SKU:', mapped);
@@ -700,6 +701,7 @@ export function AppProvider({ children }) {
           sku: item.sku || '',
           quantity: item.quantity,
           price: item.price,
+          compensationPrice: item.compensationPrice || 0,
           category: item.category || 'Інше',
         })),
         itemsSubtotal,

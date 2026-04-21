@@ -162,6 +162,7 @@ export const addProduct = async (productData) => {
       name: productData.name,
       description: productData.description,
       price: productData.price,
+      compensationPrice: productData.compensationPrice || 0,
       quantity: productData.quantity,
       category: productData.category, // 'plates', 'glasses', 'cutlery', 'textiles', etc.
       image: productData.image || '',

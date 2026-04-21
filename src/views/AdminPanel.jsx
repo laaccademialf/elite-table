@@ -25,7 +25,7 @@ import { getCategories } from '../services/categories';
 import { CustomCalendar } from '../components/CustomCalendar';
 import UsersView from './UserManagement';
 import { exportProductsToExcel, downloadExcelTemplate, importProductsFromExcel } from '../utils/excelUtils';
-import { downloadOrderInvoicePdf } from '../utils/pdfInvoice';
+import { downloadOrderInvoicePdf, downloadCompensationPdf } from '../utils/pdfInvoice';
 import { getLiqPaySettings, saveLiqPaySettings } from '../services/liqpay';
 import { Timestamp } from 'firebase/firestore';
 
@@ -194,6 +194,7 @@ export function AdminPanel() {
     name: '',
     description: '',
     price: '',
+    compensationPrice: '',
     quantity: '',
     category: '',
     image: '',
@@ -324,6 +325,7 @@ export function AdminPanel() {
           quantity: parseInt(formData.quantity),
           category: formData.category,
           image: formData.image,
+          compensationPrice: parseFloat(formData.compensationPrice) || 0,
         });
       } else {
         await addProduct({
@@ -334,6 +336,7 @@ export function AdminPanel() {
           quantity: parseInt(formData.quantity),
           category: formData.category,
           image: formData.image,
+          compensationPrice: parseFloat(formData.compensationPrice) || 0,
         });
       }
 
@@ -342,6 +345,7 @@ export function AdminPanel() {
         name: '',
         description: '',
         price: '',
+        compensationPrice: '',
         quantity: '',
         category: '',
         image: '',
@@ -363,6 +367,7 @@ export function AdminPanel() {
       name: product.name,
       description: product.description,
       price: product.price,
+      compensationPrice: product.compensationPrice || '',
       quantity: product.quantity,
       category: product.category,
       image: product.image || '',
@@ -391,6 +396,7 @@ export function AdminPanel() {
       name: '',
       description: '',
       price: '',
+      compensationPrice: '',
       quantity: '',
       category: '',
       image: '',
@@ -1353,6 +1359,13 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                     />
                     <input
                       type="number"
+                      placeholder="Вартість компенсації (₴)"
+                      value={formData.compensationPrice}
+                      onChange={(e) => setFormData({ ...formData, compensationPrice: e.target.value })}
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition placeholder-gray-400 text-gray-900 font-semibold"
+                    />
+                    <input
+                      type="number"
                       placeholder="Кількість"
                       value={formData.quantity}
                       onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -1468,7 +1481,7 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                             </div>
                             <p className="text-slate-600 text-sm">{product.description}</p>
                             <p className="text-slate-900 font-bold mt-2">
-                              {product.price} ₴
+                              {product.price} ₴{product.compensationPrice ? <span className="text-red-600 text-xs font-semibold ml-2">компенсація: {product.compensationPrice} ₴</span> : null}
                             </p>
                             <span className="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">
                               {product.category}
@@ -1876,6 +1889,22 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
                         >
                           Відкрити в замовленнях
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => downloadOrderInvoicePdf(order)}
+                          className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition text-sm"
+                        >
+                          Накладна (PDF)
+                        </button>
+                        {draftItems.some(it => Number(it.brokenQuantity || 0) > 0) && (
+                          <button
+                            type="button"
+                            onClick={() => downloadCompensationPdf({ ...order, items: draftItems })}
+                            className="px-4 py-2 bg-red-100 text-red-700 rounded-xl font-semibold hover:bg-red-200 transition text-sm"
+                          >
+                            Акт компенсацій (PDF)
+                          </button>
+                        )}
                         </div>
                       </div>
                       )}
