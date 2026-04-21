@@ -661,7 +661,10 @@ export const getOrders = async (filters = {}) => {
     if (filters.status) {
       constraints.push(where('status', '==', filters.status));
     }
-    constraints.push(orderBy('createdAt', 'desc'));
+    // Only add orderBy when no other where filters are present to avoid composite index requirement
+    if (constraints.length === 0) {
+      constraints.push(orderBy('createdAt', 'desc'));
+    }
     if (filters.limit) {
       constraints.push(limit(filters.limit));
     }
@@ -699,6 +702,13 @@ export const getOrders = async (filters = {}) => {
         return { ...order, items: enrichedItems };
       })
     );
+
+    // Sort by createdAt desc client-side (needed when orderBy was skipped to avoid composite index)
+    enrichedOrders.sort((a, b) => {
+      const aTime = a.createdAt?.toDate?.()?.getTime() ?? a.createdAt ?? 0;
+      const bTime = b.createdAt?.toDate?.()?.getTime() ?? b.createdAt ?? 0;
+      return bTime - aTime;
+    });
 
     return enrichedOrders;
   } catch (error) {
