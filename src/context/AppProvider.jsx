@@ -872,6 +872,7 @@ export function AppProvider({ children }) {
     toggleExtraService,
     clearSelectedServices,
     handleOrderSubmit,
+    completeCheckoutSuccess,
     getAvailabilityForDate,
     getMaxAvailableForRange,
   };
