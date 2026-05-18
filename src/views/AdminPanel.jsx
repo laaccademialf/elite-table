@@ -27,6 +27,7 @@ import UsersView from './UserManagement';
 import { exportProductsToExcel, downloadExcelTemplate, importProductsFromExcel } from '../utils/excelUtils';
 import { downloadOrderInvoicePdf, downloadCompensationPdf } from '../utils/pdfInvoice';
 import { getLiqPaySettings, saveLiqPaySettings } from '../services/liqpay';
+import { getDatabaseSettings, saveDatabaseSettings, testDatabaseConnection } from '../services/databaseSettings';
 import { Timestamp } from 'firebase/firestore';
 
 // Helper to format date object or string to DD.MM.YYYY
@@ -172,6 +173,26 @@ export function AdminPanel() {
     hasPrivateKey: false,
     updatedAt: '',
   });
+  const [dbSettingsLoading, setDbSettingsLoading] = useState(false);
+  const [dbSettingsSaving, setDbSettingsSaving] = useState(false);
+  const [dbSettingsTesting, setDbSettingsTesting] = useState(false);
+  const [dbSettingsMessage, setDbSettingsMessage] = useState('');
+  const [dbSettingsError, setDbSettingsError] = useState('');
+  const [dbSettingsForm, setDbSettingsForm] = useState({
+    provider: 'firebase',
+    host: '',
+    port: 3306,
+    user: '',
+    password: '',
+    database: '',
+    ssl: false,
+    poolSize: 10,
+    hasPassword: false,
+    passwordPreview: '',
+    updatedBy: '',
+    updatedAt: '',
+    envConfigured: false,
+  });
 
   // Filters state
   const [productCategoryFilter, setProductCategoryFilter] = useState('all');
@@ -221,6 +242,7 @@ export function AdminPanel() {
   useEffect(() => {
     if (adminTab === 'settings' && currentUser?.role === 'manager') {
       loadPaymentSettings();
+      loadDatabaseSettings();
     }
   }, [adminTab, currentUser?.role]);
 
@@ -474,6 +496,120 @@ export function AdminPanel() {
       setPaymentSettingsError(error.message || 'Не вдалося зберегти налаштування LiqPay.');
     } finally {
       setPaymentSettingsSaving(false);
+    }
+  };
+
+  const loadDatabaseSettings = async () => {
+    try {
+      setDbSettingsLoading(true);
+      setDbSettingsError('');
+      const settings = await getDatabaseSettings();
+      setDbSettingsForm((prev) => ({
+        ...prev,
+        provider: settings.provider || 'firebase',
+        host: settings.host || '',
+        port: Number(settings.port || 3306),
+        user: settings.user || '',
+        password: '',
+        database: settings.database || '',
+        ssl: settings.ssl === true,
+        poolSize: Number(settings.poolSize || 10),
+        hasPassword: settings.hasPassword === true,
+        passwordPreview: settings.passwordPreview || '',
+        updatedBy: settings.updatedBy || '',
+        updatedAt: settings.updatedAt || '',
+        envConfigured: settings.envConfigured === true,
+      }));
+    } catch (error) {
+      console.error('Error loading DB settings:', error);
+      setDbSettingsError(error.message || 'Не вдалося завантажити налаштування БД.');
+    } finally {
+      setDbSettingsLoading(false);
+    }
+  };
+
+  const handleTestDatabaseConnection = async () => {
+    if (!dbSettingsForm.host.trim() || !dbSettingsForm.user.trim() || !dbSettingsForm.database.trim()) {
+      setDbSettingsError('Для тесту вкажіть host, user та database.');
+      return;
+    }
+
+    try {
+      setDbSettingsTesting(true);
+      setDbSettingsError('');
+      setDbSettingsMessage('');
+
+      const result = await testDatabaseConnection({
+        host: dbSettingsForm.host.trim(),
+        port: Number(dbSettingsForm.port || 3306),
+        user: dbSettingsForm.user.trim(),
+        password: dbSettingsForm.password,
+        database: dbSettingsForm.database.trim(),
+        ssl: dbSettingsForm.ssl,
+        poolSize: Number(dbSettingsForm.poolSize || 10),
+      });
+
+      const latency = result?.diagnostics?.latencyMs;
+      const version = result?.diagnostics?.version;
+      setDbSettingsMessage(
+        `Підключення успішне${typeof latency === 'number' ? ` (${latency} ms)` : ''}${version ? `, MariaDB: ${version}` : ''}.`
+      );
+    } catch (error) {
+      console.error('Error testing DB connection:', error);
+      setDbSettingsError(error.message || 'Не вдалося підключитися до MariaDB.');
+    } finally {
+      setDbSettingsTesting(false);
+    }
+  };
+
+  const handleSaveDatabaseSettings = async (e) => {
+    e.preventDefault();
+
+    if (dbSettingsForm.provider === 'mariadb') {
+      if (!dbSettingsForm.host.trim() || !dbSettingsForm.user.trim() || !dbSettingsForm.database.trim()) {
+        setDbSettingsError('Для MariaDB вкажіть host, user та database.');
+        return;
+      }
+    }
+
+    try {
+      setDbSettingsSaving(true);
+      setDbSettingsError('');
+      setDbSettingsMessage('');
+
+      const result = await saveDatabaseSettings({
+        provider: dbSettingsForm.provider,
+        host: dbSettingsForm.host.trim(),
+        port: Number(dbSettingsForm.port || 3306),
+        user: dbSettingsForm.user.trim(),
+        password: dbSettingsForm.password,
+        database: dbSettingsForm.database.trim(),
+        ssl: dbSettingsForm.ssl,
+        poolSize: Number(dbSettingsForm.poolSize || 10),
+      });
+
+      setDbSettingsForm((prev) => ({
+        ...prev,
+        provider: result.provider || prev.provider,
+        host: result.host || prev.host,
+        port: Number(result.port || prev.port || 3306),
+        user: result.user || prev.user,
+        password: '',
+        database: result.database || prev.database,
+        ssl: result.ssl === true,
+        poolSize: Number(result.poolSize || prev.poolSize || 10),
+        hasPassword: result.hasPassword === true,
+        passwordPreview: result.passwordPreview || prev.passwordPreview,
+        updatedBy: result.updatedBy || prev.updatedBy,
+        updatedAt: result.updatedAt || prev.updatedAt,
+      }));
+
+      setDbSettingsMessage(result.message || 'Налаштування підключення БД збережено.');
+    } catch (error) {
+      console.error('Error saving DB settings:', error);
+      setDbSettingsError(error.message || 'Не вдалося зберегти налаштування БД.');
+    } finally {
+      setDbSettingsSaving(false);
     }
   };
 
@@ -3218,6 +3354,150 @@ ${result.errors.length > 0 ? '\nТовари з помилками:\n' + result.
 
                   <p className="md:col-span-2 text-xs text-slate-500">
                     Private key не показується повністю. Якщо залишиш це поле порожнім, збережений ключ не зміниться.
+                  </p>
+                </form>
+              )}
+            </div>
+
+            <div className="border border-slate-200 rounded-2xl p-5 bg-slate-50">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Підключення до бази даних</h3>
+                  <p className="text-sm text-slate-500">Перемикай джерело даних між Firebase та власною MariaDB прямо з адмін-панелі.</p>
+                </div>
+                {dbSettingsForm.updatedAt && (
+                  <span className="text-xs text-slate-500 bg-white border border-slate-200 rounded-full px-3 py-1">
+                    Оновлено: {new Date(dbSettingsForm.updatedAt).toLocaleString('uk-UA')}
+                  </span>
+                )}
+              </div>
+
+              {dbSettingsLoading ? (
+                <p className="text-sm text-slate-500">Завантаження налаштувань підключення БД...</p>
+              ) : (
+                <form onSubmit={handleSaveDatabaseSettings} className="grid md:grid-cols-2 gap-3">
+                  <select
+                    value={dbSettingsForm.provider}
+                    onChange={(e) => setDbSettingsForm((prev) => ({ ...prev, provider: e.target.value }))}
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  >
+                    <option value="firebase">Firebase (поточний режим)</option>
+                    <option value="mariadb">MariaDB (власний сервер)</option>
+                  </select>
+
+                  <div className="flex items-center px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm text-slate-600">
+                    {dbSettingsForm.envConfigured ? 'Є env-конфігурація MariaDB на сервері' : 'Env-конфігурація MariaDB не знайдена'}
+                  </div>
+
+                  <input
+                    type="text"
+                    value={dbSettingsForm.host}
+                    onChange={(e) => setDbSettingsForm((prev) => ({ ...prev, host: e.target.value }))}
+                    placeholder="Host (наприклад 10.0.0.5 або db.company.local)"
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    disabled={dbSettingsForm.provider !== 'mariadb'}
+                  />
+
+                  <input
+                    type="number"
+                    min="1"
+                    max="65535"
+                    value={dbSettingsForm.port}
+                    onChange={(e) => setDbSettingsForm((prev) => ({ ...prev, port: Number(e.target.value || 3306) }))}
+                    placeholder="3306"
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    disabled={dbSettingsForm.provider !== 'mariadb'}
+                  />
+
+                  <input
+                    type="text"
+                    value={dbSettingsForm.user}
+                    onChange={(e) => setDbSettingsForm((prev) => ({ ...prev, user: e.target.value }))}
+                    placeholder="DB user"
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    disabled={dbSettingsForm.provider !== 'mariadb'}
+                  />
+
+                  <input
+                    type="text"
+                    value={dbSettingsForm.database}
+                    onChange={(e) => setDbSettingsForm((prev) => ({ ...prev, database: e.target.value }))}
+                    placeholder="Database name"
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    disabled={dbSettingsForm.provider !== 'mariadb'}
+                  />
+
+                  <input
+                    type="password"
+                    value={dbSettingsForm.password}
+                    onChange={(e) => setDbSettingsForm((prev) => ({ ...prev, password: e.target.value }))}
+                    placeholder={dbSettingsForm.hasPassword ? `Пароль збережено: ${dbSettingsForm.passwordPreview || '••••'}` : 'Пароль БД'}
+                    className="md:col-span-2 px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    disabled={dbSettingsForm.provider !== 'mariadb'}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:col-span-2">
+                    <label className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={dbSettingsForm.ssl}
+                        onChange={(e) => setDbSettingsForm((prev) => ({ ...prev, ssl: e.target.checked }))}
+                        className="w-4 h-4"
+                        disabled={dbSettingsForm.provider !== 'mariadb'}
+                      />
+                      SSL підключення
+                    </label>
+
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={dbSettingsForm.poolSize}
+                      onChange={(e) => setDbSettingsForm((prev) => ({ ...prev, poolSize: Number(e.target.value || 10) }))}
+                      placeholder="Pool size"
+                      className="px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                      disabled={dbSettingsForm.provider !== 'mariadb'}
+                    />
+                  </div>
+
+                  {dbSettingsForm.updatedBy && (
+                    <p className="md:col-span-2 text-xs text-slate-500">Остання зміна: {dbSettingsForm.updatedBy}</p>
+                  )}
+
+                  {dbSettingsError && (
+                    <p className="md:col-span-2 text-sm text-red-600">{dbSettingsError}</p>
+                  )}
+                  {dbSettingsMessage && (
+                    <p className="md:col-span-2 text-sm text-emerald-600">{dbSettingsMessage}</p>
+                  )}
+
+                  <div className="md:col-span-2 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={handleTestDatabaseConnection}
+                      disabled={dbSettingsTesting || dbSettingsForm.provider !== 'mariadb'}
+                      className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition disabled:opacity-60"
+                    >
+                      {dbSettingsTesting ? 'Тестуємо...' : 'Тест підключення'}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={dbSettingsSaving}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition disabled:opacity-60"
+                    >
+                      {dbSettingsSaving ? 'Збереження...' : 'Зберегти та активувати'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={loadDatabaseSettings}
+                      className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition"
+                    >
+                      Оновити дані
+                    </button>
+                  </div>
+
+                  <p className="md:col-span-2 text-xs text-slate-500">
+                    Якщо поле пароля порожнє, раніше збережений пароль не перезапишеться. Після збереження сервер перемкне `DATA_PROVIDER` на вибране значення.
                   </p>
                 </form>
               )}

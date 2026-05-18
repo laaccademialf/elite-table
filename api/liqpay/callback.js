@@ -1,5 +1,6 @@
-import { FieldValue, getAdminDb } from '../_lib/firebaseAdmin.js';
 import { mapLiqPayStatus, verifyLiqPaySignature } from '../_lib/liqpay.js';
+import { getPaymentSettings } from '../_lib/paymentSettingsStore.js';
+import { updateOrderPaymentStatus } from '../_lib/ordersStore.js';
 
 const readRequestBody = async (req) => {
   if (req.body && typeof req.body === 'object') {
@@ -46,8 +47,7 @@ export default async function handler(req, res) {
     let storedSettings = {};
 
     try {
-      const snapshot = await getAdminDb().collection('app_settings').doc('payments').get();
-      storedSettings = snapshot.exists ? snapshot.data() : {};
+      storedSettings = await getPaymentSettings();
     } catch (settingsError) {
       console.warn('[liqpay/callback] Unable to read stored payment settings:', settingsError?.message || settingsError);
     }
@@ -77,24 +77,13 @@ export default async function handler(req, res) {
     }
 
     const paymentStatus = mapLiqPayStatus(payload.status);
-    const db = getAdminDb();
-
-    const updates = {
-      paymentMethod: 'liqpay',
+    await updateOrderPaymentStatus(orderId, {
       paymentStatus,
       liqpayStatus: payload.status || 'unknown',
       liqpayTransactionId: payload.transaction_id || '',
       paymentAmount: Number(payload.amount || 0),
       paymentCurrency: payload.currency || 'UAH',
-      paymentUpdatedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    };
-
-    if (paymentStatus === 'paid') {
-      updates.paidAt = FieldValue.serverTimestamp();
-    }
-
-    await db.collection('orders').doc(orderId).set(updates, { merge: true });
+    });
 
     return res.status(200).send('ok');
   } catch (error) {

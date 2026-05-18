@@ -45,3 +45,14 @@ npm run build
 - `api/liqpay/create-payment.js` — безпечне створення платежу
 - `api/liqpay/callback.js` — оновлення статусу оплати після callback від `LiqPay`
 
+## Перехід на власну MariaDB
+
+Додано механізм поетапного переходу з Firebase на MariaDB через `DATA_PROVIDER`.
+
+- `DATA_PROVIDER=firebase` — поточний режим
+- `DATA_PROVIDER=mariadb` — режим власної БД
+
+Детальна інструкція: `docs/mariadb-transition.md`.
+
+SQL схема (3НФ) для порожньої БД: `db/migrations/001_init_mariadb.sql`.
+

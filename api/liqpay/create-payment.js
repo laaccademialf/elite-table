@@ -1,5 +1,5 @@
-import { getAdminDb } from '../_lib/firebaseAdmin.js';
 import { buildLiqPayCheckoutPayload, getRequestOrigin, LIQPAY_CHECKOUT_URL } from '../_lib/liqpay.js';
+import { getPaymentSettings } from '../_lib/paymentSettingsStore.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,8 +11,7 @@ export default async function handler(req, res) {
     let storedSettings = {};
 
     try {
-      const snapshot = await getAdminDb().collection('app_settings').doc('payments').get();
-      storedSettings = snapshot.exists ? snapshot.data() : {};
+      storedSettings = await getPaymentSettings();
     } catch (settingsError) {
       console.warn('[liqpay/create-payment] Unable to read stored payment settings:', settingsError?.message || settingsError);
     }

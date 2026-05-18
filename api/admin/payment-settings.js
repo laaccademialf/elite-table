@@ -1,4 +1,7 @@
-import { FieldValue, getAdminAuth, getAdminDb } from '../_lib/firebaseAdmin.js';
+import { getAdminAuth, getAdminDb } from '../_lib/firebaseAdmin.js';
+import { isMariaDbProvider } from '../_lib/dataProvider.js';
+import { withMariaDbConnection } from '../_lib/mariadb.js';
+import { getPaymentSettings, savePaymentSettings } from '../_lib/paymentSettingsStore.js';
 
 const getBearerToken = (req) => {
   const header = req.headers.authorization || req.headers.Authorization || '';
@@ -44,11 +47,28 @@ const requireManager = async (req) => {
   }
 
   const decodedToken = await getAdminAuth().verifyIdToken(token);
-  const db = getAdminDb();
-  const userSnapshot = await db.collection('users').where('uid', '==', decodedToken.uid).limit(1).get();
-  const userData = userSnapshot.docs[0]?.data() || {};
+  let role = '';
 
-  if (userData.role !== 'manager') {
+  if (isMariaDbProvider()) {
+    role = await withMariaDbConnection(async (conn) => {
+      const [rows] = await conn.query(
+        `SELECT r.code AS role_code
+         FROM users u
+         JOIN roles r ON r.id = u.role_id
+         WHERE u.firebase_uid = ? OR u.email = ?
+         LIMIT 1`,
+        [decodedToken.uid || '', decodedToken.email || '']
+      );
+      return rows[0]?.role_code || '';
+    });
+  } else {
+    const db = getAdminDb();
+    const userSnapshot = await db.collection('users').where('uid', '==', decodedToken.uid).limit(1).get();
+    const userData = userSnapshot.docs[0]?.data() || {};
+    role = userData.role || '';
+  }
+
+  if (role !== 'manager') {
     const error = new Error('Лише адміністратор може змінювати платіжні ключі.');
     error.statusCode = 403;
     throw error;
@@ -56,7 +76,7 @@ const requireManager = async (req) => {
 
   return {
     uid: decodedToken.uid,
-    email: decodedToken.email || userData.email || '',
+    email: decodedToken.email || '',
   };
 };
 
@@ -79,42 +99,25 @@ export default async function handler(req, res) {
 
   try {
     const adminUser = await requireManager(req);
-    const db = getAdminDb();
-    const settingsRef = db.collection('app_settings').doc('payments');
 
     if (req.method === 'GET') {
-      const snapshot = await settingsRef.get();
-      return res.status(200).json(formatResponse(snapshot.exists ? snapshot.data() : {}));
+      const settings = await getPaymentSettings();
+      return res.status(200).json(formatResponse(settings));
     }
 
     const body = parseRequestBody(req);
-    const updates = {
-      updatedAt: FieldValue.serverTimestamp(),
+    await savePaymentSettings({
+      publicKey: body.publicKey,
+      privateKey: body.privateKey,
+      appBaseUrl: body.appBaseUrl,
+      sandbox: body.sandbox,
       updatedBy: adminUser.email || adminUser.uid,
-    };
+    });
 
-    if (typeof body.publicKey === 'string' && body.publicKey.trim()) {
-      updates.liqpayPublicKey = body.publicKey.trim();
-    }
-
-    if (typeof body.privateKey === 'string' && body.privateKey.trim()) {
-      updates.liqpayPrivateKey = body.privateKey.trim();
-    }
-
-    if (typeof body.appBaseUrl === 'string') {
-      updates.appBaseUrl = body.appBaseUrl.trim();
-    }
-
-    if (typeof body.sandbox !== 'undefined') {
-      updates.liqpaySandbox = body.sandbox === true || body.sandbox === 'true';
-    }
-
-    await settingsRef.set(updates, { merge: true });
-
-    const snapshot = await settingsRef.get();
+    const settings = await getPaymentSettings();
     return res.status(200).json({
       success: true,
-      ...formatResponse(snapshot.exists ? snapshot.data() : {}),
+      ...formatResponse(settings),
     });
   } catch (error) {
     console.error('[admin/payment-settings] Error:', error);
